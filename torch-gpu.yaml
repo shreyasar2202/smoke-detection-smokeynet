@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torch-gpu-anshumand
+  namespace: digits
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: torch-gpu-anshumand
+  template:
+    metadata:
+      labels:
+        k8s-app: torch-gpu-anshumand
+    spec:
+      tolerations:
+      - key: "region"
+        operator: "Equal"
+        value: "allow"
+        effect: "NoSchedule"
+      containers:
+      - name: torch-gpu-anshumand
+        image: gitlab-registry.nautilus.optiputer.net/aunnnn/detectron-smoke-detection
+        # Define the port you want to run jupyter lab on. If not defined, will default to 8888.
+        env:
+        - name: MY_JUPYTER_LAB_PORT
+          value: "5854"
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        # command: ["/bin/sh", "-c"]
+        # args: ["sleep infinity"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "64Gi"
+            cpu: "8"
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "2"
+        volumeMounts:
+        - mountPath: /userdata/kerasData
+          name: modeltraining
+      volumes:
+        - name: modeltraining
+          persistentVolumeClaim:
+            claimName: modeltraining

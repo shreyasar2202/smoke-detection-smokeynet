@@ -20,21 +20,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     xvfb \
     screen \
+    vim \
+    emacs \
     nano \
     wget && \
     rm -rf /var/lib/apt/lists/*
 
 # Install conda
-# ENV CONDA_DIR /opt/conda
-# ENV PATH $CONDA_DIR/bin:$PATH
+ENV CONDA_DIR /opt/conda
+ENV PATH $CONDA_DIR/bin:$PATH
 
-# RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh -O ~/miniconda.sh && \
-#     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-#     rm ~/miniconda.sh && \
-#     /opt/conda/bin/conda clean -tipsy && \
-#     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-#     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-#     echo "conda activate base" >> ~/.bashrc
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda clean -tipsy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc
 
 # Install Python packages and keras
 ENV NB_USER keras
@@ -43,7 +45,7 @@ ENV NB_UID 1000
 RUN echo "root:digits" | chpasswd
 
 RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
-#     chown $NB_USER $CONDA_DIR -R && \
+    chown $NB_USER $CONDA_DIR -R && \
     chown $NB_USER /userdata/kerasData -R && \
     chown $NB_USER / && \
     mkdir -p / && \
@@ -52,35 +54,35 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
 
 USER $NB_USER
 
-# ARG python_version=3.6
+ARG python_version=3.6
 
-# RUN conda config --append channels conda-forge
-# RUN conda install -y python=${python_version} && \
-#     pip install --upgrade pip && \
-#     pip install \
-#     sklearn_pandas \
-#     opencv-python \
-#     pycocotools>=2.0.1 \
-#     google-colab \
-#     scikit-image \
-#     conda install \
-#     h5py \
-#     matplotlib \
-#     jupyterlab \
-#     Pillow \
-#     pandas \
-#     pyyaml \
-#     scikit-learn \
-#     && \
-#     conda clean -yt
+RUN conda config --append channels conda-forge
+RUN conda install -y python=${python_version} && \
+    pip install --upgrade pip && \
+    pip install \
+    sklearn_pandas \
+    opencv-python \
+    pycocotools>=2.0.1 \
+    google-colab \
+    scikit-image \
+    conda install \
+    h5py \
+    matplotlib \
+    jupyterlab \
+    Pillow \
+    pandas \
+    pyyaml \
+    scikit-learn \
+    && \
+    conda clean -yt
 
-# RUN pip install --upgrade ipykernel
+RUN pip install --upgrade ipykernel
 
-# # RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-# # Or using pip
-# RUN pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+# RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+# Or using pip
+RUN pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 
-# RUN pip install detectron2==0.2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.5/index.html
+RUN pip install detectron2==0.2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.5/index.html
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
