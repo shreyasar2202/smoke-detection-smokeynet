@@ -20,11 +20,11 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: torch-gpu-anshumand
-        image: gitlab-registry.nautilus.optiputer.net/aunnnn/detectron-smoke-detection
+        image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection:048f2046
         # Define the port you want to run jupyter lab on. If not defined, will default to 8888.
         env:
         - name: MY_JUPYTER_LAB_PORT
-          value: "5854"
+          value: "8888"
         imagePullPolicy: Always
         securityContext:
           capabilities:

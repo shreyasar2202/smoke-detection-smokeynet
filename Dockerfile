@@ -1,4 +1,7 @@
-FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+ARG cuda_version=10.1
+ARG cudnn_version=7
+FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
+
 
 WORKDIR /userdata/kerasData
 
@@ -23,6 +26,13 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
     usermod -aG sudo $NB_USER
 
 USER $NB_USER
+
+RUN pip3 install --upgrade pip && \
+    pip3 install --upgrade --no-cache-dir \
+    jupyter \
+    jupyterlab \
+    sklearn
+
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
