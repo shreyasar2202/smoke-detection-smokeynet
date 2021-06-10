@@ -5,7 +5,8 @@ WORKDIR /userdata/kerasData
 # Install system packages
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y --no-install-recommends \
-    python3.8 \
+    python3-dev \
+    python3-pip \
     git \
     sudo\
     tmux \
