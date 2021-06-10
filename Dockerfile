@@ -59,7 +59,7 @@ ARG python_version=3.6
 RUN conda config --append channels conda-forge
 RUN conda install -y python=${python_version}
 
-RUN pip install --upgrade ipykernel
+# RUN pip install --upgrade ipykernel
 
 # RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 # Or using pip
@@ -73,7 +73,7 @@ ENV PYTHONPATH='/src/:$PYTHONPATH'
 EXPOSE 5854
 
 # Run time ENV for port of jupyter lab, if not defined, default to 8888
-ARG MY_JUPYTER_LAB_PORT=5854
-ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
+# ARG MY_JUPYTER_LAB_PORT=5854
+# ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
-CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
+# CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
