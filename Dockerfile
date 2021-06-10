@@ -4,7 +4,7 @@ WORKDIR /userdata/kerasData
 
 # Install system packages
 RUN apt-get update -y && apt-get upgrade -y
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get install -y \
     python3-dev \
     python3-pip \
     git \
@@ -16,16 +16,11 @@ RUN apt-get install -y --no-install-recommends \
 
 # Install pip3 packages
 RUN pip3 install --upgrade pip
-RUN pip3 install \
-    jupyterlab \
-    numpy \
-    matplotlib \
-    torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html \
-    pytorch-lightning
+RUN pip3 install jupyterlab
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-# Set up ipynb server
+# Set up Jupyter Lab server
 EXPOSE 8888
 
 ARG MY_JUPYTER_LAB_PORT=8888
