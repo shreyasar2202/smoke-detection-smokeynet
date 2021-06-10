@@ -40,7 +40,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x
 
 # Install Python packages and keras
 ENV NB_USER keras
-ENV NB_UID 1000
+ENV NB_UID 1021
 # RUN mkdir /userdata/kerasData
 RUN echo "root:digits" | chpasswd
 
@@ -59,20 +59,9 @@ ARG python_version=3.6
 RUN conda config --append channels conda-forge
 RUN conda install -y python=${python_version} && \
     pip install --upgrade pip && \
-    pip install \
-    sklearn_pandas \
-    opencv-python \
-    pycocotools>=2.0.1 \
-    google-colab \
-    scikit-image \
     conda install \
-    h5py \
-    matplotlib \
     jupyterlab \
-    Pillow \
-    pandas \
     pyyaml \
-    scikit-learn \
     && \
     conda clean -yt
 
@@ -89,10 +78,10 @@ ENV LANG=C.UTF-8
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-EXPOSE 8888
+EXPOSE 5854
 
 # Run time ENV for port of jupyter lab, if not defined, default to 8888
-ARG MY_JUPYTER_LAB_PORT=8888
+ARG MY_JUPYTER_LAB_PORT=5854
 ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
 CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
