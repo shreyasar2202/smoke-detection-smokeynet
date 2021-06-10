@@ -14,6 +14,22 @@ RUN apt-get install -y \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
+
+# Configure user
+ENV NB_USER keras
+ENV NB_UID 1000
+RUN echo "root:digits" | chpasswd
+
+RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    chown $NB_USER /userdata/kerasData -R && \
+    chown $NB_USER / && \
+    mkdir -p / && \
+    chpasswd $NB_USER:digits && \
+    usermod -aG sudo $NB_USER
+
+USER $NB_USER
+
+
 # Install pip3 packages
 RUN pip3 install --upgrade pip
 RUN pip3 install jupyterlab
