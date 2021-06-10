@@ -41,7 +41,46 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
 
 USER $NB_USER
 
+# Install conda
+ENV CONDA_DIR /opt/conda
+ENV PATH $CONDA_DIR/bin:$PATH
+
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda clean -tipsy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc
+
+
+ARG python_version=3.6
+
+RUN conda config --append channels conda-forge
+RUN conda install -y python=${python_version} && \
+    pip install --upgrade pip && \
+    pip install \
+    sklearn_pandas \
+    opencv-python \
+    pycocotools>=2.0.1 \
+    google-colab \
+    scikit-image \
+    conda install \
+    h5py \
+    matplotlib \
+    jupyterlab \
+    Pillow \
+    pandas \
+    pyyaml \
+    scikit-learn \
+    && \
+    conda clean -yt
+
+
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+
+ENV PYTHONPATH='/src/:$PYTHONPATH'
+
 
 EXPOSE 8888
