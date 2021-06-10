@@ -91,11 +91,11 @@ ENV PYTHONPATH='/src/:$PYTHONPATH'
 
 EXPOSE 8888
 
-RUN mkdir /home/$NB_USER/.jupyter
-ADD docker/jupyter_notebook_config.py /home/$NB_USER/.jupyter
+#RUN mkdir /home/$NB_USER/.jupyter
+#ADD docker/jupyter_notebook_config.py /home/$NB_USER/.jupyter
 
 # Run time ENV for port of jupyter lab, if not defined, default to 8888
-ARG MY_JUPYTER_LAB_PORT=8888
-ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
+#ARG MY_JUPYTER_LAB_PORT=8888
+#ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
-CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
+#CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
