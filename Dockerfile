@@ -3,7 +3,7 @@ FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 WORKDIR /userdata/kerasData
 
 # Install system packages
-RUN apt-get update && apt-get upgrade
+RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y --no-install-recommends \
     python3.8 \
     git \
@@ -17,8 +17,9 @@ RUN apt-get install -y --no-install-recommends \
 RUN pip install --upgrade pip
 RUN pip install \
     jupyterlab \
-    sklearn \
-    matplotlib
+    matplotlib \
+    torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html \
+    pytorch-lightning
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
