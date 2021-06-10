@@ -40,7 +40,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x
 
 # Install Python packages and keras
 ENV NB_USER keras
-ENV NB_UID 1021
+ENV NB_UID 1000
 # RUN mkdir /userdata/kerasData
 RUN echo "root:digits" | chpasswd
 
@@ -78,10 +78,10 @@ ENV LANG=C.UTF-8
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-EXPOSE 5854
+EXPOSE 8888
 
 # Run time ENV for port of jupyter lab, if not defined, default to 8888
-ARG MY_JUPYTER_LAB_PORT=5854
+ARG MY_JUPYTER_LAB_PORT=8888
 ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
 CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
