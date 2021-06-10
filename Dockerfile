@@ -38,6 +38,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
+
 ARG python_version=3.6
 
 RUN conda config --append channels conda-forge
@@ -45,7 +46,6 @@ RUN conda install -y python=${python_version} && \
     pip install --upgrade pip && \
     conda install \
     jupyterlab \
-    pyyaml \
     && \
     conda clean -yt
 
@@ -53,9 +53,7 @@ RUN pip install --upgrade ipykernel
 
 # RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 # Or using pip
-RUN pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 
-RUN pip install detectron2==0.2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.5/index.html
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
