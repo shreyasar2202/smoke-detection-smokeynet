@@ -27,8 +27,8 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
 
 USER $NB_USER
 
-RUN pip3 install --upgrade pip && \
-    pip3 install --upgrade --no-cache-dir \
+RUN pip install --upgrade pip && \
+    pip install --upgrade --no-cache-dir \
     jupyter \
     jupyterlab \
     sklearn
