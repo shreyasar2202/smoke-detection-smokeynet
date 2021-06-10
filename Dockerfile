@@ -6,7 +6,6 @@ WORKDIR /userdata/kerasData
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     sudo\
-    tmux \
     nano \
     wget && \
     rm -rf /var/lib/apt/lists/*
@@ -24,3 +23,10 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
     usermod -aG sudo $NB_USER
 
 USER $NB_USER
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+ENV PYTHONPATH='/src/:$PYTHONPATH'
+
+EXPOSE 8888
