@@ -40,7 +40,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x
 
 # Install Python packages and keras
 ENV NB_USER keras
-ENV NB_UID 1000
+ENV NB_UID 1021
 # RUN mkdir /userdata/kerasData
 RUN echo "root:digits" | chpasswd
 
@@ -57,31 +57,23 @@ USER $NB_USER
 ARG python_version=3.6
 
 RUN conda config --append channels conda-forge
-RUN conda install -y python=${python_version} && \
-    pip install --upgrade pip && \
-    conda install \
-    jupyterlab \
-    pyyaml \
-    && \
-    conda clean -yt
+RUN conda install -y python=${python_version}
 
 RUN pip install --upgrade ipykernel
 
 # RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 # Or using pip
-RUN pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 
-RUN pip install detectron2==0.2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.5/index.html
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-EXPOSE 8888
+EXPOSE 5854
 
 # Run time ENV for port of jupyter lab, if not defined, default to 8888
-ARG MY_JUPYTER_LAB_PORT=8888
+ARG MY_JUPYTER_LAB_PORT=5854
 ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
 CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
