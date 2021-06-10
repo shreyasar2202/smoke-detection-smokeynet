@@ -13,10 +13,11 @@ RUN apt-get install -y --no-install-recommends \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install pip packages
-RUN pip install --upgrade pip
-RUN pip install \
+# Install pip3 packages
+RUN pip3 install --upgrade pip3
+RUN pip3 install \
     jupyterlab \
+    numpy \
     matplotlib \
     torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html \
     pytorch-lightning
