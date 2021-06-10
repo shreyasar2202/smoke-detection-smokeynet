@@ -64,7 +64,7 @@ RUN conda install -y python=${python_version} && \
     && \
     conda clean -yt
 
-# RUN pip install --upgrade ipykernel
+RUN pip install --upgrade ipykernel
 
 # RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 # Or using pip
