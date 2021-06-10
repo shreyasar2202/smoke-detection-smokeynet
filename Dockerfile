@@ -27,16 +27,7 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
 
 USER $NB_USER
 
-RUN pip install --upgrade pip && \
-    pip install --upgrade --no-cache-dir \
-    jupyter \
-    jupyterlab \
-    sklearn
-
-
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-
-ENV PYTHONPATH='/src/:$PYTHONPATH'
 
 EXPOSE 8888
