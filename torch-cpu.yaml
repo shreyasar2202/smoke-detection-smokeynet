@@ -20,7 +20,7 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: torch-cpu-anshumand
-        image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection:048f2046
+        image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection:409bb6ea
         # Define the port you want to run jupyter lab on. If not defined, will default to 8888.
         env:
         - name: MY_JUPYTER_LAB_PORT

@@ -2,16 +2,30 @@ ARG cuda_version=10.1
 ARG cudnn_version=7
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
-
 WORKDIR /userdata/kerasData
 
 # Install system packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    bzip2 \
+    g++ \
     git \
+    graphviz \
+    gifsicle \
+    ninja-build \
+    libgl1-mesa-glx \
+    libhdf5-dev \
     sudo\
+    strace \
+    openmpi-bin \
+    protobuf-compiler \
+    xvfb \
+    screen \
+    vim \
+    emacs \
     nano \
     wget && \
     rm -rf /var/lib/apt/lists/*
+
 
 # Configure user
 ENV NB_USER keras
