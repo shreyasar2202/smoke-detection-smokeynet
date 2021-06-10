@@ -1,4 +1,6 @@
-FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+ARG cuda_version=10.2
+ARG cudnn_version=7
+FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
 WORKDIR /userdata/kerasData
 
@@ -16,11 +18,13 @@ RUN apt-get install -y \
 
 # Install pip3 packages
 RUN pip3 install --upgrade pip
-RUN pip3 install jupyterlab
-RUN pip3 install numpy
-RUN pip3 install matplotlib
-RUN pip3 install torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-RUN pip3 install pytorch-lightning
+RUN pip3 install \
+    jupyterlab \
+    numpy \
+    matplotlib \
+    torch \
+    torchvision \
+    pytorch-lightning
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
