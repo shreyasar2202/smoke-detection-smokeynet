@@ -1,4 +1,5 @@
-ARG cuda_version=10.2
+# WARNING: CUDA v11 may lead to memory issues
+ARG cuda_version=10.1
 ARG cudnn_version=7
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
@@ -22,8 +23,7 @@ RUN pip3 install \
     jupyterlab \
     numpy \
     matplotlib \
-    torch \
-    torchvision \
+    torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html \
     pytorch-lightning
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
