@@ -1,5 +1,5 @@
 # WARNING: CUDA v11 may lead to memory issues
-ARG cuda_version=10.1
+ARG cuda_version=10.2
 ARG cudnn_version=7
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
@@ -23,8 +23,10 @@ RUN pip3 install \
     jupyterlab \
     numpy \
     matplotlib \
-    torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html \
-    pytorch-lightning
+    torch \
+    torchvision \
+    pytorch-lightning \
+    sklearn
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
@@ -34,6 +36,6 @@ EXPOSE 8888
 ARG MY_JUPYTER_LAB_PORT=8888
 ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
-# WARNING: Dockerfile will not run without this line!
+# WARNING: Dockerfile will give CrashLoopBackOff error without this line!
 # Password: digits
 CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.password="$(echo digits | python3 -c 'from notebook.auth import passwd;print(passwd(input()))')"
