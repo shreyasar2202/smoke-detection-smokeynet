@@ -35,4 +35,5 @@ ARG MY_JUPYTER_LAB_PORT=8888
 ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
 # WARNING: Dockerfile will not run without this line!
-# CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root
+# Password: digits
+CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.password="$(echo digits | python3 -c 'from notebook.auth import passwd;print(passwd(input()))')"
