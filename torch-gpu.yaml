@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: torch-gpu-anshumand
+  name: torch-gpu-username
   namespace: digits
 spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: torch-gpu-anshumand
+      k8s-app: torch-gpu-username
   template:
     metadata:
       labels:
-        k8s-app: torch-gpu-anshumand
+        k8s-app: torch-gpu-username
     spec:
       tolerations:
       - key: "region"
@@ -19,8 +19,8 @@ spec:
         value: "allow"
         effect: "NoSchedule"
       containers:
-      - name: torch-gpu-anshumand
-        image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection:048f2046
+      - name: torch-gpu-username
+        image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection
         # Define the port you want to run jupyter lab on. If not defined, will default to 8888.
         env:
         - name: MY_JUPYTER_LAB_PORT
