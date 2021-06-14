@@ -5,28 +5,31 @@ FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
 WORKDIR /userdata/kerasData
 
-# Install system packages
+# Install system packages. Put on separate lines to use caching.
 RUN apt-get update -y && apt-get upgrade -y
-RUN apt-get install -y \
-    python3-dev \
-    python3-pip \
-    git \
-    sudo\
-    tmux \
-    wget \
-    curl && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y python3-dev 
+RUN apt-get install -y python3-pip
+RUN apt-get install -y git
+RUN apt-get install -y sudo
+RUN apt-get install -y tmux 
+RUN apt-get install -y wget
+RUN apt-get install -y curl
+# opencv-python requirements
+RUN apt-get install -y ffmpeg
+RUN apt-get install -y libsm6
+RUN apt-get install -y libxext6
+RUN rm -rf /var/lib/apt/lists/*
 
-# Install pip3 packages
+# Install pip3 packages. Put on separate lines to use caching.
 RUN pip3 install --upgrade pip
-RUN pip3 install \
-    jupyterlab \
-    numpy \
-    matplotlib \
-    torch \
-    torchvision \
-    pytorch-lightning \
-    sklearn
+RUN pip3 install jupyterlab 
+RUN pip3 install numpy
+RUN pip3 install matplotlib
+RUN pip3 install torch
+RUN pip3 install torchvision
+RUN pip3 install pytorch-lightning
+RUN pip3 install sklearn
+RUN pip3 install opencv-python
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
