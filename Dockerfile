@@ -33,10 +33,6 @@ RUN pip3 install opencv-python
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
-# git setup
-RUN git config --global user.email ${GIT_EMAIL}
-RUN git config --global user.name ${GIT_NAME}
-
 # Set up Jupyter Lab server
 EXPOSE 8888
 
