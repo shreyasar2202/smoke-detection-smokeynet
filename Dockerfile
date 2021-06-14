@@ -38,4 +38,4 @@ ENV MY_JUPYTER_LAB_PORT="${MY_JUPYTER_LAB_PORT}"
 
 # WARNING: Dockerfile will give CrashLoopBackOff error without this line!
 # Password: digits
-CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.password="$(echo digits | python3 -c 'from notebook.auth import passwd;print(passwd(input()))')"
+CMD jupyter lab --port=${MY_JUPYTER_LAB_PORT} --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.password="$(echo digits | python3 -c 'from notebook.auth import passwd;print(passwd(input()))')"  --ContentsManager.allow_hidden=True
