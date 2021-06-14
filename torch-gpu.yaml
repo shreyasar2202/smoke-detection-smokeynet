@@ -25,13 +25,15 @@ spec:
         env:
         - name: MY_JUPYTER_LAB_PORT
           value: "8888"
+        - name: GIT_EMAIL
+          value: "adewanga@ucsd.edu"
+        - name: GIT_NAME
+          value: "Anshuman Dewangan"
         imagePullPolicy: Always
         securityContext:
           capabilities:
             add:
               - NET_ADMIN
-        # command: ["/bin/sh", "-c"]
-        # args: ["sleep infinity"]
         resources:
           limits:
             nvidia.com/gpu: 1
