@@ -25,7 +25,7 @@ parser.add_argument('--raw-images-path', type=str, default='/userdata/kerasData/
                     help='Path to raw wildfire images')
 parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
                     help='Path to XML labels for raw images')
-parser.add_argument('--output-path', type=str, default='./data/batched_tiled_data',
+parser.add_argument('--output-path', type=str, default='/userdata/kerasData/data/new_data/batched_tiled_data',
                     help='Path to save tiled images')
 
 # Desired input image dimensions
@@ -45,8 +45,6 @@ parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='If # of smoke pixels in tile is > than threshold, tile will be labelled as 1')
 parser.add_argument('--overlap-amount', type=int, default=20,
                     help='# of pixels to overlap the tiles')
-parser.add_argument('--add-empty', action='store_false',
-                    help='Should images without labels be tiled and stored?')
 
 args = parser.parse_args()
 
@@ -59,9 +57,9 @@ def xml_to_record(xml_file):
     """
     Description: Takes an XML label file and converts it to Numpy array
     Args:
-        - xml_file: Path to XML file
+        - xml_file (str): Path to XML file
     Returns:
-        - all_polys: Numpy array with labels
+        - all_polys (Numpy array): Numpy array with labels
     """
     
     objects_dict = {}
@@ -86,27 +84,27 @@ def xml_to_record(xml_file):
     return None
 
 
-def batch_tile_image(img_path, polygon_mask, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10):
+def batch_tile_image(img_path, label_path=None, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10):
     """
     Description: Tiles an image and returns stacked image array + labels 
     Args:
-        - img_path: path to raw image
-        - polygon_mask: Numpy array of labels (use xml_to_record)
-        - image_dimensions: dimensions original image should be resized to
-        - tile_dimensions: desired dimensions of tiles
-        - overlap_amount: how much the tiles should overlap in pixels
-        - smoke_threshold: how many pixels of smoke to label tile as a positive sample? 
+        - img_path (str): path to raw image
+        - label_path (str): path to XML label file
+        - image_dimensions (int, int): dimensions original image should be resized to
+        - tile_dimensions (int, int): desired dimensions of tiles
+        - overlap_amount (int): how much the tiles should overlap in pixels
+        - smoke_threshold (int): how many pixels of smoke to label tile as a positive sample? 
     Returns:
-        - tiles: Numpy array of tiles: [num_tiles, num_channels, tile_height, tile_width]
-        - labels: Numpy array of labels for each tile: [num_tiles]
+        - tiles (Numpy array): Numpy array of tiles: [num_tiles, num_channels, tile_height, tile_width]
+        - labels (Numpy array): Numpy array of labels for each tile: [num_tiles]
     """
     # Read image
     original_img = cv2.imread(img_path)
     
     # Create mask_img
     mask_img = np.zeros(original_img.shape[:2], dtype=np.uint8)    
-    if polygon_mask is not None:
-        cv2.fillPoly(mask_img, polygon_mask, 1)
+    if label_path is not None:
+        cv2.fillPoly(mask_img, xml_to_record(label_path), 1)
 
     # Resize image
     if image_dimensions is not None:
@@ -150,7 +148,21 @@ def save_metadata(output_path, **kwargs):
         - output_path: desired path of metadata.pkl (suggested to use same directory as tiled images)
         - **kwargs: any other args to save in metadata
     Saves:
-        - metadata.pl
+        - metadata.pkl: dictionary of all associated metadata, including:
+            - raw_images_path (str): path to raw images
+            - labels_path (str): path to XML labels
+            - output_path (str): desired path of outputted Numpy files
+            - image_dimensions (int, int): dimensions original image should be resized to
+            - tile_dimensions (int, int): desired dimensions of tiles
+            - overlap_amount (int): how much the tiles should overlap in pixels
+            - smoke_threshold (int): how many pixels of smoke to label tile as a positive sample? 
+            - time_created (datetime): date & time of when the dataset was created
+            - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
+            - num_fires (int): total number of fires in dataset
+            - num_images (int): total number of images in dataset
+            - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
+            - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
+            - has_positive_tile (dict): dictionary with fires as keys and 1 if at least one tiled image has a label of 1
     """
     # Add date & time 
     kwargs['time_created'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -159,21 +171,22 @@ def save_metadata(output_path, **kwargs):
     with open(f'{output_path}/metadata.pkl', 'wb') as pkl_file:
         pickle.dump(kwargs, pkl_file)
 
+        
 #####################
 ## Main Function
 #####################
     
-def save_tiled_images(raw_images_path, labels_path, output_path, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10, add_empty=True):
+def save_batched_tiled_images(raw_images_path, labels_path, output_path, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10):
     """
     Description: Loops through all directories and saves tiled images
     Args:
-        - raw_images_path: path to raw images
-        - labels_path: path to XML labels
-        - output_path: desired path of outputted Numpy files
-        - image_dimensions: dimensions original image should be resized to
-        - tile_dimensions: desired dimensions of tiles
-        - overlap_amount: how much the tiles should overlap in pixels
-        - smoke_threshold: how many pixels of smoke to label tile as a positive sample? 
+        - raw_images_path (str): path to raw images
+        - labels_path (str): path to XML labels
+        - output_path (str): desired path of outputted Numpy files
+        - image_dimensions (int, int): dimensions original image should be resized to
+        - tile_dimensions (int, int): desired dimensions of tiles
+        - overlap_amount (int): how much the tiles should overlap in pixels
+        - smoke_threshold (int): how many pixels of smoke to label tile as a positive sample? 
     Saves:
         - '{output_location}_img.npy': Numpy array of tiles - [num_tiles, num_channels, tile_height, tile_width]
         - '{output_location}_lbl.npy': Numpy array of labels for each tile - [num_tiles]
@@ -182,49 +195,81 @@ def save_tiled_images(raw_images_path, labels_path, output_path, image_dimension
     label_path = Path(labels_path)
     output_path = Path(output_path)
     
-    all_folders = [folder.path for folder in os.scandir(label_path) if folder.is_dir()]
-    index = 0
+    # Data structures for metadata
+    fire_to_images = {}
+    num_fires = 0
+    num_images = 0
+    ground_truth_label = {}
+    has_xml_label = {}
+    has_positive_tile = {}
+    
+    # Only consider folders for which there are labels
+    all_folders = [folder.stem for folder in filter(Path.is_dir, label_path.iterdir())]
 
-    for cur_folder in filter(Path.is_dir, label_path.iterdir()):
-        index += 1
-        print("Processing folder ", index, "of ", len(all_folders))
+    for i, cur_folder in enumerate(all_folders[:1]):
+        print("Processing folder ", i, "of ", len(all_folders))
+        fire_to_images[cur_folder] = []
+        num_fires += 1
         
-        cur_images_folder = image_path/cur_folder.stem
-        cur_output_folder = output_path/cur_folder.stem
+        # Save latest path names
+        cur_images_folder = image_path/cur_folder
+        cur_labels_folder = label_path/cur_folder
+        cur_output_folder = output_path/cur_folder
         
+        # Create output directory 
         cur_output_folder.mkdir(parents=True, exist_ok=True)
         
-        for cur_mask in (cur_folder/"xml").glob('*.xml'):
-            cur_polygon_mask = xml_to_record(cur_mask)
+        # Loop through all images in folder
+        for cur_img in (cur_images_folder).glob('*.jpg'):
+            num_images += 1
+            image_name = cur_img.stem
             
-            if cur_polygon_mask is not None or add_empty:
-                img_name = cur_mask.with_suffix(".jpg").name
-                img_file = str(cur_images_folder/img_name)
-                             
-                tiles, labels = batch_tile_image(img_file, cur_polygon_mask, image_dimensions, tile_dimensions, overlap_amount, smoke_threshold)
+            # Get path of XML file (if it exists)
+            label_file = cur_labels_folder/"xml"/cur_img.with_suffix(".xml").name
+            has_xml_label[cur_folder+"/"+image_name] = 1
+            
+            # If XML file doesn't exist (ie. negative example), set label_file=None
+            if not label_file.exists():
+                label_file = None
+                has_xml_label[cur_folder+"/"+image_name] = 0
+                
+            # Tile image 
+            tiles, labels = batch_tile_image(str(cur_img), label_file, image_dimensions, tile_dimensions, overlap_amount, smoke_threshold)
         
-                output_location = str(cur_output_folder/(cur_mask.stem))
-                np.save(f'{output_location}_img.npy', tiles)
-                np.save(f'{output_location}_lbl.npy', labels)
+            # Save tiled image and associated labels
+            output_location = str(cur_output_folder/image_name)
+            np.save(f'{output_location}_img.npy', tiles)
+            np.save(f'{output_location}_lbl.npy', labels)
+            
+            # Save metadata
+            fire_to_images[cur_folder].append(cur_folder+"/"+image_name)
+            ground_truth_label[cur_folder+"/"+image_name] = 1 if "+" in image_name else 0
+            has_positive_tile[cur_folder+"/"+image_name] = 1 if labels.sum() > 0 else 0
+        
+        fire_to_images[cur_folder].sort()
     
-    # Save all parameters in metadata.pkl           
-    save_metadata(raw_images_path=raw_images_path, 
-         labels_path=labels_path, 
-         output_path=output_path, 
-         image_dimensions=image_dimensions, 
-         tile_dimensions=tile_dimensions, 
-         overlap_amount=overlap_amount, 
-         smoke_threshold=smoke_threshold,
-         add_empty=add_empty)
+        # Save all parameters in metadata.pkl every folder (just in case)       
+        save_metadata(raw_images_path=raw_images_path, 
+             labels_path=labels_path, 
+             output_path=output_path, 
+             image_dimensions=image_dimensions, 
+             tile_dimensions=tile_dimensions, 
+             overlap_amount=overlap_amount, 
+             smoke_threshold=smoke_threshold,
+             fire_to_images=fire_to_images,
+             num_fires=num_fires,
+             num_images=num_images,
+             ground_truth_label=ground_truth_label,
+             has_xml_label=has_xml_label,
+             has_positive_tile=has_positive_tile)
                 
 if __name__ == '__main__':
-    save_tiled_images(raw_images_path=args.raw_images_path, 
+    save_batched_tiled_images(raw_images_path=args.raw_images_path, 
          labels_path=args.labels_path, 
          output_path=args.output_path, 
          image_dimensions=(args.image_height, args.image_width), 
          tile_dimensions=(args.tile_height, args.tile_width), 
          overlap_amount=args.overlap_amount, 
-         smoke_threshold=args.smoke_threshold,
-         add_empty=args.add_empty)
+         smoke_threshold=args.smoke_threshold)
 
     
