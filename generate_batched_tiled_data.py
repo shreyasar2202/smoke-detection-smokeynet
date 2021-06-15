@@ -46,8 +46,6 @@ parser.add_argument('--smoke-threshold', type=int, default=10,
 parser.add_argument('--overlap-amount', type=int, default=20,
                     help='# of pixels to overlap the tiles')
 
-args = parser.parse_args()
-
 
 #####################
 ## Helper Functions
@@ -84,7 +82,12 @@ def xml_to_record(xml_file):
     return None
 
 
-def batch_tile_image(img_path, label_path=None, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10):
+def batch_tile_image(img_path, 
+                     label_path=None, 
+                     image_dimensions=(1536, 2048), 
+                     tile_dimensions=(224,224), 
+                     overlap_amount=20, 
+                     smoke_threshold=10):
     """
     Description: Tiles an image and returns stacked image array + labels 
     Args:
@@ -176,7 +179,14 @@ def save_metadata(output_path, **kwargs):
 ## Main Function
 #####################
     
-def save_batched_tiled_images(raw_images_path, labels_path, output_path, image_dimensions=(1536, 2048), tile_dimensions=(224,224), overlap_amount=20, smoke_threshold=10):
+def save_batched_tiled_images(
+    raw_images_path, 
+    labels_path, 
+    output_path, 
+    image_dimensions=(1536, 2048), 
+    tile_dimensions=(224,224), 
+    overlap_amount=20, 
+    smoke_threshold=10):
     """
     Description: Loops through all directories and saves tiled images
     Args:
@@ -207,7 +217,7 @@ def save_batched_tiled_images(raw_images_path, labels_path, output_path, image_d
     all_folders = [folder.stem for folder in filter(Path.is_dir, label_path.iterdir())]
 
     for i, cur_folder in enumerate(all_folders):
-        print("Processing folder ", i, "of ", len(all_folders))
+        print("Processing folder ", i+1, "of ", len(all_folders))
         fire_to_images[cur_folder] = []
         num_fires += 1
         
@@ -264,6 +274,8 @@ def save_batched_tiled_images(raw_images_path, labels_path, output_path, image_d
              has_positive_tile=has_positive_tile)
                 
 if __name__ == '__main__':
+    args = parser.parse_args()
+    
     save_batched_tiled_images(raw_images_path=args.raw_images_path, 
          labels_path=args.labels_path, 
          output_path=args.output_path, 

@@ -1,28 +1,17 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import torchvision
 
 import pickle
 import numpy as np
 
-from tiled_dataloader import TiledDataloader
-
-train_split, val_split, test_split = pickle.load(open('/userdata/kerasData/data/new_data/vision_transformer/gridded_batched/small_split.pkl', 'rb'))
-
-train_dataset = TiledDataloader('/userdata/kerasData/data/new_data/vision_transformer/gridded_batched', img_list=train_split, series_length=5)
-train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
-val_dataset = TiledDataloader('/userdata/kerasData/data/new_data/vision_transformer/gridded_batched', img_list=val_split, series_length=5)
-val_loader = DataLoader(val_dataset, batch_size=1)
-
-test_dataset = TiledDataloader('/userdata/kerasData/data/new_data/vision_transformer/gridded_batched', img_list=test_split, series_length=5)
-test_loader = DataLoader(test_dataset, batch_size=1)
+from batched_tiled_dataloader import BatchedTiledDataModule, BatchedTiledDataloader
 
 
-class Model(pl.LightningModule):
+
+class LightningModel(pl.LightningModule):
 
     def __init__(self):
         super().__init__()
@@ -57,25 +46,28 @@ class Model(pl.LightningModule):
         return loss + (binary_loss(neg_outputs, neg_labels)if len(neg_labels)>0 else 0)
         
     def training_step(self, batch, batch_idx):
-        labels = batch['class'].cpu().numpy()
-        pos_idx = labels[0, :] > 0
-        neg_idx = np.where(~pos_idx)
-        neg_idx = np.random.choice(neg_idx[0], size=32-pos_idx.sum(), replace=False)
+        x, y, ground_truth_label, has_xml_label, has_positive_tile = batch
+        
+        pos_idx = y[0, :] > 0
+        neg_idx = torch.where(~pos_idx)
+        neg_idx = neg_idx[0][torch.tensor([.1]*32-pos_idx.sum()).multinomial(num_samples=32-pos_idx.sum())]
+#         neg_idx = torch.random.choice(neg_idx[0], size=32-pos_idx.sum(), replace=False)
         pos_idx[neg_idx] = True
-        inputs = torch.as_tensor(batch['image'][:, pos_idx, -1, :])
-        labels = batch['class'][:, pos_idx].float().unsqueeze(2)
+        inputs = torch.as_tensor(x[:, pos_idx, -1, :])
+        labels = y[:, pos_idx].float().unsqueeze(2)
         outputs = self.forward(inputs)
         loss = self.custom_loss(outputs, labels)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        labels = batch['class'].cpu().numpy()
-        pos_idx = labels[0, :] > 0
+        x, y, ground_truth_label, has_xml_label, has_positive_tile = batch
+        
+        pos_idx = y[0, :] > 0
         neg_idx = np.where(~pos_idx)
         neg_idx = np.random.choice(neg_idx[0], size=32-pos_idx.sum(), replace=False)
         pos_idx[neg_idx] = True
-        inputs = torch.as_tensor(batch['image'][:, pos_idx, -1, :])
-        labels = batch['class'][:, pos_idx].float().unsqueeze(2)
+        inputs = torch.as_tensor(x[:, pos_idx, -1, :])
+        labels = y[:, pos_idx].float().unsqueeze(2)
         outputs = self.forward(inputs)
         loss = self.custom_loss(outputs, labels)
         return loss
@@ -96,11 +88,27 @@ class Model(pl.LightningModule):
         
         return optimizer
     
-# init model
-ae = Model()
+    
+def main():
+    # Initialize data_module
+    data_module = BatchedTiledDataModule(
+        data_path='/userdata/kerasData/data/new_data/batched_tiled_data',
+        metadata_path='/userdata/kerasData/data/new_data/batched_tiled_data/metadata.pkl',
+        batch_size=1,
+        series_length=1,
+        time_range=(-2400,2400))
+    
+    # Initialize model
+    model = LightningModel()
 
-# Initialize a trainer
-trainer = pl.Trainer(gpus=1, max_epochs=1, progress_bar_refresh_rate=20)
+    # Initialize a trainer
+    trainer = pl.Trainer(
+        gpus=1, 
+        progress_bar_refresh_rate=20,
+        fast_dev_run=True)
 
-# Train the model ⚡
-trainer.fit(ae, train_loader, val_loader)
+    # Train the model ⚡
+    trainer.fit(model, data_module)
+
+if __name__ == '__main__':
+    main()
