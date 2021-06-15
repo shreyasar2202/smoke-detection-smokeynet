@@ -206,7 +206,7 @@ def save_batched_tiled_images(raw_images_path, labels_path, output_path, image_d
     # Only consider folders for which there are labels
     all_folders = [folder.stem for folder in filter(Path.is_dir, label_path.iterdir())]
 
-    for i, cur_folder in enumerate(all_folders[:1]):
+    for i, cur_folder in enumerate(all_folders):
         print("Processing folder ", i, "of ", len(all_folders))
         fire_to_images[cur_folder] = []
         num_fires += 1
