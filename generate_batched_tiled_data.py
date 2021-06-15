@@ -1,5 +1,5 @@
 """
-Created by: Anshuman Dewangan
+Created by: Anshuman Dewangan, Yash Pande, Atman Patel
 Date: 2021
 
 Description: Converts raw wildfire images and XML label files into tiled & batched Numpy arrays
