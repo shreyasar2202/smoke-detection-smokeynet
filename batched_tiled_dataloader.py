@@ -23,9 +23,11 @@ class BatchedTiledDataModule(pl.LightningDataModule):
                  batch_size=1, 
                  series_length=5, 
                  time_range=(-2400, 2400), 
-                 prepare_data=False,
-                 generate_data_params=None,
-                 delete_generated_data=False):
+                 train_split_path=None,
+                 val_split_path=None,
+                 test_split_path=None,
+                 generate_data=False,
+                 generate_data_params=None):
         """
         Args:
             - data_path (str): path to batched_tiled_data
@@ -33,7 +35,10 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             - batch_size (int): batch_size for training
             - series_length (int): how many sequential images should be used for training
             - time_range (int, int): The time range of images to consider for training by time stamp. Should be between -2400 and 2400 and divisible by 60
-            - prepare_data (bool): if generate_batched_tiled_data.py should be run to generate the batched & tiled dataset. 
+            - train_split_path (str): path to existing train split .txt file
+            - val_split_path (str): path to existing val split .txt file
+            - test_split_path (str): path to existing test split .txt file
+            - generate_data (bool): if generate_batched_tiled_data.py should be run to generate the batched & tiled dataset. 
                 WARNING: will take ~1 hour and 250 GB of storage for full dataset
             - generate_data_params (dict): params to generate the data. Must include:
                 - raw_images_path (str): path to raw images
@@ -48,9 +53,6 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         self.data_path = data_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
         
-        self.prepare_data = prepare_data
-        self.generate_data_params = generate_data_params
-        
         self.batch_size = batch_size
         self.series_length = series_length
         
@@ -58,11 +60,18 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         assert time_range[0] % 60 == 0 and time_range[0] >= -2400 and time_range[0] <= 2400-60
         assert time_range[1] % 60 == 0 and time_range[1] >= -2400+60 and time_range[1] <= 2400
         self.time_range = time_range
+        
+        self.train_split_path = train_split_path
+        self.val_split_path = val_split_path
+        self.test_split_path = test_split_path
+        
+        self.generate_data = generate_data
+        self.generate_data_params = generate_data_params
 
     def prepare_data(self):
         # Generates batched & tiled data
         # WARNING: will take ~1 hour and 250 GB of storage for full dataset
-        if self.prepare_data:
+        if self.generate_data:
             save_batched_tiled_images(
                 raw_images_path=self.generate_data_params['raw_images_path'], 
                 labels_path=self.generate_data_params['labels_path'], 
@@ -74,8 +83,15 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         
     def setup(self, stage=None):
         # Create train, val, test split of *fires*
-        train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
-        val_fires, test_fires = train_test_split(val_fires, test_size=0.5)
+        # If any split not provided, randomly create own splits
+        if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
+            train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
+            val_fires, test_fires = train_test_split(val_fires, test_size=0.5)
+        else:
+            # Load existing splits, saving fires only
+            train_fires = {item.split('/')[-2] for item in np.loadtxt(self.train_split_path, dtype=str)}
+            val_fires = {item.split('/')[-2] for item in np.loadtxt(self.val_split_path, dtype=str)}
+            test_fires = {item.split('/')[-2] for item in np.loadtxt(self.test_split_path, dtype=str)}
         
         # Calculate indices related to desired time frame
         time_range_lower_idx = int((self.time_range[0] + 2400) / 60)
