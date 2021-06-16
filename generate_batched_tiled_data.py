@@ -276,7 +276,8 @@ def save_batched_tiled_images(
 if __name__ == '__main__':
     args = parser.parse_args()
     
-    save_batched_tiled_images(raw_images_path=args.raw_images_path, 
+    save_batched_tiled_images(
+         raw_images_path=args.raw_images_path, 
          labels_path=args.labels_path, 
          output_path=args.output_path, 
          image_dimensions=(args.image_height, args.image_width), 

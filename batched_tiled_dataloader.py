@@ -19,13 +19,13 @@ from generate_batched_tiled_data import save_batched_tiled_images
 class BatchedTiledDataModule(pl.LightningDataModule):
     def __init__(self, 
                  data_path='./data/', 
-                 metadata_path='./data/metadata.pkl', 
-                 batch_size=1, 
-                 series_length=5, 
-                 time_range=(-2400, 2400), 
+                 metadata_path='./data/metadata.pkl',  
                  train_split_path=None,
                  val_split_path=None,
                  test_split_path=None,
+                 batch_size=1, 
+                 series_length=5, 
+                 time_range=(-2400, 2400),
                  generate_data=False,
                  generate_data_params=None):
         """
@@ -94,15 +94,15 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             test_fires = {item.split('/')[-2] for item in np.loadtxt(self.test_split_path, dtype=str)}
         
         # Calculate indices related to desired time frame
-        time_range_lower_idx = int((self.time_range[0] + 2400) / 60)
-        time_range_upper_idx = int((self.time_range[1] + 2400) / 60) + 1 
+        time_range_min_idx = int((self.time_range[0] + 2400) / 60)
+        time_range_max_idx = int((self.time_range[1] + 2400) / 60) + 1 
 
         # Create dictionary to store series_length of images
         self.metadata['image_series'] = {}
         
         # Shorten fire_to_images to relevant time frame
         for fire in train_fires:
-            self.metadata['fire_to_images'][fire] = self.metadata['fire_to_images'][fire][time_range_lower_idx:time_range_upper_idx]
+            self.metadata['fire_to_images'][fire] = self.metadata['fire_to_images'][fire][time_range_min_idx:time_range_max_idx]
                     
         # Add series_length of images to image_series for each image
         for fire in self.metadata['fire_to_images']:
@@ -164,7 +164,7 @@ class BatchedTiledDataloader(Dataset):
         
         # Load tile-level labels for current image
         # y.shape = [num_tiles] e.g. [108,]
-        y = np.load(self.data_path/f'{cur_image}_lbl.npy') 
+        y = np.load(self.data_path/f'{cur_image}_lbl.npy').astype(float)
 
         # Load image-level labels for current image
         ground_truth_label = self.metadata['ground_truth_label'][cur_image]
