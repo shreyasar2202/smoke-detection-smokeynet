@@ -28,6 +28,7 @@ RUN pip3 install matplotlib
 RUN pip3 install torch
 RUN pip3 install torchvision
 RUN pip3 install pytorch-lightning
+RUN pip3 install torchmetrics
 RUN pip3 install sklearn
 RUN pip3 install opencv-python
 
