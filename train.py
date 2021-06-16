@@ -40,6 +40,8 @@ parser.add_argument('--test-split-path', type=str, default='/userdata/kerasData/
 # Dataloader args
 parser.add_argument('--batch-size', type=int, default=1,
                     help='Batch size for training.')
+parser.add_argument('--num-workers', type=int, default=0,
+                    help='Number of workers for dataloader.')
 parser.add_argument('--series-length', type=int, default=1,
                     help='Number of sequential video frames to process during training.')
 parser.add_argument('--time-range-min', type=int, default=-2400,
@@ -74,7 +76,6 @@ parser.add_argument('--accumulate-grad-batches', type=int, default=16,
                     help='Accumulate multiple batches before calling loss.backward() to increase effective batch size. See PyTorch Lightning docs for more details.')
 
 
-
 #####################
 ## Model
 #####################
@@ -83,6 +84,8 @@ class LightningModel(pl.LightningModule):
 
     def __init__(self, learning_rate=0.001, lr_schedule=True, freeze_backbone=True):
         super().__init__()
+        
+        # Initialize model
         resnet = torchvision.models.resnet50(pretrained=True)
         resnet.fc = nn.Identity()
         
@@ -96,21 +99,23 @@ class LightningModel(pl.LightningModule):
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
         
+        # Initialize model params
         self.criterion = nn.BCEWithLogitsLoss()
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule        
         
+        # Initialize evaluation metrics
+        self.metrics = {}
+        self.metric_splits = ['train/', 'val/', 'test/']
+        self.metric_titles = ['tile_', 'image-gt_', 'image-xml_', 'image-pos-tile_']
+        self.metric_labels = ['accuracy', 'precision', 'recall', 'f1']
+        self.metric_functions = [torchmetrics.Accuracy, torchmetrics.Precision, torchmetrics.Recall, torchmetrics.F1]
         
-        self.train_accuracy = torchmetrics.Accuracy()
-        self.train_precision = torchmetrics.Precision()
-        self.train_recall = torchmetrics.Recall()
-        self.train_f1 = torchmetrics.F1()
+        for split in self.metric_splits:
+            for title in self.metric_titles:
+                for label, func in zip(self.metric_labels, self.metric_functions):
+                    self.metrics[split+title+label] = func(mdmc_average='global') if title == self.metric_titles[0] else func()
         
-        self.val_accuracy = torchmetrics.Accuracy()
-        
-        self.test_accuracy = torchmetrics.Accuracy()
-
-    
     def forward(self, x):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
@@ -125,47 +130,42 @@ class LightningModel(pl.LightningModule):
         
         return x
         
-    def step(self, x, y):
+    def step(self, batch, split):
+        x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
         
+        # Compute loss
         output = self.forward(x).squeeze(dim=2) # [batch_size, num_tiles]
-        loss = self.criterion(output, y)
+        loss = self.criterion(output, tile_labels)
         
-        return output, loss
+        # Compute predictions
+        tile_preds = metric_utils.predict_tile(output)
+        image_preds = metric_utils.predict_image_from_tile_preds(tile_preds)
         
-    def training_step(self, batch, batch_idx):
-        x, y, ground_truth_label, has_xml_label, has_positive_tile = batch
+        # Compute metrics
+        for label in self.metric_labels:
+            self.metrics[split+self.metric_titles[0]+label].to(self.device)(tile_preds, tile_labels.int())
+            self.metrics[split+self.metric_titles[1]+label].to(self.device)(image_preds, ground_truth_labels)
+            self.metrics[split+self.metric_titles[2]+label].to(self.device)(image_preds, has_xml_labels)
+            self.metrics[split+self.metric_titles[3]+label].to(self.device)(image_preds, has_positive_tiles)
+            
+        # Log metrics
+        self.log(split+'loss', loss, on_step=(split==self.metric_splits[0]),on_epoch=True)
         
-        output, loss = self.step(x, y)
-        
-        preds = utils.predict_tile(output)
-        self.train_accuracy(preds, y.int())
-        
-        self.log('train_loss', loss, on_epoch=True)
-        self.log('train_accuracy', self.train_accuracy, on_epoch=True)
+        for title in self.metric_titles:
+            for label in self.metric_labels:
+                name = split+title+label
+                self.log(name, self.metrics[name], on_step=False, on_epoch=True)
         
         return loss
+        
+    def training_step(self, batch, batch_idx):
+        return self.step(batch, self.metric_splits[0])
 
     def validation_step(self, batch, batch_idx):
-        x, y, ground_truth_label, has_xml_label, has_positive_tile = batch
-        
-        output, loss = self.step(x, y)
-        
-        preds = utils.predict_tile(output)
-        self.val_accuracy(preds, y.int())
-        
-        self.log('val_loss', loss, on_epoch=True)
-        self.log('val_accuracy', self.val_accuracy, on_epoch=True)
+        self.step(batch, self.metric_splits[1])
 
     def test_step(self, batch, batch_idx):
-        x, y, ground_truth_label, has_xml_label, has_positive_tile = batch
-        
-        output, loss = self.step(x, y)
-        
-        preds = utils.predict_tile(output)
-        self.test_accuracy(preds, y.int())
-        
-        self.log('test_loss', loss, on_epoch=True)
-        self.log('test_accuracy', self.test_accuracy, on_epoch=True)
+        self.step(batch, self.metric_splits[2])
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate)
@@ -192,6 +192,7 @@ def main(# Path args
 
         # Dataloader args
         batch_size=1, 
+        num_workers=0, 
         series_length=1, 
         time_range=(-2400,2400), 
 
@@ -221,6 +222,7 @@ def main(# Path args
         
         # Dataloader args
         batch_size=batch_size,
+        num_workers=num_workers,
         series_length=series_length,
         time_range=time_range)
     
@@ -282,6 +284,7 @@ if __name__ == '__main__':
 
         # Dataloader args
         batch_size=args.batch_size, 
+        num_workers=args.num_workers, 
         series_length=args.series_length, 
         time_range=(args.time_range_min,args.time_range_max), 
 

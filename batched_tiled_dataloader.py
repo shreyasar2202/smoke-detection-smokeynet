@@ -24,6 +24,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
                  val_split_path=None,
                  test_split_path=None,
                  batch_size=1, 
+                 num_workers=0, 
                  series_length=5, 
                  time_range=(-2400, 2400),
                  generate_data=False,
@@ -54,6 +55,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         self.metadata = pickle.load(open(metadata_path, 'rb'))
         
         self.batch_size = batch_size
+        self.num_workers = num_workers
         self.series_length = series_length
         
         # Confirm time_range is between -2400 and 2400 and divisible by 60
@@ -121,17 +123,17 @@ class BatchedTiledDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         train_dataset = BatchedTiledDataloader(self.data_path, self.train_split, self.metadata)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
         return train_loader
 
     def val_dataloader(self):
         val_dataset = BatchedTiledDataloader(self.data_path, self.val_split, self.metadata)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return val_loader
 
     def test_dataloader(self):
         test_dataset = BatchedTiledDataloader(self.data_path, self.test_split, self.metadata)
-        test_loader = DataLoader(test_dataset, batch_size=self.batch_size)
+        test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return test_loader
 
     
@@ -164,11 +166,11 @@ class BatchedTiledDataloader(Dataset):
         
         # Load tile-level labels for current image
         # y.shape = [num_tiles] e.g. [108,]
-        y = np.load(self.data_path/f'{cur_image}_lbl.npy').astype(float)
+        tile_labels = np.load(self.data_path/f'{cur_image}_lbl.npy').astype(float)
 
         # Load image-level labels for current image
         ground_truth_label = self.metadata['ground_truth_label'][cur_image]
         has_xml_label = self.metadata['has_xml_label'][cur_image]
         has_positive_tile = self.metadata['has_positive_tile'][cur_image]
         
-        return x, y, ground_truth_label, has_xml_label, has_positive_tile
+        return x, tile_labels, ground_truth_label, has_xml_label, has_positive_tile
