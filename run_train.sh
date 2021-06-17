@@ -10,9 +10,8 @@
 
 # Debug run
 python3 main.py \
-    --omit-images-path '/userdata/kerasData/data/new_data/batched_tiled_data/omit_images.npy' \
     --min-epochs 1 \
-    --max-epochs 4 \
+    --max-epochs 2 \
     --no-lr-schedule \
     --no-auto-lr-find \
     --no-early-stopping \

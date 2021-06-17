@@ -166,6 +166,7 @@ def save_metadata(output_path, **kwargs):
             - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
             - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
             - has_positive_tile (dict): dictionary with fires as keys and 1 if at least one tiled image has a label of 1
+            - omit_images_list (list): list of images that erroneously do not have XML files for labels
     """
     # Add date & time 
     kwargs['time_created'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -212,6 +213,7 @@ def save_batched_tiled_images(
     ground_truth_label = {}
     has_xml_label = {}
     has_positive_tile = {}
+    omit_images_list = []
     
     # Only consider folders for which there are labels
     all_folders = [folder.stem for folder in filter(Path.is_dir, label_path.iterdir())]
@@ -233,15 +235,16 @@ def save_batched_tiled_images(
         for cur_img in (cur_images_folder).glob('*.jpg'):
             num_images += 1
             image_name = cur_img.stem
+            fire_image_name = cur_folder+"/"+image_name
             
             # Get path of XML file (if it exists)
             label_file = cur_labels_folder/"xml"/cur_img.with_suffix(".xml").name
-            has_xml_label[cur_folder+"/"+image_name] = 1
+            has_xml_label[fire_image_name] = 1
             
             # If XML file doesn't exist (ie. negative example), set label_file=None
             if not label_file.exists():
                 label_file = None
-                has_xml_label[cur_folder+"/"+image_name] = 0
+                has_xml_label[fire_image_name] = 0
                 
             # Tile image 
             tiles, labels = batch_tile_image(str(cur_img), label_file, image_dimensions, tile_dimensions, overlap_amount, smoke_threshold)
@@ -253,8 +256,10 @@ def save_batched_tiled_images(
             
             # Save metadata
             fire_to_images[cur_folder].append(cur_folder+"/"+image_name)
-            ground_truth_label[cur_folder+"/"+image_name] = 1 if "+" in image_name else 0
-            has_positive_tile[cur_folder+"/"+image_name] = 1 if labels.sum() > 0 else 0
+            ground_truth_label[fire_image_name] = 1 if "+" in image_name else 0
+            has_positive_tile[fire_image_name] = 1 if labels.sum() > 0 else 0
+            if ground_truth_label[fire_image_name] != has_xml_label[fire_image_name]:
+                omit_images_list.append(fire_image_name)
         
         fire_to_images[cur_folder].sort()
     
@@ -271,7 +276,8 @@ def save_batched_tiled_images(
              num_images=num_images,
              ground_truth_label=ground_truth_label,
              has_xml_label=has_xml_label,
-             has_positive_tile=has_positive_tile)
+             has_positive_tile=has_positive_tile,
+             omit_images_list=omit_images_list)
                 
 if __name__ == '__main__':
     args = parser.parse_args()
