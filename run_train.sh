@@ -10,6 +10,8 @@
 
 # Debug run
 python3 main.py \
+    --experiment-name "debug" \
+#     --experiment-description "this is a test" \
     --min-epochs 1 \
     --max-epochs 2 \
     --no-lr-schedule \

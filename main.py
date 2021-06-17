@@ -2,6 +2,7 @@
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 
 # Other package imports
 from argparse import ArgumentParser
@@ -11,12 +12,17 @@ from model import LightningModel, TileResNet
 from batched_tiled_dataloader import BatchedTiledDataModule, BatchedTiledDataloader
 
 
-
 #####################
 ## Argument Parser
 #####################
 
 parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
+
+# Experiment args
+parser.add_argument('--experiment-name', type=str, default=None,
+                    help='(Optional) Name for experiment')
+parser.add_argument('--experiment-description', type=str, default=None,
+                    help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args
 parser.add_argument('--data-path', type=str, default='/userdata/kerasData/data/new_data/batched_tiled_data',
@@ -79,6 +85,11 @@ def main(# Path args
         train_split_path=None, 
         val_split_path=None, 
         test_split_path=None,
+    
+        # Experiment args
+        experiment_name=None,
+        experiment_description=None,
+        parsed_args=None,
 
         # Dataloader args
         batch_size=1, 
@@ -120,7 +131,8 @@ def main(# Path args
     encoder = TileResNet(freeze_backbone=freeze_backbone)
     model = LightningModel(model=encoder,
                            learning_rate=learning_rate,
-                           lr_schedule=lr_schedule)
+                           lr_schedule=lr_schedule,
+                           parsed_args=parsed_args)
 
     # Implement EarlyStopping
     early_stop_callback = EarlyStopping(
@@ -132,6 +144,9 @@ def main(# Path args
     
     checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
 
+    # Initialize logger
+    logger = TensorBoardLogger("lightning_logs/", name=experiment_name)
+    
     # Initialize a trainer
     trainer = pl.Trainer(
         # Trainer args
@@ -145,6 +160,7 @@ def main(# Path args
         accumulate_grad_batches=accumulate_grad_batches,
         
         # Dev args
+        logger=logger,
 #         fast_dev_run=True, 
         overfit_batches=5,
         log_every_n_steps=1,
@@ -176,6 +192,11 @@ if __name__ == '__main__':
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 
         test_split_path=args.test_split_path,
+        
+        # Experiment args
+        experiment_name=args.experiment_name,
+        experiment_description=args.experiment_description,
+        parsed_args=args,
 
         # Dataloader args
         batch_size=args.batch_size, 

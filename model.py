@@ -45,7 +45,7 @@ class TileResNet(nn.Module):
     
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, model, learning_rate=0.001, lr_schedule=True):
+    def __init__(self, model, learning_rate=0.001, lr_schedule=True, parsed_args=None):
         super().__init__()
         
         # Initialize model
@@ -55,6 +55,10 @@ class LightningModel(pl.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule        
+        
+        # Save hyperparameters
+        self.save_hyperparameters('learning_rate', 'lr_schedule')
+        self.save_hyperparameters(parsed_args)
         
         # Initialize evaluation metrics
         self.metrics = {}
