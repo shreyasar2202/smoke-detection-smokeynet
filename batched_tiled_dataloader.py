@@ -4,7 +4,7 @@ Date: 2021
 
 Description: Loads tiled & batched data that was generated from generate_batched_tiled_data.py
 """
-
+# Torch imports
 import pytorch_lightning as pl
 import pickle
 from torch.utils.data.dataset import Dataset
@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+# File imports
+import util_fns
 from generate_batched_tiled_data import save_batched_tiled_images
 
 
@@ -54,8 +56,13 @@ class BatchedTiledDataModule(pl.LightningDataModule):
                 - tile_dimensions (int, int): desired dimensions of tiles
                 - overlap_amount (int): how much the tiles should overlap in pixels
                 - smoke_threshold (int): how many pixels of smoke to label tile as a positive sample? 
+        Other Attributes:
+            - self.train_split (list): list of image names to be used for train dataloader
+            - self.val_split (list): list of image names to be used for val dataloader
+            - self.test_split (list): list of image names to be used for test dataloader
         """
         super().__init__()
+        
         self.data_path = data_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
         
@@ -75,6 +82,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         self.generate_data = generate_data
         self.generate_data_params = generate_data_params
 
+        
     def prepare_data(self):
         # Generates batched & tiled data
         # WARNING: will take ~1 hour and 250 GB of storage for full dataset
@@ -88,8 +96,9 @@ class BatchedTiledDataModule(pl.LightningDataModule):
                 overlap_amount=self.generate_data_params['overlap_amount'], 
                 smoke_threshold=self.generate_data_params['smoke_threshold'])
         
+        
     def setup(self, stage=None):
-        # Create train, val, test split of *fires*
+        ### Create train/val/test split of Fires ###
         # If any split not provided, randomly create own splits
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
             train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
@@ -100,10 +109,11 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             val_list = np.loadtxt(self.val_split_path, dtype=str)
             test_list = np.loadtxt(self.test_split_path, dtype=str)
             
-            train_fires = {item.split('/')[-2] for item in train_list}
-            val_fires = {item.split('/')[-2] for item in val_list}
-            test_fires = {item.split('/')[-2] for item in test_list}
+            train_fires = {util_fns.get_fire_name(item) for item in train_list}
+            val_fires = {util_fns.get_fire_name(item) for item in val_list}
+            test_fires = {util_fns.get_fire_name(item) for item in test_list}
         
+        ### Incorporate Time Range ###
         # Calculate indices related to desired time frame
         time_range_min_idx = int((self.time_range[0] + 2400) / 60)
         time_range_max_idx = int((self.time_range[1] + 2400) / 60) + 1 
@@ -111,8 +121,8 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         # Shorten fire_to_images to relevant time frame
         for fire in train_fires:
             self.metadata['fire_to_images'][fire] = self.metadata['fire_to_images'][fire][time_range_min_idx:time_range_max_idx]
-                    
-        # Add series_length of images to image_series for each image
+        
+        ### Incorporate Series Length ###
         self.metadata['image_series'] = {}
         
         for fire in self.metadata['fire_to_images']:
@@ -124,21 +134,15 @@ class BatchedTiledDataModule(pl.LightningDataModule):
                     self.metadata['image_series'][img].append(self.metadata['fire_to_images'][fire][idx])
                     if idx != 0: idx -= 1
         
-        # Generate splits using actual images for each fire
+        ### Create train/val/test split of Images ###
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
-            self.train_split = [image for image in \
-                                self.metadata['fire_to_images'][fire] for fire in train_fires \
-                                if image not in self.metadata['omit_images_list']]
-            self.val_split   = [image for image in \
-                                self.metadata['fire_to_images'][fire] for fire in val_fires \
-                                if image not in self.metadata['omit_images_list']]
-            self.test_split  = [image for image in \
-                                self.metadata['fire_to_images'][fire] for fire in test_fires \
-                                if image not in self.metadata['omit_images_list']]
+            self.train_split = util_fns.unpack_fire_images(self.metadata, train_fires)
+            self.val_split = util_fns.unpack_fire_images(self.metadata, val_fires)
+            self.test_split = util_fns.unpack_fire_images(self.metadata, test_fires)
         else:
-            self.train_split = ['/'.join(item.split('/')[-2:])[:-4] for item in train_list]
-            self.val_split   = ['/'.join(item.split('/')[-2:])[:-4] for item in val_list]
-            self.test_split  = ['/'.join(item.split('/')[-2:])[:-4] for item in test_list]
+            self.train_split = [util_fns.get_image_name(item) for item in train_list]
+            self.val_split   = [util_fns.get_image_name(item) for item in val_list]
+            self.test_split  = [util_fns.get_image_name(item) for item in test_list]
             
 
     def train_dataloader(self):
@@ -164,7 +168,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
 class BatchedTiledDataloader(Dataset):
     def __init__(self, data_path, data_split, metadata):
         """
-        Args:
+        Args / Attributes:
             - data_path (str): path to batched_tiled_data
             - data_split (list): list of images of the current split
             - metadata (dict): metadata dictionary from DataModule
@@ -178,7 +182,6 @@ class BatchedTiledDataloader(Dataset):
 
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
-        print(image_name)
         
         # Load all pixel inputs of each image in the series
         x = []

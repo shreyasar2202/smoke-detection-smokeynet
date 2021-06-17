@@ -140,8 +140,7 @@ def main(# Path args
     model = LightningModel(model=encoder,
                            learning_rate=learning_rate,
                            lr_schedule=lr_schedule,
-                           parsed_args=parsed_args,
-                           start_time=start_time)
+                           parsed_args=parsed_args)
 
     ### Implement EarlyStopping ###
     early_stop_callback = EarlyStopping(
@@ -172,10 +171,10 @@ def main(# Path args
         # Dev args
         logger=logger,
 #         fast_dev_run=True, 
-#         overfit_batches=0.01,
-        limit_train_batches=5,
+        overfit_batches=5,
+#         limit_train_batches=5,
 #         limit_val_batches=5,
-        limit_test_batches=5,
+#         limit_test_batches=5,
         log_every_n_steps=1,
 #         checkpoint_callback=False,
 #         logger=False,
