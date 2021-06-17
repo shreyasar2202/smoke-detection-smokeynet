@@ -1,3 +1,10 @@
+"""
+Created by: Anshuman Dewangan
+Date: 2021
+
+Description: Kicks off training and evaluation. Contains many command line arguments for hyperparameters. 
+"""
+
 # Torch imports
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -6,6 +13,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 # Other package imports
 from argparse import ArgumentParser
+import datetime
 
 # File imports
 from model import LightningModel, TileResNet
@@ -111,8 +119,8 @@ def main(# Path args
         stochastic_weight_avg=True,
         gradient_clip_val=0,
         accumulate_grad_batches=1):
-    
-    # Initialize data_module
+        
+    ### Initialize data_module ###
     data_module = BatchedTiledDataModule(
         # Path args
         data_path=data_path,
@@ -127,14 +135,15 @@ def main(# Path args
         series_length=series_length,
         time_range=time_range)
     
-    # Initialize model
+    ### Initialize model ###
     encoder = TileResNet(freeze_backbone=freeze_backbone)
     model = LightningModel(model=encoder,
                            learning_rate=learning_rate,
                            lr_schedule=lr_schedule,
-                           parsed_args=parsed_args)
+                           parsed_args=parsed_args,
+                           start_time=start_time)
 
-    # Implement EarlyStopping
+    ### Implement EarlyStopping ###
     early_stop_callback = EarlyStopping(
        monitor='val/loss',
        min_delta=0.00,
@@ -144,10 +153,11 @@ def main(# Path args
     
     checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
 
-    # Initialize logger
+    ### Initialize Trainer ###
+    
+    # Initialize logger 
     logger = TensorBoardLogger("lightning_logs/", name=experiment_name)
     
-    # Initialize a trainer
     trainer = pl.Trainer(
         # Trainer args
         min_epochs=min_epochs,
@@ -162,7 +172,10 @@ def main(# Path args
         # Dev args
         logger=logger,
 #         fast_dev_run=True, 
-        overfit_batches=5,
+#         overfit_batches=0.01,
+        limit_train_batches=5,
+#         limit_val_batches=5,
+        limit_test_batches=5,
         log_every_n_steps=1,
 #         checkpoint_callback=False,
 #         logger=False,
@@ -171,6 +184,8 @@ def main(# Path args
 #         profiler="simple", # "advanced" "pytorch"
 #         log_gpu_memory=True,
         gpus=1)
+    
+    ### Training & Evaluation ###
     
     # Auto find learning rate
     if auto_lr_find:

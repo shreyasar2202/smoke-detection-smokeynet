@@ -16,6 +16,10 @@ from sklearn.model_selection import train_test_split
 from generate_batched_tiled_data import save_batched_tiled_images
 
 
+#####################
+## Data Module
+#####################
+
 class BatchedTiledDataModule(pl.LightningDataModule):
     def __init__(self, 
                  data_path='./data/', 
@@ -122,15 +126,15 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         
         # Generate splits using actual images for each fire
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
-            self.train_split = [image for image in self.metadata['fire_to_images'][fire] \
-                                if image not in self.metadata['omit_images_list'] \
-                                for fire in train_fires]
-            self.val_split   = [image for image in self.metadata['fire_to_images'][fire] \
-                                if image not in self.metadata['omit_images_list'] \
-                                for fire in val_fires]
-            self.test_split  = [image for image in self.metadata['fire_to_images'][fire] \
-                                if image not in self.metadata['omit_images_list'] \
-                                for fire in test_fires]
+            self.train_split = [image for image in \
+                                self.metadata['fire_to_images'][fire] for fire in train_fires \
+                                if image not in self.metadata['omit_images_list']]
+            self.val_split   = [image for image in \
+                                self.metadata['fire_to_images'][fire] for fire in val_fires \
+                                if image not in self.metadata['omit_images_list']]
+            self.test_split  = [image for image in \
+                                self.metadata['fire_to_images'][fire] for fire in test_fires \
+                                if image not in self.metadata['omit_images_list']]
         else:
             self.train_split = ['/'.join(item.split('/')[-2:])[:-4] for item in train_list]
             self.val_split   = ['/'.join(item.split('/')[-2:])[:-4] for item in val_list]
@@ -153,6 +157,10 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         return test_loader
 
     
+#####################
+## Dataloader
+#####################
+    
 class BatchedTiledDataloader(Dataset):
     def __init__(self, data_path, data_split, metadata):
         """
@@ -169,11 +177,12 @@ class BatchedTiledDataloader(Dataset):
         return len(self.data_split)
 
     def __getitem__(self, idx):
-        cur_image = self.data_split[idx]
+        image_name = self.data_split[idx]
+        print(image_name)
         
         # Load all pixel inputs of each image in the series
         x = []
-        for file_name in self.metadata['image_series'][cur_image]:
+        for file_name in self.metadata['image_series'][image_name]:
             x.append(np.load(self.data_path/f'{file_name}_img.npy'))
 
         # x.shape = [num_tiles, series_length, num_channels, height, width]
@@ -182,11 +191,11 @@ class BatchedTiledDataloader(Dataset):
         
         # Load tile-level labels for current image
         # y.shape = [num_tiles] e.g. [108,]
-        tile_labels = np.load(self.data_path/f'{cur_image}_lbl.npy').astype(float)
+        tile_labels = np.load(self.data_path/f'{image_name}_lbl.npy').astype(float)
 
         # Load image-level labels for current image
-        ground_truth_label = self.metadata['ground_truth_label'][cur_image]
-        has_xml_label = self.metadata['has_xml_label'][cur_image]
-        has_positive_tile = self.metadata['has_positive_tile'][cur_image]
-        
-        return x, tile_labels, ground_truth_label, has_xml_label, has_positive_tile
+        ground_truth_label = self.metadata['ground_truth_label'][image_name]
+        has_xml_label = self.metadata['has_xml_label'][image_name]
+        has_positive_tile = self.metadata['has_positive_tile'][image_name]
+                
+        return image_name, x, tile_labels, ground_truth_label, has_xml_label, has_positive_tile

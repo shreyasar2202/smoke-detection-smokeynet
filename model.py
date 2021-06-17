@@ -7,6 +7,12 @@ import pytorch_lightning as pl
 import torchvision
 import torchmetrics
 
+# Other package imports
+import numpy as np
+import datetime
+import csv
+from pathlib import Path
+
 # File imports
 import metric_utils
 
@@ -45,7 +51,12 @@ class TileResNet(nn.Module):
     
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, model, learning_rate=0.001, lr_schedule=True, parsed_args=None):
+    def __init__(self, 
+                 model, 
+                 learning_rate=0.001, 
+                 lr_schedule=True,
+                 parsed_args=None, 
+                 start_time=datetime.datetime.now()):
         super().__init__()
         
         # Initialize model
@@ -54,7 +65,8 @@ class LightningModel(pl.LightningModule):
         # Initialize model params
         self.criterion = nn.BCEWithLogitsLoss()
         self.learning_rate = learning_rate
-        self.lr_schedule = lr_schedule        
+        self.lr_schedule = lr_schedule
+        self.start_time = start_time
         
         # Save hyperparameters
         self.save_hyperparameters('learning_rate', 'lr_schedule')
@@ -76,14 +88,14 @@ class LightningModel(pl.LightningModule):
         return self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
     
     def step(self, batch, split):
-        x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
+        image_name, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
         
         # Compute loss
-        output = self(x)
-        loss = self.criterion(output, tile_labels)
+        outputs = self(x)
+        loss = self.criterion(outputs, tile_labels)
         
         # Compute predictions
-        tile_preds = metric_utils.predict_tile(output)
+        tile_preds = metric_utils.predict_tile(outputs)
         image_preds = metric_utils.predict_image_from_tile_preds(tile_preds)
         
         # Compute metrics
@@ -100,17 +112,35 @@ class LightningModel(pl.LightningModule):
             for label in self.metric_labels:
                 name = split+title+label
                 self.log(name, self.metrics[name], on_step=False, on_epoch=True)
-        
-        return loss
+
+        return image_name, outputs, loss, tile_preds, image_preds
         
     def training_step(self, batch, batch_idx):
-        return self.step(batch, self.metric_splits[0])
+        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metric_splits[0])
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        self.step(batch, self.metric_splits[1])
+        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metric_splits[1])
 
     def test_step(self, batch, batch_idx):
-        self.step(batch, self.metric_splits[2])
+        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metric_splits[2])
+        return image_name, tile_preds, image_preds
+        
+    def test_epoch_end(self, test_step_outputs):
+        with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
+            image_preds_csv_writer = csv.writer(image_preds_csv)
+                
+            for image_names, tile_preds, image_preds in test_step_outputs:
+                for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
+                    import pdb; pdb.set_trace()
+                    image_preds_csv_writer.writerow([image_name, image_preds.item()])
+                    
+                    tile_preds_path = self.logger.log_dir+'/tile_preds/'+image_name.split('/')[0]
+                    Path(tile_preds_path).mkdir(parents=True, exist_ok=True)
+                    np.save(self.logger.log_dir+'/tile_preds/'+image_name+'.npy', tile_preds.cpu().numpy())
+            
+        total_runtime_mins = (datetime.datetime.now() - self.start_time).total_seconds()/60
+        self.log('total_runtime_mins', total_runtime_mins)
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
