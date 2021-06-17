@@ -166,7 +166,7 @@ def save_metadata(output_path, **kwargs):
             - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
             - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
             - has_positive_tile (dict): dictionary with fires as keys and 1 if at least one tiled image has a label of 1
-            - omit_images_list (list): list of images that erroneously do not have XML files for labels
+            - omit_images_list (list of str): list of images that erroneously do not have XML files for labels
     """
     # Add date & time 
     kwargs['time_created'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")

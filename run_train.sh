@@ -1,3 +1,10 @@
+#############################################
+# Created by: Anshuman Dewangan
+# Date: 2021
+#
+# Description: Used to easily start training from main.py with command line arguments.
+#############################################
+
 # Vanilla run
 # python3 main.py \
 #     --no-lr-schedule \
