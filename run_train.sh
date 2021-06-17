@@ -1,5 +1,5 @@
 # Vanilla run
-# python3 train.py \
+# python3 main.py \
 #     --no-lr-schedule \
 #     --no-auto-lr-find \
 #     --no-early-stopping \
@@ -9,8 +9,8 @@
 #     --accumulate-grad-batches 1
 
 # Debug run
-python3 train.py \
-    --omit-images-path'/userdata/kerasData/data/new_data/batched_tiled_data/omit_images.npy'
+python3 main.py \
+    --omit-images-path '/userdata/kerasData/data/new_data/batched_tiled_data/omit_images.npy' \
     --min-epochs 1 \
     --max-epochs 2 \
     --no-lr-schedule \
