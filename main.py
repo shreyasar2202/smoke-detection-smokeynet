@@ -1,12 +1,13 @@
 # Torch imports
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 # Other package imports
 from argparse import ArgumentParser
 
 # File imports
-from model import LightningModel
+from model import LightningModel, TileResNet
 from batched_tiled_dataloader import BatchedTiledDataModule, BatchedTiledDataloader
 
 
@@ -119,17 +120,20 @@ def main(# Path args
         time_range=time_range)
     
     # Initialize model
-    model = LightningModel(learning_rate=learning_rate,
-                           lr_schedule=lr_schedule,
-                           freeze_backbone=freeze_backbone)
+    encoder = TileResNet(freeze_backbone=freeze_backbone)
+    model = LightningModel(model=encoder,
+                           learning_rate=learning_rate,
+                           lr_schedule=lr_schedule)
 
     # Implement EarlyStopping
     early_stop_callback = EarlyStopping(
-       monitor='val_loss',
+       monitor='val/loss',
        min_delta=0.00,
        patience=5,
        verbose=False,
        mode='max')
+    
+    checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
 
     # Initialize a trainer
     trainer = pl.Trainer(
@@ -137,7 +141,7 @@ def main(# Path args
         min_epochs=min_epochs,
         max_epochs=max_epochs,
         auto_lr_find=auto_lr_find,
-        callbacks=[early_stop_callback] if early_stopping else None,
+        callbacks=[early_stop_callback, checkpoint_callback] if early_stopping else [checkpoint_callback],
         precision=16 if sixteen_bit else 32,
         stochastic_weight_avg=stochastic_weight_avg,
         gradient_clip_val=gradient_clip_val,
@@ -147,8 +151,8 @@ def main(# Path args
 #         fast_dev_run=True, 
         overfit_batches=5,
         log_every_n_steps=1,
-        checkpoint_callback=False,
-        logger=False,
+#         checkpoint_callback=False,
+#         logger=False,
 #         track_grad_norm=2,
 #         weights_summary='full',
 #         profiler="simple", # "advanced" "pytorch"

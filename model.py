@@ -45,11 +45,11 @@ class TileResNet(nn.Module):
     
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, learning_rate=0.001, lr_schedule=True, freeze_backbone=True):
+    def __init__(self, model, learning_rate=0.001, lr_schedule=True):
         super().__init__()
         
         # Initialize model
-        self.model = TileResNet(freeze_backbone=freeze_backbone)
+        self.model = model
         
         # Initialize model params
         self.criterion = nn.BCEWithLogitsLoss()
@@ -68,12 +68,14 @@ class LightningModel(pl.LightningModule):
                 for label, func in zip(self.metric_labels, self.metric_functions):
                     self.metrics[split+title+label] = func(mdmc_average='global') if title == self.metric_titles[0] else func()
         
+    def forward(self, x):
+        return self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
     
     def step(self, batch, split):
         x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
         
         # Compute loss
-        output = self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
+        output = self(x)
         loss = self.criterion(output, tile_labels)
         
         # Compute predictions
