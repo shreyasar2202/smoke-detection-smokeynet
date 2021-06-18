@@ -16,7 +16,7 @@ from argparse import ArgumentParser
 import datetime
 
 # File imports
-from model import LightningModel, TileResNet
+from model import LightningModel, ResNet50Backbone
 from batched_tiled_dataloader import BatchedTiledDataModule, BatchedTiledDataloader
 
 
@@ -136,8 +136,8 @@ def main(# Path args
         time_range=time_range)
     
     ### Initialize model ###
-    encoder = TileResNet(freeze_backbone=freeze_backbone)
-    model = LightningModel(model=encoder,
+    backbone = ResNet50Backbone(series_length, freeze_backbone=freeze_backbone)
+    model = LightningModel(model=backbone,
                            learning_rate=learning_rate,
                            lr_schedule=lr_schedule,
                            parsed_args=parsed_args)
@@ -155,7 +155,7 @@ def main(# Path args
     ### Initialize Trainer ###
     
     # Initialize logger 
-    logger = TensorBoardLogger("lightning_logs/", name=experiment_name)
+    logger = TensorBoardLogger("lightning_logs/", name=experiment_name, log_graph=True)
     
     trainer = pl.Trainer(
         # Trainer args

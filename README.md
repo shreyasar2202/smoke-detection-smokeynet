@@ -70,6 +70,12 @@ cd pytorch-lightning-smoke-detection
 **Steps to Run:**
 To run training, use ```python3 main.py``` in the command line. You can optionally use ```./run_train.sh```. You can check ```main.py``` for a full list of tunable hyperparameters as command line arguments, but the defaults will be set to give good performance.
 
+**Models:**
+Each model has three parts:
+1. backbone: Input = [batch_size/arbitrary_value, num_channels=3, height=224, width=224]. Output = [batch_size, num_tiles=108, 1]. This allows for intermediate supervision using tile_labels.
+2. middle_layer: Input = [batch_size, num_tiles=108, 1]. Output = [batch_size, num_tiles=108, 1]. This allows to use backbone as input, chain multiple middle layers, and use intermediate supervision using tile_labels.
+3. final_layer: Input = [batch_size, num_tiles=108, 1]. Output = [batch_size, 1]. This gives a final prediction per image. 
+
 
 ## Logging
 **Relevant Directories:**

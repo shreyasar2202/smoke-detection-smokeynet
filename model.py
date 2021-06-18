@@ -23,12 +23,13 @@ from pathlib import Path
 # File imports
 import util_fns
 
+    
 
-class TileResNet(nn.Module):
+class ResNet50Backbone(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
     """
-    def __init__(self, freeze_backbone=True):
+    def __init__(self, series_length, freeze_backbone=True):
         super().__init__()
 
         resnet = torchvision.models.resnet50(pretrained=True)
@@ -40,7 +41,7 @@ class TileResNet(nn.Module):
 
         self.conv = resnet
 
-        self.fc1 = nn.Linear(in_features=2048, out_features=512)
+        self.fc1 = nn.Linear(in_features=series_length * 2048, out_features=512)
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
 
@@ -48,17 +49,17 @@ class TileResNet(nn.Module):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        x = x.view(batch_size * num_tiles, num_channels * series_length, height, width)
+        x = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
         x = self.conv(x) # [batch_size * num_tiles * series_length, 2048]
 
-        x = x.view(batch_size, num_tiles, -1) # [batch_size, num_tiles, 2048]
+        x = x.view(batch_size, num_tiles, -1) # [batch_size, num_tiles, series_length * 2048]
         x = F.relu(self.fc1(x)) # [batch_size, num_tiles, 512]
         x = F.relu(self.fc2(x)) # [batch_size, num_tiles, 64]
         x = self.fc3(x) # [batch_size, num_tiles, 1]
 
         return x
 
-
+    
 #####################
 ## Training Model
 #####################
@@ -80,6 +81,8 @@ class LightningModel(pl.LightningModule):
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
 
         Other Attributes:
+            - example_input_array (tensor): example of input to log computational graph in tensorboard
+            - criterion (obj): objective function used to calculate loss
             - self.metrics (dict): contains many properties related to logging metrics, including:
                 - torchmetrics (torchmetrics module): keeps track of metrics per step and per epoch
                 - split (list of str): name of splits e.g. ['train/', 'val/', 'test/']
@@ -95,6 +98,7 @@ class LightningModel(pl.LightningModule):
 
         # Initialize model
         self.model = model
+        self.example_input_array = torch.randn((parsed_args.batch_size,108,parsed_args.series_length, 3, 224, 224))
 
         # Initialize model params
         self.criterion = nn.BCEWithLogitsLoss()
