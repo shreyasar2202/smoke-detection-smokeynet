@@ -171,7 +171,7 @@ def main(# Path args
         # Dev args
         logger=logger,
 #         fast_dev_run=True, 
-        overfit_batches=5,
+        overfit_batches=40,
 #         limit_train_batches=5,
 #         limit_val_batches=5,
 #         limit_test_batches=5,

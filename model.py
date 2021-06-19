@@ -248,7 +248,7 @@ class LightningModel(pl.LightningModule):
         """
         
         print("Computing Test Evaluation Metrics... ")
-        fire_preds = {}
+        fire_preds_dict = {}
         
         ### Save predictions as .txt files ###
         with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
@@ -271,7 +271,47 @@ class LightningModel(pl.LightningModule):
                             image_name+\
                             '.npy', tile_pred.cpu().numpy())
                     
-                    if fire_name not in fire_preds:
-                        fire_preds[fire_name] = [0] * 81
+                    # Add prediction to fire_preds_dict list
+                    # ASSUMPTION: images are in order and test data has not been shuffled
+                    if fire_name not in fire_preds_dict:
+                        fire_preds_dict[fire_name] = []
+                        
+                    fire_preds_dict[fire_name].append(image_preds)
+        
+        ### Create data structures ###
+        # Create data structure to store preds of all relevant fires
+        fire_preds = []
+        for fire in fire_preds_dict:
+            # ASSUMPTION: only calculate statistics for fires with 81 images
+            if len(fire_preds_dict[fire]) == 81:
+                fire_preds.append(fire_preds_dict[fire])
+                
+        fire_preds = torch.Tensor(fire_preds).int()
+
+        negative_preds = fire_preds[:,:40]
+        positive_preds = fire_preds[:,40:]
+        
+        ### Compute & log metrics ###
+        self.log(self.metrics['split'][2]+'negative_accuracy',
+                 util_fns.calculate_negative_accuracy(negative_preds))
+        self.log(self.metrics['split'][2]+'negative_accuracy_by_fire',
+                 util_fns.calculate_negative_accuracy_by_fire(negative_preds))
+        self.log(self.metrics['split'][2]+'positive_accuracy',
+                 util_fns.calculate_positive_accuracy(positive_preds))
+        self.log(self.metrics['split'][2]+'positive_accuracy_by_fire',
+                 util_fns.calculate_positive_accuracy_by_fire(positive_preds))
+        
+        # Use 'global_step' to graph positive_accuracy_by_time and positive_cumulative_accuracy
+        positive_accuracy_by_time = util_fns.calculate_positive_accuracy_by_time(positive_preds)
+        positive_cumulative_accuracy = util_fns.calculate_positive_cumulative_accuracy(positive_preds)
+        
+        for i in range(len(positive_accuracy_by_time)):
+            self.logger.experiment.add_scalar(self.metrics['split'][2]+'positive_accuracy_by_time',
+                                             positive_accuracy_by_time[i], global_step=i)
+            self.logger.experiment.add_scalar(self.metrics['split'][2]+'positive_cumulative_accuracy',
+                                             positive_cumulative_accuracy[i], global_step=i)
+        
+        self.log(self.metrics['split'][2]+'average_time_to_detection',
+                 util_fns.calculate_average_time_to_detection(positive_preds))
         
         print("Computing Test Evaluation Metrics Complete. ")

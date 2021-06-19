@@ -108,8 +108,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         if self.has_setup: return
         print("Setting Up Data... ")
         
-        ### Create train/val/test split of Fires ###
-        # If any split not provided, randomly create own splits
+        # If any split not provided, randomly create own train/val/test splits
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
             train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
             val_fires, test_fires = train_test_split(val_fires, test_size=0.5)
@@ -123,32 +122,13 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             val_fires = {util_fns.get_fire_name(item) for item in val_list}
             test_fires = {util_fns.get_fire_name(item) for item in test_list}
         
-        ### Incorporate Time Range ###
         # Shorten fire_to_images to relevant time frame
-        if self.time_range[0] > -2400 or self.time_range[1] < 2400:
-            for fire in train_fires:
-                images_to_keep = []
-
-                for image in self.metadata['fire_to_images'][fire]:
-                    image_time_index = util_fns.image_name_to_time_int(image)
-                    if image_time_index >= self.time_range[0] and image_time_index <= self.time_range[1]:
-                        images_to_keep.append(image)
-
-                self.metadata['fire_to_images'][fire] = images_to_keep
+        self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata, self.time_range, train_fires)
         
-        ### Incorporate Series Length ###
-        self.metadata['image_series'] = {}
+        # Save arrays representing series of images
+        self.metadata['image_series'] = util_fns.generate_series(self.metadata, self.series_length) 
         
-        for fire in self.metadata['fire_to_images']:
-            for i, img in enumerate(self.metadata['fire_to_images'][fire]):
-                self.metadata['image_series'][img] = []
-                idx = i
-                
-                while (len(self.metadata['image_series'][img]) < self.series_length):
-                    self.metadata['image_series'][img].append(self.metadata['fire_to_images'][fire][idx])
-                    if idx != 0: idx -= 1
-        
-        ### Create train/val/test split of Images ###
+        # Create train/val/test split of Images
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
             self.train_split = util_fns.unpack_fire_images(self.metadata, train_fires)
             self.val_split = util_fns.unpack_fire_images(self.metadata, val_fires)
