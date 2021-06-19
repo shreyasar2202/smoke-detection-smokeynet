@@ -28,6 +28,12 @@ import util_fns
 class ResNet50Backbone(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
+    Args:
+        - series_length: number of sequential video frames to process during training
+        - freeze_backbone: disables freezing of layers on pre-trained backbone
+    
+    Other Attributes:
+        - criterion (obj): objective function used to calculate loss
     """
     def __init__(self, series_length, freeze_backbone=True):
         super().__init__()
@@ -44,6 +50,8 @@ class ResNet50Backbone(nn.Module):
         self.fc1 = nn.Linear(in_features=series_length * 2048, out_features=512)
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
+        
+        self.criterion = nn.BCEWithLogitsLoss()
 
     def forward(self, x):
         x = x.float()
@@ -58,6 +66,9 @@ class ResNet50Backbone(nn.Module):
         x = self.fc3(x) # [batch_size, num_tiles, 1]
 
         return x
+    
+    def compute_loss(self, outputs, tile_labels):
+        return self.criterion(outputs, tile_labels)
 
     
 #####################
@@ -82,7 +93,6 @@ class LightningModel(pl.LightningModule):
 
         Other Attributes:
             - example_input_array (tensor): example of input to log computational graph in tensorboard
-            - criterion (obj): objective function used to calculate loss
             - self.metrics (dict): contains many properties related to logging metrics, including:
                 - torchmetrics (torchmetrics module): keeps track of metrics per step and per epoch
                 - split (list of str): name of splits e.g. ['train/', 'val/', 'test/']
@@ -94,14 +104,15 @@ class LightningModel(pl.LightningModule):
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
                 - function (list of torchmetrics functions): used to initiate torchmetric modules
         """
+        print("Initializing LightningModel... ")
         super().__init__()
 
         # Initialize model
         self.model = model
+        # ASSUMPTION: num_tiles=108, num_channels=3, image_height=224, image_width=224 
         self.example_input_array = torch.randn((parsed_args.batch_size,108,parsed_args.series_length, 3, 224, 224))
 
         # Initialize model params
-        self.criterion = nn.BCEWithLogitsLoss()
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule
 
@@ -122,6 +133,8 @@ class LightningModel(pl.LightningModule):
                 for label, func in zip(self.metrics['name'], self.metrics['function']):
                     self.metrics['torchmetric'][split+title+label] = func(mdmc_average='global') \
                     if title == self.metrics['category'][0] else func()
+                    
+        print("Initializing LightningModel Complete. ")
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
@@ -135,21 +148,63 @@ class LightningModel(pl.LightningModule):
         else:
             return optimizer
 
+        
+    #####################
+    ## Model Functions
+    #####################
+    
     def forward(self, x):
-        return self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
-
-    ### Step Functions ###
-
-    def step(self, batch, split):
-        image_name, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
-
-        # Compute loss
-        outputs = self(x)
-        loss = self.criterion(outputs, tile_labels)
-
-        # Compute predictions
+        """
+        Description: compute forward pass of all model_parts as well as adds additional layers
+        Args:
+            - x (tensor): input provided by dataloader
+        Returns:
+            - outputs (tensor): outputs after going through forward passes of all layers
+        """
+        
+        outputs = self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
+        return outputs
+    
+    def compute_loss(self, outputs, tile_labels, ground_truth_labels):
+        """
+        Description: computes total loss by computing loss of each sub-module
+        Args:
+            - outputs (tensor): outputs after going through forward passes of all layers
+            - tile_labels: see metadata.pkl documentation for more info
+            - ground_truth_labels: see metadata.pkl documentation for more info
+        Returns:
+            - loss (float): total loss for model
+        """
+        
+        loss = self.model.compute_loss(outputs, tile_labels)
+        return loss
+    
+    def compute_predictions(self, outputs):
+        """
+        Description: computes tile-level and image-level predictions
+        Args:
+            - outputs (tensor): outputs after going through forward passes of all layers
+        Returns:
+            - tile_preds (tensor): 0/1 prediction for each tile in each image of the batch
+            - image_preds (tensor): 0/1 prediction for each image in the batch
+        """
+        
         tile_preds = util_fns.predict_tile(outputs)
         image_preds = util_fns.predict_image_from_tile_preds(tile_preds)
+        
+        return tile_preds, image_preds
+
+    #####################
+    ## Step Functions
+    #####################
+
+    def step(self, batch, split):
+        image_names, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
+
+        # Compute outputs, loss, and predictions
+        outputs = self(x)
+        loss = self.compute_loss(outputs, tile_labels, ground_truth_labels)
+        tile_preds, image_preds = self.compute_predictions(outputs)
 
         # Compute metrics
         for label in self.metrics['name']:
@@ -167,24 +222,35 @@ class LightningModel(pl.LightningModule):
                 name = split+title+label
                 self.log(name, self.metrics['torchmetric'][name], on_step=False, on_epoch=True)
 
-        return image_name, outputs, loss, tile_preds, image_preds
+        return image_names, outputs, loss, tile_preds, image_preds
 
     def training_step(self, batch, batch_idx):
-        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][0])
+        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][0])
         return loss
 
     def validation_step(self, batch, batch_idx):
-        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][1])
+        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][1])
 
     def test_step(self, batch, batch_idx):
-        image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][2])
-        return image_name, tile_preds, image_preds
+        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][2])
+        return image_names, tile_preds, image_preds
 
-    ### Test Metric Logging ###
     
+    #####################
+    ## Test Metric Logging
+    #####################
+
     def test_epoch_end(self, test_step_outputs):
+        """
+        Description: saves predictions to .txt files and computes additional evaluation metrics for test set (e.g. time-to-detection)
+        Args:
+            - test_step_outputs (list of {image_names, tile_preds, image_preds}): what's returned from test_step
+        """
+        
+        print("Computing Test Evaluation Metrics... ")
         fire_preds = {}
         
+        ### Save predictions as .txt files ###
         with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
             image_preds_csv_writer = csv.writer(image_preds_csv)
 
@@ -207,3 +273,5 @@ class LightningModel(pl.LightningModule):
                     
                     if fire_name not in fire_preds:
                         fire_preds[fire_name] = [0] * 81
+        
+        print("Computing Test Evaluation Metrics Complete. ")

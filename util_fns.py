@@ -53,7 +53,9 @@ def get_fire_name(path):
         - fire_name (str): name of fire e.g. "20160718_FIRE_mg-s-iqeye"
     """
     
+    # ASSUMPTION: Last two directories of path are {fire} and {image} respectively
     fire_name = path.split('/')[-2]
+    
     return fire_name
 
 def get_image_name(path):
@@ -71,6 +73,7 @@ def get_image_name(path):
     image_name = '/'.join([image_name[0], str(Path(image_name[1]).stem)])
     
     # Remove '_lbl' or '_img' if it exists
+    # ASSUMPTION: Last 4 chars of image_name may have '_lbl' or '_img'
     if image_name[-4:] == '_lbl' or image_name[-4:] == '_img':
         image_name = image_name[:-4]
     
@@ -89,6 +92,7 @@ def unpack_fire_images(metadata, fires_list, is_test=False):
     
     for fire in fires_list:
         for image in metadata['fire_to_images'][fire]:
+            # ASSUMPTION: We want to keep all images for test set
             if is_test or image not in metadata['omit_images_list']:
                 unpacked_images.append(image)
                 
@@ -98,14 +102,16 @@ def unpack_fire_images(metadata, fires_list, is_test=False):
 ## Manipulating Fire Image Indices
 #####################
 
-def image_name_to_time_index(image_name):
+def image_name_to_time_int(image_name):
     """
     Description: Given an image name (e.g. 20190716_Meadowfire_hp-n-mobo-c/1563305245_-01080), returns time index as integer (e.g. -1080)
     Args:
         - image_name (str): name of image
     Returns:
-        - time_index (int): time index as integer
+        - time_int (int): time index as integer
     """
     
-    return int(image_name[-6:])
+    # ASSUMPTION: Last six characters of image name is the time stamp
+    time_int = int(image_name[-6:])
+    return time_int
     
