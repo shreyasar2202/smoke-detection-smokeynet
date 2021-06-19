@@ -180,16 +180,30 @@ class LightningModel(pl.LightningModule):
         image_name, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][2])
         return image_name, tile_preds, image_preds
 
-      # TODO: Fix this
-#     def test_epoch_end(self, test_step_outputs):
-#         with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
-#             image_preds_csv_writer = csv.writer(image_preds_csv)
+    ### Test Metric Logging ###
+    
+    def test_epoch_end(self, test_step_outputs):
+        fire_preds = {}
+        
+        with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
+            image_preds_csv_writer = csv.writer(image_preds_csv)
 
-#             for image_names, tile_preds, image_preds in test_step_outputs:
-#                 for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
-#                     import pdb; pdb.set_trace()
-#                     image_preds_csv_writer.writerow([image_name, image_preds.item()])
+            # Loop through batch
+            for image_names, tile_preds, image_preds in test_step_outputs:
+                # Loop through entry in batch
+                for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
+                    fire_name = util_fns.get_fire_name(image_name)
+                    image_pred = image_pred.item()
+                    
+                    # Save image predictions
+                    image_preds_csv_writer.writerow([image_name, image_pred])
 
-#                     tile_preds_path = self.logger.log_dir+'/tile_preds/'+image_name.split('/')[0]
-#                     Path(tile_preds_path).mkdir(parents=True, exist_ok=True)
-#                     np.save(self.logger.log_dir+'/tile_preds/'+image_name+'.npy', tile_preds.cpu().numpy())
+                    # Save tile predictions
+                    tile_preds_path = self.logger.log_dir+'/tile_preds/'+fire_name
+                    Path(tile_preds_path).mkdir(parents=True, exist_ok=True)
+                    np.save(self.logger.log_dir+'/tile_preds/'+\
+                            image_name+\
+                            '.npy', tile_pred.cpu().numpy())
+                    
+                    if fire_name not in fire_preds:
+                        fire_preds[fire_name] = [0] * 81

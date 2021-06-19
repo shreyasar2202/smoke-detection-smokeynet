@@ -6,6 +6,8 @@ Description: Kicks off training and evaluation. Contains many command line argum
 """
 import torch
 
+from pathlib import Path
+
 
 #####################
 ## Generating Predictions
@@ -60,7 +62,7 @@ def get_image_name(path):
     Args:
         - path (str): Full path to filename or path of {fire}/{image}
     Returns:
-        - image_name (str): name of image e.g. 
+        - image_name (str): name of image e.g. 20190716_Meadowfire_hp-n-mobo-c/1563305245_-01080
     """
     # Get last two names of path: fire and image
     image_name = path.split('/')[-2:]
@@ -74,9 +76,9 @@ def get_image_name(path):
     
     return image_name
 
-def unpack_fire_images(metadata, fires_list):
+def unpack_fire_images(metadata, fires_list, is_test=False):
     """
-    Description: Returns images from a list of fires that are not in 'omit_images_list'
+    Description: Returns images from a list of fires. If train or val, do not include images that are in 'omit_images_list'.
     Args:
         - metadata (dict): metadata.pkl file contents
         - fires_list (list of str): list of fire names to unpack
@@ -87,7 +89,23 @@ def unpack_fire_images(metadata, fires_list):
     
     for fire in fires_list:
         for image in metadata['fire_to_images'][fire]:
-            if image not in metadata['omit_images_list']:
+            if is_test or image not in metadata['omit_images_list']:
                 unpacked_images.append(image)
                 
     return unpacked_images
+
+#####################
+## Manipulating Fire Image Indices
+#####################
+
+def image_name_to_time_index(image_name):
+    """
+    Description: Given an image name (e.g. 20190716_Meadowfire_hp-n-mobo-c/1563305245_-01080), returns time index as integer (e.g. -1080)
+    Args:
+        - image_name (str): name of image
+    Returns:
+        - time_index (int): time index as integer
+    """
+    
+    return int(image_name[-6:])
+    

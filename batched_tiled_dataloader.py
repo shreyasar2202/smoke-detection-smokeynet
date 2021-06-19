@@ -114,13 +114,17 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             test_fires = {util_fns.get_fire_name(item) for item in test_list}
         
         ### Incorporate Time Range ###
-        # Calculate indices related to desired time frame
-        time_range_min_idx = int((self.time_range[0] + 2400) / 60)
-        time_range_max_idx = int((self.time_range[1] + 2400) / 60) + 1 
-        
         # Shorten fire_to_images to relevant time frame
-        for fire in train_fires:
-            self.metadata['fire_to_images'][fire] = self.metadata['fire_to_images'][fire][time_range_min_idx:time_range_max_idx]
+        if self.time_range[0] != -2400 or self.time_range[1] != 2400
+            for fire in train_fires:
+                images_to_keep = []
+
+                for image in self.metadata['fire_to_images'][fire]:
+                    image_time_index = util_fns.image_name_to_time_index(image)
+                    if image_time_index >= self.time_range[0] and image_time_index <= self.time_range[1]:
+                        images_to_keep.append(image)
+
+                self.metadata['fire_to_images'][fire] = images_to_keep
         
         ### Incorporate Series Length ###
         self.metadata['image_series'] = {}
@@ -138,7 +142,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
             self.train_split = util_fns.unpack_fire_images(self.metadata, train_fires)
             self.val_split = util_fns.unpack_fire_images(self.metadata, val_fires)
-            self.test_split = util_fns.unpack_fire_images(self.metadata, test_fires)
+            self.test_split = util_fns.unpack_fire_images(self.metadata, test_fires, is_test=True)
         else:
             self.train_split = [util_fns.get_image_name(item) for item in train_list]
             self.val_split   = [util_fns.get_image_name(item) for item in val_list]
