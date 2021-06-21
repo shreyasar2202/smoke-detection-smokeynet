@@ -7,6 +7,7 @@ Description: Kicks off training and evaluation. Contains many command line argum
 import torch
 import torchmetrics
 
+import os
 from pathlib import Path
 
 
@@ -60,6 +61,17 @@ def image_name_to_time_int(image_name):
     time_int = int(image_name[-6:])
     
     return time_int
+
+def send_fb_message(message="Done"):
+    """
+    Source: https://www.nimrod-messenger.io/
+    Description: Programmatically sends a Facebook message! Can be used when a job is finished or error has occurred. Make sure to set up $FB_API_KEY as an evnironment variable for it to work.
+    Args:
+        - message (str): Message to send
+    """
+    os.system(
+        "curl -X POST -H \"Content-Type: application/json\" -d '{\"api_key\": \""+os.environ["FB_API_KEY"]+"\",\"message\":\""+message+"\"}' \"https://www.nimrod-messenger.io/api/v1/message\""
+    )
 
 
 ###########################

@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+import os
+
 # File imports
 import util_fns
 from generate_batched_tiled_data import save_batched_tiled_images
@@ -104,7 +106,11 @@ class BatchedTiledDataModule(pl.LightningDataModule):
             print("Preparing Data Complete. ")
         
         
-    def setup(self, stage=None):
+    def setup(self, stage=None, log_dir=None):
+        """
+        Args:
+            - log_dir (str): logging directory to save train/val/test splits 
+        """
         if self.has_setup: return
         print("Setting Up Data... ")
         
@@ -112,28 +118,30 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
             train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
             val_fires, test_fires = train_test_split(val_fires, test_size=0.5)
+            
+            # Shorten fire_to_images to relevant time frame
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata, self.time_range, train_fires)
+
+            # Save arrays representing series of images
+            self.metadata['image_series'] = util_fns.generate_series(self.metadata, self.series_length) 
+
+            # Create train/val/test split of Images
+            self.train_split = util_fns.unpack_fire_images(self.metadata, train_fires)
+            self.val_split = util_fns.unpack_fire_images(self.metadata, val_fires)
+            self.test_split = util_fns.unpack_fire_images(self.metadata, test_fires, is_test=True)
+
+            # If logdir is provided, then save train/val/test splits
+            if log_dir:
+                os.mkdir(log_dir)
+                np.savetxt(log_dir+'/train_fires.txt', self.train_split, fmt='%s')
+                np.savetxt(log_dir+'/val_fires.txt', self.val_split, fmt='%s')
+                np.savetxt(log_dir+'/test_fires.txt', self.test_split, fmt='%s')
         else:
-            # Load existing splits, saving fires only
+            # Load existing splits
             train_list = np.loadtxt(self.train_split_path, dtype=str)
             val_list = np.loadtxt(self.val_split_path, dtype=str)
             test_list = np.loadtxt(self.test_split_path, dtype=str)
             
-            train_fires = {util_fns.get_fire_name(item) for item in train_list}
-            val_fires = {util_fns.get_fire_name(item) for item in val_list}
-            test_fires = {util_fns.get_fire_name(item) for item in test_list}
-        
-        # Shorten fire_to_images to relevant time frame
-        self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata, self.time_range, train_fires)
-        
-        # Save arrays representing series of images
-        self.metadata['image_series'] = util_fns.generate_series(self.metadata, self.series_length) 
-        
-        # Create train/val/test split of Images
-        if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
-            self.train_split = util_fns.unpack_fire_images(self.metadata, train_fires)
-            self.val_split = util_fns.unpack_fire_images(self.metadata, val_fires)
-            self.test_split = util_fns.unpack_fire_images(self.metadata, test_fires, is_test=True)
-        else:
             self.train_split = [util_fns.get_image_name(item) for item in train_list]
             self.val_split   = [util_fns.get_image_name(item) for item in val_list]
             self.test_split  = [util_fns.get_image_name(item) for item in test_list]
@@ -156,7 +164,7 @@ class BatchedTiledDataModule(pl.LightningDataModule):
         test_dataset = BatchedTiledDataloader(self.data_path, self.test_split, self.metadata)
         test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return test_loader
-
+    
     
 #####################
 ## Dataloader

@@ -18,6 +18,7 @@ import datetime
 # File imports
 from model import LightningModel, ResNet50Backbone
 from batched_tiled_dataloader import BatchedTiledDataModule, BatchedTiledDataloader
+import util_fns
 
 
 #####################
@@ -120,93 +121,104 @@ def main(# Path args
         gradient_clip_val=0,
         accumulate_grad_batches=1):
         
-    ### Initialize data_module ###
-    data_module = BatchedTiledDataModule(
-        # Path args
-        data_path=data_path,
-        metadata_path=metadata_path,
-        train_split_path=train_split_path,
-        val_split_path=val_split_path,
-        test_split_path=test_split_path,
+    try:
+        util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
         
-        # Dataloader args
-        batch_size=batch_size,
-        num_workers=num_workers,
-        series_length=series_length,
-        time_range=time_range)
-    
-    ### Initialize model ###
-    backbone = ResNet50Backbone(series_length, freeze_backbone=freeze_backbone)
-    model = LightningModel(model=backbone,
-                           learning_rate=learning_rate,
-                           lr_schedule=lr_schedule,
-                           parsed_args=parsed_args)
+        ### Initialize data_module ###
+        data_module = BatchedTiledDataModule(
+            # Path args
+            data_path=data_path,
+            metadata_path=metadata_path,
+            train_split_path=train_split_path,
+            val_split_path=val_split_path,
+            test_split_path=test_split_path,
 
-    ### Implement EarlyStopping ###
-    early_stop_callback = EarlyStopping(
-       monitor='val/loss',
-       min_delta=0.00,
-       patience=5,
-       verbose=False,
-       mode='max')
-    
-    checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
-
-    ### Initialize Trainer ###
-    
-    # Initialize logger 
-    logger = TensorBoardLogger("lightning_logs/", name=experiment_name, log_graph=True)
-    
-    trainer = pl.Trainer(
-        # Trainer args
-        min_epochs=min_epochs,
-        max_epochs=max_epochs,
-        auto_lr_find=auto_lr_find,
-        callbacks=[early_stop_callback, checkpoint_callback] if early_stopping else [checkpoint_callback],
-        precision=16 if sixteen_bit else 32,
-        stochastic_weight_avg=stochastic_weight_avg,
-        gradient_clip_val=gradient_clip_val,
-        accumulate_grad_batches=accumulate_grad_batches,
+            # Dataloader args
+            batch_size=batch_size,
+            num_workers=num_workers,
+            series_length=series_length,
+            time_range=time_range)
         
-        # Dev args
-        logger=logger,
-#         fast_dev_run=True, 
-        overfit_batches=40,
-#         limit_train_batches=5,
-#         limit_val_batches=5,
-#         limit_test_batches=5,
-        log_every_n_steps=1,
-#         checkpoint_callback=False,
-#         logger=False,
-#         track_grad_norm=2,
-#         weights_summary='full',
-#         profiler="simple", # "advanced" "pytorch"
-#         log_gpu_memory=True,
-        gpus=1)
-    
-    ### Training & Evaluation ###
-    
-    # Auto find learning rate
-    if auto_lr_find:
-        trainer.tune(model)
-        
-    # Train the model
-    trainer.fit(model, data_module)
-    
-    # Evaluate the best model on the test set
-    trainer.test(model, data_module)
+        ### Initialize model ###
+        backbone = ResNet50Backbone(series_length, freeze_backbone=freeze_backbone)
+        model = LightningModel(model=backbone,
+                               learning_rate=learning_rate,
+                               lr_schedule=lr_schedule,
+                               parsed_args=parsed_args)
 
+        ### Implement EarlyStopping ###
+        early_stop_callback = EarlyStopping(
+           monitor='val/loss',
+           min_delta=0.00,
+           patience=5,
+           verbose=False,
+           mode='max')
+
+        checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
+
+        ### Initialize Trainer ###
+
+        # Initialize logger 
+        logger = TensorBoardLogger("lightning_logs/", name=experiment_name, log_graph=True)
+        
+        # Set up data_module and save train/val/test splits
+        data_module.setup(log_dir=logger.log_dir)
+
+        trainer = pl.Trainer(
+            # Trainer args
+            min_epochs=min_epochs,
+            max_epochs=max_epochs,
+            auto_lr_find=auto_lr_find,
+            callbacks=[early_stop_callback, checkpoint_callback] if early_stopping else [checkpoint_callback],
+            precision=16 if sixteen_bit else 32,
+            stochastic_weight_avg=stochastic_weight_avg,
+            gradient_clip_val=gradient_clip_val,
+            accumulate_grad_batches=accumulate_grad_batches,
+
+            # Dev args
+            logger=logger,
+    #         fast_dev_run=True, 
+    #         overfit_batches=2,
+            limit_train_batches=0.02,
+            limit_val_batches=0.02,
+            limit_test_batches=0.02,
+    #         log_every_n_steps=1,
+    #         checkpoint_callback=False,
+    #         logger=False,
+    #         track_grad_norm=2,
+    #         weights_summary='full',
+    #         profiler="simple", # "advanced" "pytorch"
+    #         log_gpu_memory=True,
+            gpus=1)
+        
+        ### Training & Evaluation ###
+
+        # Auto find learning rate
+        if auto_lr_find:
+            trainer.tune(model)
+
+        # Train the model
+        trainer.fit(model, datamodule=data_module)
+
+        # Evaluate the best model on the test set
+        trainer.test(model, datamodule=data_module)
+
+        util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
+    except Exception as e:
+        util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
+        raise(e) 
+    
     
 if __name__ == '__main__':
     args = parser.parse_args()
-        
+    
     main(# Path args
         data_path=args.data_path, 
         metadata_path=args.metadata_path, 
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 
         test_split_path=args.test_split_path,
-        
+
         # Experiment args
         experiment_name=args.experiment_name,
         experiment_description=args.experiment_description,
@@ -232,3 +244,5 @@ if __name__ == '__main__':
         stochastic_weight_avg=not args.no_stochastic_weight_avg,
         gradient_clip_val=args.gradient_clip_val,
         accumulate_grad_batches=args.accumulate_grad_batches)
+ 
+    
