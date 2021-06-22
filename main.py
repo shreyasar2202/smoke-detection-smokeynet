@@ -36,8 +36,8 @@ parser.add_argument('--experiment-description', type=str, default=None,
 # Path args
 parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
                     help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
-                    help='Path to XML labels.')
+parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone_labels',
+                    help='Path to processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
 parser.add_argument('--train-split-path', type=str, default=None,
@@ -69,7 +69,6 @@ parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
 parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='Number of pixels of smoke to consider tile positive.')
-
 
 # Model args
 parser.add_argument('--learning-rate', type=float, default=0.001,
@@ -141,7 +140,7 @@ def main(# Path args
         accumulate_grad_batches=1):
         
     try:
-#         util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
+        util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
         
         ### Initialize data_module ###
         data_module = DynamicDataModule(
@@ -203,16 +202,16 @@ def main(# Path args
             logger=logger,
 #             fast_dev_run=True, 
 #             overfit_batches=2,
-            limit_train_batches=0.02,
-            limit_val_batches=0.02,
-            limit_test_batches=0.02,
-    #         log_every_n_steps=1,
-    #         checkpoint_callback=False,
-    #         logger=False,
-    #         track_grad_norm=2,
-    #         weights_summary='full',
+#             limit_train_batches=0.02,
+#             limit_val_batches=0.02,
+#             limit_test_batches=0.02,
+#             log_every_n_steps=1,
+#             checkpoint_callback=False,
+#             logger=False,
+#             track_grad_norm=2,
+#             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
-    #         log_gpu_memory=True,
+#             log_gpu_memory=True,
             gpus=1)
         
         ### Training & Evaluation ###
@@ -227,9 +226,9 @@ def main(# Path args
         # Evaluate the best model on the test set
         trainer.test(model, datamodule=data_module)
 
-#         util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
+        util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:
-#         util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
+        util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
         raise(e) 
     
     

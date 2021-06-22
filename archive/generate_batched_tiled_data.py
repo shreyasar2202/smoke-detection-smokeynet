@@ -14,6 +14,8 @@ import pickle
 from argparse import ArgumentParser
 from datetime import datetime
 
+import util_fns
+
 
 #####################
 ## Argument Parser
@@ -21,11 +23,11 @@ from datetime import datetime
 parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
 
 # Paths to relevant directories
-parser.add_argument('--raw-images-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
+parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
                     help='Path to raw wildfire images')
 parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
                     help='Path to XML labels for raw images')
-parser.add_argument('--output-path', type=str, default='/userdata/kerasData/data/new_data/batched_tiled_data',
+parser.add_argument('--output-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone_labels',
                     help='Path to save tiled images')
 
 # Desired input image dimensions
@@ -152,7 +154,7 @@ def save_metadata(output_path, **kwargs):
         - **kwargs: any other args to save in metadata
     Saves:
         - metadata.pkl: dictionary of all associated metadata, including:
-            - raw_images_path (str): path to raw images
+            - raw_data_path (str): path to raw images
             - labels_path (str): path to XML labels
             - output_path (str): desired path of outputted Numpy files
             - image_dimensions (int, int): dimensions original image should be resized to
@@ -176,12 +178,14 @@ def save_metadata(output_path, **kwargs):
         pickle.dump(kwargs, pkl_file)
 
         
+
+        
 #####################
 ## Main Function
 #####################
     
 def save_batched_tiled_images(
-    raw_images_path, 
+    raw_data_path, 
     labels_path, 
     output_path, 
     image_dimensions=(2048, 1536), 
@@ -191,7 +195,7 @@ def save_batched_tiled_images(
     """
     Description: Loops through all directories and saves tiled images
     Args:
-        - raw_images_path (str): path to raw images
+        - raw_data_path (str): path to raw images
         - labels_path (str): path to XML labels
         - output_path (str): desired path of outputted Numpy files
         - image_dimensions (int, int): dimensions original image should be resized to
@@ -202,7 +206,7 @@ def save_batched_tiled_images(
         - '{output_location}_img.npy': Numpy array of tiles - [num_tiles, num_channels, tile_height, tile_width]
         - '{output_location}_lbl.npy': Numpy array of labels for each tile - [num_tiles]
     """
-    image_path = Path(raw_images_path)
+    image_path = Path(raw_data_path)
     label_path = Path(labels_path)
     output_path = Path(output_path)
     
@@ -264,7 +268,7 @@ def save_batched_tiled_images(
         fire_to_images[cur_folder].sort()
     
         # Save all parameters in metadata.pkl every folder (just in case)       
-        save_metadata(raw_images_path=raw_images_path, 
+        save_metadata(raw_data_path=raw_data_path, 
              labels_path=labels_path, 
              output_path=output_path, 
              image_dimensions=image_dimensions, 
@@ -282,13 +286,18 @@ def save_batched_tiled_images(
 if __name__ == '__main__':
     args = parser.parse_args()
     
-    save_batched_tiled_images(
-         raw_images_path=args.raw_images_path, 
+    save_labels(
+         raw_data_path=args.raw_data_path, 
          labels_path=args.labels_path, 
-         output_path=args.output_path, 
-         image_dimensions=(args.image_height, args.image_width), 
-         tile_dimensions=(args.tile_height, args.tile_width), 
-         overlap_amount=args.overlap_amount, 
-         smoke_threshold=args.smoke_threshold)
+         output_path=args.output_path)
+    
+#     save_batched_tiled_images(
+#          raw_data_path=args.raw_data_path, 
+#          labels_path=args.labels_path, 
+#          output_path=args.output_path, 
+#          image_dimensions=(args.image_height, args.image_width), 
+#          tile_dimensions=(args.tile_height, args.tile_width), 
+#          overlap_amount=args.overlap_amount, 
+#          smoke_threshold=args.smoke_threshold)
 
     

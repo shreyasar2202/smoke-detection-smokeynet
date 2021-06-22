@@ -108,7 +108,7 @@ class LightningModel(pl.LightningModule):
 
         # Initialize model
         self.model = model
-        # ASSUMPTION: num_tiles=108, num_channels=3, image_height=224, image_width=224 
+        # ASSUMPTION: num_tiles=54, num_channels=3, image_height=224, image_width=224 
         self.example_input_array = torch.randn((parsed_args.batch_size,54,parsed_args.series_length, 3, 224, 224))
 
         # Initialize model params

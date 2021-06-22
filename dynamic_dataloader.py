@@ -2,7 +2,7 @@
 Created by: Anshuman Dewangan
 Date: 2021
 
-Description: Loads tiled & batched data that was generated from generate_batched_tiled_data.py
+Description: Loads data from raw image and XML files
 """
 # Torch imports
 import pytorch_lightning as pl
@@ -13,11 +13,13 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+# Other package imports
 import os
 import cv2
 
 # File imports
 import util_fns
+import generate_data
 
 
 #####################
@@ -67,7 +69,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - tile_dimensions (int, int): desired size of tiles
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
             
-            - generate_data (bool): should prepare_data be run?
+            - create_data (bool): should prepare_data be run?
         
         Other Attributes:
             - self.train_split (list): list of image names to be used for train dataloader
@@ -95,12 +97,17 @@ class DynamicDataModule(pl.LightningDataModule):
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
         
-        self.generate_data = generate_data
+        self.create_data = create_data
         self.has_setup = False
         
     def prepare_data(self):
-        if self.generate_data:
+        """
+        Description: Creates metadata.pkl and saved labels for easier loading. Only needs to be run once.
+        """
+        if self.create_data:
             print("Preparing Data...")
+            
+            ### Create metadata.pkl ###
             self.metadata = {}
 
             self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path, self.labels_path)
@@ -119,6 +126,12 @@ class DynamicDataModule(pl.LightningDataModule):
         
             with open(f'./data/metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
+                
+            ### Generate saved labels ###
+            util_fns.save_labels(
+                raw_data_path='/userdata/kerasData/data/new_data/raw_images',
+                labels_path='/userdata/kerasData/data/new_data/drive_clone',
+                output_path='/userdata/kerasData/data/new_data/drive_clone_labels')
                 
             print("Preparing Data Complete.")
         
@@ -149,7 +162,7 @@ class DynamicDataModule(pl.LightningDataModule):
 
             # If logdir is provided, then save train/val/test splits
             if log_dir:
-                os.mkdir(log_dir)
+                os.makedirs(log_dir)
                 np.savetxt(log_dir+'/train_fires.txt', self.train_split, fmt='%s')
                 np.savetxt(log_dir+'/val_fires.txt', self.val_split, fmt='%s')
                 np.savetxt(log_dir+'/test_fires.txt', self.test_split, fmt='%s')
@@ -260,13 +273,15 @@ class DynamicDataloader(Dataset):
         x = np.transpose(np.stack(x), (0, 3, 1, 2))/255 
            
         # Load XML labels
-        labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
-
-        label_path = self.labels_path+'/'+\
-            util_fns.get_fire_name(image_name)+'/xml/'+\
-            util_fns.get_only_image_name(image_name)+'.xml'
-        if Path(label_path).exists():
-            cv2.fillPoly(labels, util_fns.xml_to_record(label_path), 1)
+        labels = np.load(self.labels_path+'/'+image_name+'.npy')
+        
+        # Uncomment if loading raw XML files
+#         labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
+#         label_path = self.labels_path+'/'+\
+#             util_fns.get_fire_name(image_name)+'/xml/'+\
+#             util_fns.get_only_image_name(image_name)+'.xml'
+#         if Path(label_path).exists():
+#             cv2.fillPoly(labels, util_fns.xml_to_record(label_path), 1)
         
         # labels.shape = [height, width]
         labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]

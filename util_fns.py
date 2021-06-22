@@ -2,7 +2,7 @@
 Created by: Anshuman Dewangan
 Date: 2021
 
-Description: Kicks off training and evaluation. Contains many command line arguments for hyperparameters. 
+Description: Utility and helper functions used in all files.
 """
 # Torch imports
 import torch
@@ -226,6 +226,36 @@ def xml_to_record(xml_file):
     
     return None
 
+def save_labels(raw_data_path, 
+                labels_path, 
+                output_path):
+    """
+    Description: Converts XML files to Numpy arrays, with 1's for pixels with smoke and 0's for pixels without smoke
+    """
+    all_fires = [str(folder.stem) for folder in filter(Path.is_dir, Path(labels_path).iterdir())]
+    count = 0
+
+    for fire in all_fires:
+        print('Folder ', count)
+        count += 1
+
+        for image in [get_only_image_name(str(item)) for item in Path(labels_path+'/'+fire+'/xml').glob('*.xml')]:
+            image_name = fire+'/'+image
+
+            x = cv2.imread(raw_data_path+'/'+image_name+'.jpg')
+            labels = np.zeros(x.shape[:2], dtype=np.uint8) 
+
+            label_path = labels_path+'/'+\
+                get_fire_name(image_name)+'/xml/'+\
+                get_only_image_name(image_name)+'.xml'
+
+            cv2.fillPoly(labels, xml_to_record(label_path), 1)
+
+            save_path = output_path + '/' + image_name + '.npy'
+
+            os.makedirs(output_path + '/' + fire, exist_ok=True)
+            np.save(save_path, labels.astype(np.uint8))
+
 #########################
 ## Labels & Predictions
 #########################
@@ -241,7 +271,7 @@ def get_has_xml_label(image_name, labels_path):
     """
     Description: Returns 1 if image_name has an XML file associated with it or 0 otherwise
     """
-    has_xml_label = os.path.isfile(labels_path+'/'+get_fire_name(image_name)+'/xml/'+get_only_image_name(image_name)+'.xml')
+    has_xml_label = os.path.isfile(labels_path+'/'+image_name+'.npy')
     return has_xml_label
 
 def get_has_positive_tile(tile_labels):

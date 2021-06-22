@@ -6,29 +6,32 @@
 #############################################
 
 # Vanilla run
-# python3 main.py \
-#     --experiment-name "resnet50" \
-#     --experiment-description "ResNet50 vanilla run" \
-#     --no-lr-schedule \
-#     --no-auto-lr-find \
-#     --no-early-stopping \
-#     --no-sixteen-bit \
-#     --no-stochastic-weight-avg \
-#     --gradient-clip-val 0 \
-#     --accumulate-grad-batches 1
-
-# Debug run
 python3 main.py \
-    --experiment-name "debug" \
-    --min-epochs 1 \
-    --max-epochs 1 \
+    --experiment-name "resnet50" \
+    --experiment-description "ResNet50 vanilla run" \
     --no-lr-schedule \
     --no-auto-lr-find \
     --no-early-stopping \
     --no-sixteen-bit \
     --no-stochastic-weight-avg \
     --gradient-clip-val 0 \
-    --accumulate-grad-batches 1 
+    --accumulate-grad-batches 1 \
+    --min-epochs 4 \
+    --max-epochs 8 \
+    --batch-size 8 
+
+# Debug run
+# python3 main.py \
+#     --experiment-name "debug" \
+#     --min-epochs 1 \
+#     --max-epochs 1 \
+#     --no-lr-schedule \
+#     --no-auto-lr-find \
+#     --no-early-stopping \
+#     --no-sixteen-bit \
+#     --no-stochastic-weight-avg \
+#     --gradient-clip-val 0 \
+#     --accumulate-grad-batches 1 
     
     
 #     --experiment-description "this is a test" \
