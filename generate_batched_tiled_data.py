@@ -93,7 +93,7 @@ def batch_tile_image(img_path,
     Args:
         - img_path (str): path to raw image
         - label_path (str): path to XML label file
-        - image_dimensions (int, int): dimensions original image should be resized to
+        - image_dimensions (int, int): dimensions original image should be resized to e.g. (width, height)
         - tile_dimensions (int, int): desired dimensions of tiles
         - overlap_amount (int): how much the tiles should overlap in pixels
         - smoke_threshold (int): how many pixels of smoke to label tile as a positive sample? 
@@ -184,7 +184,7 @@ def save_batched_tiled_images(
     raw_images_path, 
     labels_path, 
     output_path, 
-    image_dimensions=(1536, 2048), 
+    image_dimensions=(2048, 1536), 
     tile_dimensions=(224,224), 
     overlap_amount=20, 
     smoke_threshold=10):

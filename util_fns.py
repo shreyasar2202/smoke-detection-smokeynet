@@ -28,6 +28,26 @@ def get_fire_name(path):
     
     return fire_name
 
+def get_only_image_name(path):
+    """
+    Description: Gets only image name from longer path string (no fire name)
+    Args:
+        - path (str): Full path to filename or path of {fire}/{image}
+    Returns:
+        - only_image_name (str): name of image e.g. 1563305245_-01080
+    """
+    # ASSUMPTION: Last two directories of path are {fire} and {image} respectively
+    only_image_name = path.split('/')[-1]
+    
+    only_image_name = str(Path(only_image_name).stem)
+    
+    # Remove '_lbl' or '_img' if it exists
+    # ASSUMPTION: Last 4 chars of image_name may have '_lbl' or '_img'
+    if only_image_name[-4:] == '_lbl' or only_image_name[-4:] == '_img':
+        only_image_name = only_image_name[:-4]
+    
+    return only_image_name
+
 def get_image_name(path):
     """
     Description: Gets image name from longer path string
@@ -37,15 +57,7 @@ def get_image_name(path):
         - image_name (str): name of image e.g. 20190716_Meadowfire_hp-n-mobo-c/1563305245_-01080
     """
     # Get last two names of path: fire and image
-    image_name = path.split('/')[-2:]
-    
-    # Join last to names after removing any extensions from image
-    image_name = '/'.join([image_name[0], str(Path(image_name[1]).stem)])
-    
-    # Remove '_lbl' or '_img' if it exists
-    # ASSUMPTION: Last 4 chars of image_name may have '_lbl' or '_img'
-    if image_name[-4:] == '_lbl' or image_name[-4:] == '_img':
-        image_name = image_name[:-4]
+    image_name = get_fire_name(path) + '/' + get_only_image_name(path)
     
     return image_name
 
@@ -75,14 +87,53 @@ def send_fb_message(message="Done"):
 
 
 ###########################
-## BatchedTiledDataModule
+## Data Module
 ###########################
 
-def unpack_fire_images(metadata, fires_list, is_test=False):
+def generate_fire_to_images(raw_data_path, labels_path):
+    """
+    Description: Given path to raw images and labels, create dictionary mapping fire to list of images
+    Args:
+        - raw_data_path (str): path to raw data
+        - labels_path (str): path to XML labels
+    Returns:
+        - fire_to_images (dict): maps fire to a list of images for that fire
+    """
+    raw_data_path = Path(raw_data_path)
+    labels_path = Path(labels_path)
+    
+    fire_to_images = {}
+    all_fires = [folder.stem for folder in filter(Path.is_dir, labels_path.iterdir())]
+
+    for fire in all_fires:
+        fire_to_images[fire] = [get_image_name(str(item)) for item in (raw_data_path/fire).glob('*.jpg')]
+        fire_to_images[fire].sort()
+        
+    return fire_to_images
+
+def generate_omit_images_list(fire_to_images, labels_path):
+    """
+    Description: Returns a list of images that are positive but don't have XML labels
+    Args:
+        - fire_to_images (dict): maps fire to a list of images for that fire
+        - labels_path (str): path to XML labels
+    Returns:
+        - omit_images_list (list of str): list of images that are positive but don't have XML labels
+    """
+    omit_images_list = []
+    
+    for fire in fire_to_images:
+        for image in fire_to_images[fire]:
+            if get_ground_truth_label(image) != get_has_xml_label(image, labels_path):
+                omit_images_list.append(image)
+                
+    return omit_images_list
+
+def unpack_fire_images(fire_to_images, fires_list, omit_images_list, is_test=False):
     """
     Description: Returns images from a list of fires. If train or val, do not include images that are in 'omit_images_list'.
     Args:
-        - metadata (dict): metadata.pkl file contents
+        - fire_to_images (dict): maps fire to a list of images for that fire
         - fires_list (list of str): list of fire names to unpack
     Returns:
         - unpacked_images (list of str): list of images from the fires
@@ -90,62 +141,112 @@ def unpack_fire_images(metadata, fires_list, is_test=False):
     unpacked_images = []
     
     for fire in fires_list:
-        for image in metadata['fire_to_images'][fire]:
+        for image in fire_to_images[fire]:
             # ASSUMPTION: We want to keep all images for test set
-            if is_test or image not in metadata['omit_images_list']:
+            if is_test or image not in omit_images_list:
                 unpacked_images.append(image)
                 
     return unpacked_images
 
-def shorten_time_range(metadata, time_range, train_fires):
+def shorten_time_range(fire_to_images, time_range, train_fires):
     """
     Description: From lists of images per fire, returns list of images within specified time range
     Args:
-        - metadata (dict): metadata.pkl file contents
+        - fire_to_images (dict): maps fire to a list of images for that fire
         - time_range (int, int): the time range of images to consider for training by time stamp
         - train_fires (list of str): list of fires in train split
     Returns:
-        - metadata['fire_to_images'] (dict): list of images for each fire
+        - fire_to_images (dict): list of images for each fire
     """
     if time_range[0] > -2400 or time_range[1] < 2400:
         for fire in train_fires:
             images_to_keep = []
 
-            for image in metadata['fire_to_images'][fire]:
+            for image in fire_to_images[fire]:
                 image_time_index = image_name_to_time_int(image)
                 if image_time_index >= time_range[0] and image_time_index <= time_range[1]:
                     images_to_keep.append(image)
 
-            metadata['fire_to_images'][fire] = images_to_keep
+            fire_to_images[fire] = images_to_keep
             
-    return metadata['fire_to_images']
+    return fire_to_images
 
-def generate_series(metadata, series_length):
+def generate_series(fire_to_images, series_length):
     """
     Description: Creates a dict with image names as keys and lists of past <series_length> images as values
     Args:
-        - metadata (dict): metadata.pkl file contents
+        - fire_to_images (dict): maps fire to a list of images for that fire
         - series_length (int): how many sequential images should be used for training
     Returns:
         - image_series (dict): maps image names to lists of past <series_length> images
     """
     image_series = {}
         
-    for fire in metadata['fire_to_images']:
-        for i, img in enumerate(metadata['fire_to_images'][fire]):
+    for fire in fire_to_images:
+        for i, img in enumerate(fire_to_images[fire]):
             image_series[img] = []
             idx = i
 
             while (len(image_series[img]) < series_length):
-                image_series[img].append(metadata['fire_to_images'][fire][idx])
+                image_series[img].append(fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
     
     return image_series
 
+def xml_to_record(xml_file):
+    """
+    Description: Takes an XML label file and converts it to Numpy array
+    Args:
+        - xml_file (str): Path to XML file
+    Returns:
+        - all_polys (Numpy array): Numpy array with labels
+    """
+    
+    objects_dict = {}
+    tree = ET.parse(xml_file)
+    
+    for cur_object in tree.findall('object'):
+        if cur_object.find('deleted').text=="1":
+            continue
+        
+        if cur_object.find('name').text=="bp":
+            all_polys = []
+            
+            for cur_poly in cur_object.findall('polygon'):
+                cur_poly_pts = []
+                for cur_pt in cur_poly.findall('pt'):
+                    cur_poly_pts.append([int(cur_pt.find('x').text), int(cur_pt.find('y').text)])
+                all_polys.append(cur_poly_pts)
+            
+            all_polys = np.array(all_polys, dtype=np.int32)
+            return all_polys
+    
+    return None
 
 #################################
 ## LightningModel - Predictions
 #################################
+
+def get_ground_truth_label(image_name):
+    """
+    Description: Returns 1 if image_name has a + in it (ie. is a positive) or 0 otherwise
+    """
+    ground_truth_label = 1 if "+" in image_name else 0
+    return ground_truth_label
+
+def get_has_xml_label(image_name, labels_path):
+    """
+    Description: Returns 1 if image_name has an XML file associated with it or 0 otherwise
+    """
+    has_xml_label = Path(labels_path+'/'+get_fire_name(image_name)+'/xml/'+get_only_image_name(image_name)+'.xml').exists()
+    return has_xml_label
+
+def get_has_positive_tile(tile_labels):
+    """
+    Description: Returns 1 if tile_labels has a positive tile
+    """
+    has_positive_tile = 1 if tile_labels.sum() > 0 else 0
+    return has_positive_tile
 
 def predict_tile(outputs):
     """
