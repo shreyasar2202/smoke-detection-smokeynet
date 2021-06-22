@@ -4,11 +4,15 @@ Date: 2021
 
 Description: Kicks off training and evaluation. Contains many command line arguments for hyperparameters. 
 """
+# Torch imports
 import torch
 import torchmetrics
 
+# Other package imports 
 import os
 from pathlib import Path
+import xml.etree.ElementTree as ET
+import numpy as np
 
 
 #############
@@ -87,7 +91,7 @@ def send_fb_message(message="Done"):
 
 
 ###########################
-## Data Module
+## DataModule & Dataloader
 ###########################
 
 def generate_fire_to_images(raw_data_path, labels_path):
@@ -101,7 +105,7 @@ def generate_fire_to_images(raw_data_path, labels_path):
     """
     raw_data_path = Path(raw_data_path)
     labels_path = Path(labels_path)
-    
+        
     fire_to_images = {}
     all_fires = [folder.stem for folder in filter(Path.is_dir, labels_path.iterdir())]
 
@@ -111,20 +115,19 @@ def generate_fire_to_images(raw_data_path, labels_path):
         
     return fire_to_images
 
-def generate_omit_images_list(fire_to_images, labels_path):
+def generate_omit_images_list(metadata):
     """
     Description: Returns a list of images that are positive but don't have XML labels
     Args:
-        - fire_to_images (dict): maps fire to a list of images for that fire
-        - labels_path (str): path to XML labels
+        - metadata (dict)
     Returns:
         - omit_images_list (list of str): list of images that are positive but don't have XML labels
     """
     omit_images_list = []
     
-    for fire in fire_to_images:
-        for image in fire_to_images[fire]:
-            if get_ground_truth_label(image) != get_has_xml_label(image, labels_path):
+    for fire in metadata['fire_to_images']:
+        for image in metadata['fire_to_images'][fire]:
+            if metadata['ground_truth_label'][fire] != metadata['has_xml_label'][fire]:
                 omit_images_list.append(image)
                 
     return omit_images_list
@@ -223,9 +226,9 @@ def xml_to_record(xml_file):
     
     return None
 
-#################################
-## LightningModel - Predictions
-#################################
+#########################
+## Labels & Predictions
+#########################
 
 def get_ground_truth_label(image_name):
     """
@@ -238,7 +241,7 @@ def get_has_xml_label(image_name, labels_path):
     """
     Description: Returns 1 if image_name has an XML file associated with it or 0 otherwise
     """
-    has_xml_label = Path(labels_path+'/'+get_fire_name(image_name)+'/xml/'+get_only_image_name(image_name)+'.xml').exists()
+    has_xml_label = os.path.isfile(labels_path+'/'+get_fire_name(image_name)+'/xml/'+get_only_image_name(image_name)+'.xml')
     return has_xml_label
 
 def get_has_positive_tile(tile_labels):
@@ -274,9 +277,9 @@ def predict_image_from_tile_preds(tile_preds):
     return image_preds
 
 
-#################################
-## LightningModel - Test Metrics
-#################################
+#################
+## Test Metrics
+#################
 
 def calculate_negative_accuracy(negative_preds):
     """

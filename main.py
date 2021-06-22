@@ -34,10 +34,12 @@ parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args
-parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_data',
+parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
                     help='Path to raw images.')
 parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
                     help='Path to XML labels.')
+parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
+                    help='Path to metadata.pkl.')
 parser.add_argument('--train-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with train image paths. Only works if train, val, and test paths are provided.')
 parser.add_argument('--val-split-path', type=str, default=None,
@@ -103,6 +105,7 @@ parser.add_argument('--accumulate-grad-batches', type=int, default=16,
 def main(# Path args
         raw_data_path, 
         labels_path,
+        metadata_path=None,
         train_split_path=None, 
         val_split_path=None, 
         test_split_path=None,
@@ -138,13 +141,14 @@ def main(# Path args
         accumulate_grad_batches=1):
         
     try:
-        util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
+#         util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
         
         ### Initialize data_module ###
         data_module = DynamicDataModule(
             # Path args
             raw_data_path=raw_data_path,
             labels_path=labels_path,
+            metadata_path=metadata_path,
             train_split_path=train_split_path,
             val_split_path=val_split_path,
             test_split_path=test_split_path,
@@ -197,17 +201,17 @@ def main(# Path args
 
             # Dev args
             logger=logger,
-            fast_dev_run=True, 
+#             fast_dev_run=True, 
 #             overfit_batches=2,
-#             limit_train_batches=0.1,
-#             limit_val_batches=0.1,
-#             limit_test_batches=0.1,
+            limit_train_batches=0.02,
+            limit_val_batches=0.02,
+            limit_test_batches=0.02,
     #         log_every_n_steps=1,
     #         checkpoint_callback=False,
     #         logger=False,
     #         track_grad_norm=2,
     #         weights_summary='full',
-    #         profiler="simple", # "advanced" "pytorch"
+#             profiler="simple", # "advanced" "pytorch"
     #         log_gpu_memory=True,
             gpus=1)
         
@@ -223,9 +227,9 @@ def main(# Path args
         # Evaluate the best model on the test set
         trainer.test(model, datamodule=data_module)
 
-        util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
+#         util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:
-        util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
+#         util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
         raise(e) 
     
     
@@ -235,6 +239,7 @@ if __name__ == '__main__':
     main(# Path args
         raw_data_path=args.raw_data_path, 
         labels_path=args.labels_path, 
+        metadata_path=args.metadata_path,
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 
         test_split_path=args.test_split_path,
