@@ -79,7 +79,7 @@ class LightningModel(pl.LightningModule):
     ### Initialization ###
 
     def __init__(self,
-                 model,
+                 model=None,
                  learning_rate=0.001,
                  lr_schedule=True,
                  parsed_args=None):
@@ -133,6 +133,8 @@ class LightningModel(pl.LightningModule):
                     self.metrics['torchmetric'][split+title+label] = func(mdmc_average='global') \
                     if title == self.metrics['category'][0] else func()
                     
+        import pdb; pdb.set_trace()
+                                        
         print("Initializing LightningModel Complete. ")
 
     def configure_optimizers(self):
@@ -275,17 +277,17 @@ class LightningModel(pl.LightningModule):
                     if fire_name not in fire_preds_dict:
                         fire_preds_dict[fire_name] = []
                         
-                    fire_preds_dict[fire_name].append(image_preds)
+                    fire_preds_dict[fire_name].append(image_pred)
         
         ### Create data structures ###
         # Create data structure to store preds of all relevant fires
         fire_preds = []
         for fire in fire_preds_dict:
-            # ASSUMPTION: only calculate statistics for fires with 81 images or if we are debugging with < 50 fires
-            if len(fire_preds_dict[fire]) == 81 or len(fire_preds_dict) < 50:
+            # ASSUMPTION: only calculate statistics for fires with 81 images
+            if len(fire_preds_dict[fire]) == 81:
                 fire_preds.append(fire_preds_dict[fire])
                 
-        fire_preds = torch.Tensor(fire_preds).int()
+        fire_preds = torch.as_tensor(fire_preds, dtype=int)
 
         negative_preds = fire_preds[:,:fire_preds.shape[1]//2] 
         positive_preds = fire_preds[:,fire_preds.shape[1]//2:]

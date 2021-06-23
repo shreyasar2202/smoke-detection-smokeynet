@@ -32,6 +32,8 @@ parser.add_argument('--experiment-name', type=str, default=None,
                     help='(Optional) Name for experiment')
 parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
+parser.add_argument('--is-test', action='store_true',
+                    help='Runs test evaluation only.')
 
 # Path args
 parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
@@ -46,6 +48,8 @@ parser.add_argument('--val-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with val image paths. Only works if train, val, and test paths are provided.')
 parser.add_argument('--test-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are provided.')
+parser.add_argument('--checkpoint-path', type=str, default=None,
+                    help='(Optional) Path to checkpoint to load.')
 
 # Dataloader args
 parser.add_argument('--batch-size', type=int, default=1,
@@ -108,11 +112,13 @@ def main(# Path args
         train_split_path=None, 
         val_split_path=None, 
         test_split_path=None,
+        checkpoint_path=None,
     
         # Experiment args
         experiment_name=None,
         experiment_description=None,
         parsed_args=None,
+        is_test=False,
 
         # Dataloader args
         batch_size=1, 
@@ -168,6 +174,9 @@ def main(# Path args
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
                                parsed_args=parsed_args)
+        
+#         if checkpoint_path:
+#             model = model.load_from_checkpoint(checkpoint_path)
 
         ### Implement EarlyStopping ###
         early_stop_callback = EarlyStopping(
@@ -197,14 +206,17 @@ def main(# Path args
             stochastic_weight_avg=stochastic_weight_avg,
             gradient_clip_val=gradient_clip_val,
             accumulate_grad_batches=accumulate_grad_batches,
+            
+            # Other args
+            resume_from_checkpoint=checkpoint_path,
+            logger=logger,
 
             # Dev args
-            logger=logger,
 #             fast_dev_run=True, 
 #             overfit_batches=2,
 #             limit_train_batches=0.02,
 #             limit_val_batches=0.02,
-#             limit_test_batches=0.02,
+            limit_test_batches=0.1,
 #             log_every_n_steps=1,
 #             checkpoint_callback=False,
 #             logger=False,
@@ -216,12 +228,13 @@ def main(# Path args
         
         ### Training & Evaluation ###
 
-        # Auto find learning rate
-        if auto_lr_find:
-            trainer.tune(model)
+        if not is_test:
+            # Auto find learning rate
+            if auto_lr_find:
+                trainer.tune(model)
 
-        # Train the model
-        trainer.fit(model, datamodule=data_module)
+            # Train the model
+            trainer.fit(model, datamodule=data_module)
 
         # Evaluate the best model on the test set
         trainer.test(model, datamodule=data_module)
@@ -242,11 +255,13 @@ if __name__ == '__main__':
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 
         test_split_path=args.test_split_path,
+        checkpoint_path=args.checkpoint_path,
 
         # Experiment args
         experiment_name=args.experiment_name,
         experiment_description=args.experiment_description,
         parsed_args=args,
+        is_test=args.is_test,
 
         # Dataloader args
         batch_size=args.batch_size, 

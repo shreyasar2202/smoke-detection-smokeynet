@@ -19,6 +19,11 @@ python3 main.py \
     --min-epochs 4 \
     --max-epochs 8 \
     --batch-size 8 
+#     --checkpoint-path './lightning_logs/resnet50/version_9/checkpoints/last.ckpt' \
+#     --train-split-path './lightning_logs/resnet50/version_9/train_images.txt' \
+#     --val-split-path './lightning_logs/resnet50/version_9/val_images.txt' \
+#     --test-split-path './lightning_logs/resnet50/version_9/test_images.txt' \
+#     --is-test 
 
 # Debug run
 # python3 main.py \

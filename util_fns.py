@@ -115,6 +115,31 @@ def generate_fire_to_images(raw_data_path, labels_path):
         
     return fire_to_images
 
+def generate_fire_to_images(splits):
+    """
+    Description: Given train/val/test splits, create dictionary mapping fire to list of images
+    Args:
+        - splits (list of list): train/val/test splits of fires loaded from .txt file
+    Returns:
+        - fire_to_images (dict): maps fire to a list of images for that fire
+    """
+    fire_to_images = {}
+    
+    for split in splits:
+        for item in split:
+            fire = get_fire_name(item)
+            image_name = get_image_name(item)
+            
+            if fire not in fire_to_images:
+                fire_to_images[fire] = []
+                
+            fire_to_images[fire].append(image_name)
+            
+    for fire in fire_to_images:
+        fire_to_images[fire].sort()
+        
+    return fire_to_images
+
 def generate_omit_images_list(metadata):
     """
     Description: Returns a list of images that are positive but don't have XML labels

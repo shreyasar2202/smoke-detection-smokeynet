@@ -19,7 +19,6 @@ import cv2
 
 # File imports
 import util_fns
-import generate_data
 
 
 #####################
@@ -42,7 +41,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  crop_height = 1344,
                  tile_dimensions = (224, 224),
                  smoke_threshold = 10,
-                 generate_data = False):
+                 create_data = False):
         """
         Args:
             - raw_data_path (str): path to raw data
@@ -163,9 +162,9 @@ class DynamicDataModule(pl.LightningDataModule):
             # If logdir is provided, then save train/val/test splits
             if log_dir:
                 os.makedirs(log_dir)
-                np.savetxt(log_dir+'/train_fires.txt', self.train_split, fmt='%s')
-                np.savetxt(log_dir+'/val_fires.txt', self.val_split, fmt='%s')
-                np.savetxt(log_dir+'/test_fires.txt', self.test_split, fmt='%s')
+                np.savetxt(log_dir+'/train_images.txt', self.train_split, fmt='%s')
+                np.savetxt(log_dir+'/val_images.txt', self.val_split, fmt='%s')
+                np.savetxt(log_dir+'/test_images.txt', self.test_split, fmt='%s')
         else:
             # Load existing splits
             train_list = np.loadtxt(self.train_split_path, dtype=str)
@@ -175,6 +174,10 @@ class DynamicDataModule(pl.LightningDataModule):
             self.train_split = [util_fns.get_image_name(item) for item in train_list]
             self.val_split   = [util_fns.get_image_name(item) for item in val_list]
             self.test_split  = [util_fns.get_image_name(item) for item in test_list]
+            
+            # Recreate fire_to_images and image_series
+            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images([self.train_split, self.val_split, self.test_split])
+            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
         
         self.has_setup = True
         print("Setting Up Data Complete.")
@@ -229,8 +232,8 @@ class DynamicDataloader(Dataset):
                  data_split, 
                  image_dimensions = (1536, 2016),
                  crop_height = 1344,
-                 tile_dimensions=(224,224), 
-                 smoke_threshold=10):
+                 tile_dimensions = (224,224), 
+                 smoke_threshold = 10):
         """
         Args / Attributes:
             - raw_data_path (Path): path to raw data
@@ -273,10 +276,13 @@ class DynamicDataloader(Dataset):
         x = np.transpose(np.stack(x), (0, 3, 1, 2))/255 
            
         # Load XML labels
-        labels = np.load(self.labels_path+'/'+image_name+'.npy')
+        labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
+        
+        label_path = self.labels_path+'/'+image_name+'.npy'
+        if Path(label_path).exists():
+            labels = np.load(label_path)
         
         # Uncomment if loading raw XML files
-#         labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
 #         label_path = self.labels_path+'/'+\
 #             util_fns.get_fire_name(image_name)+'/xml/'+\
 #             util_fns.get_only_image_name(image_name)+'.xml'
@@ -286,8 +292,8 @@ class DynamicDataloader(Dataset):
         # labels.shape = [height, width]
         labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
         
+        # WARNING: Tile size must divide perfectly into image height and width
         if self.tile_dimensions:
-            # WARNING: Tile size must divide perfectly into image height and width
             # x.shape = [54, 5, 3, 224, 224]
             # labels.shape = [54, 224, 224]
             x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
