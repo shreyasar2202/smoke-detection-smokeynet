@@ -25,6 +25,7 @@ import util_fns
 ## Argument Parser
 #####################
 
+# All args recorded as hyperparams. Recommended not to use unnecessary args
 parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
 
 # Experiment args
@@ -32,8 +33,6 @@ parser.add_argument('--experiment-name', type=str, default=None,
                     help='(Optional) Name for experiment')
 parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
-parser.add_argument('--is-test', action='store_true',
-                    help='Runs test evaluation only.')
 
 # Path args
 parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
@@ -118,7 +117,6 @@ def main(# Path args
         experiment_name=None,
         experiment_description=None,
         parsed_args=None,
-        is_test=False,
 
         # Dataloader args
         batch_size=1, 
@@ -174,9 +172,6 @@ def main(# Path args
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
                                parsed_args=parsed_args)
-        
-#         if checkpoint_path:
-#             model = model.load_from_checkpoint(checkpoint_path)
 
         ### Implement EarlyStopping ###
         early_stop_callback = EarlyStopping(
@@ -191,7 +186,10 @@ def main(# Path args
         ### Initialize Trainer ###
 
         # Initialize logger 
-        logger = TensorBoardLogger("lightning_logs/", name=experiment_name, log_graph=True)
+        logger = TensorBoardLogger("lightning_logs/", 
+                                   name=experiment_name, 
+                                   log_graph=True,
+                                   version=None)
         
         # Set up data_module and save train/val/test splits
         data_module.setup(log_dir=logger.log_dir)
@@ -213,10 +211,10 @@ def main(# Path args
 
             # Dev args
 #             fast_dev_run=True, 
-#             overfit_batches=2,
-#             limit_train_batches=0.02,
-#             limit_val_batches=0.02,
-            limit_test_batches=0.1,
+            overfit_batches=21,
+#             limit_train_batches=1,
+#             limit_val_batches=1,
+#             limit_test_batches=1,
 #             log_every_n_steps=1,
 #             checkpoint_callback=False,
 #             logger=False,
@@ -228,13 +226,12 @@ def main(# Path args
         
         ### Training & Evaluation ###
 
-        if not is_test:
-            # Auto find learning rate
-            if auto_lr_find:
-                trainer.tune(model)
+        # Auto find learning rate
+        if auto_lr_find:
+            trainer.tune(model)
 
-            # Train the model
-            trainer.fit(model, datamodule=data_module)
+        # Train the model
+        trainer.fit(model, datamodule=data_module)
 
         # Evaluate the best model on the test set
         trainer.test(model, datamodule=data_module)
@@ -261,7 +258,6 @@ if __name__ == '__main__':
         experiment_name=args.experiment_name,
         experiment_description=args.experiment_description,
         parsed_args=args,
-        is_test=args.is_test,
 
         # Dataloader args
         batch_size=args.batch_size, 

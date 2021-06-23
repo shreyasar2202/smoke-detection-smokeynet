@@ -124,17 +124,19 @@ class LightningModel(pl.LightningModule):
         self.metrics['torchmetric'] = {}
         self.metrics['split']       = ['train/', 'val/', 'test/']
         self.metrics['category']    = ['tile_', 'image-gt_', 'image-xml_', 'image-pos-tile_']
-        self.metrics['name']        = ['accuracy', 'precision', 'recall', 'f1']
-        self.metrics['function']    = [torchmetrics.Accuracy, torchmetrics.Precision, torchmetrics.Recall, torchmetrics.F1]
-
+        
+        # WARNING: torchmetrics has a very weird way of calculating metrics! 
         for split in self.metrics['split']:
-            for title in self.metrics['category']:
-                for label, func in zip(self.metrics['name'], self.metrics['function']):
-                    self.metrics['torchmetric'][split+title+label] = func(mdmc_average='global') \
-                    if title == self.metrics['category'][0] else func()
-                    
-        import pdb; pdb.set_trace()
-                                        
+            # Use mdmc_average='global' for tile_preds only
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+'accuracy'] = torchmetrics.Accuracy(mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none', mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+'f1'] = torchmetrics.F1(num_classes=2, average='none', mdmc_average='global')
+            
+            for category in self.metrics['category'][1:]:
+                self.metrics['torchmetric'][split+category+'accuracy'] = torchmetrics.Accuracy()
+                self.metrics['torchmetric'][split+category+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none')
+                self.metrics['torchmetric'][split+category+'f1'] = torchmetrics.F1(num_classes=2, average='none')
+            
         print("Initializing LightningModel Complete. ")
 
     def configure_optimizers(self):
@@ -206,23 +208,29 @@ class LightningModel(pl.LightningModule):
         outputs = self(x)
         loss = self.compute_loss(outputs, tile_labels, ground_truth_labels)
         tile_preds, image_preds = self.compute_predictions(outputs)
-
-        # Compute metrics
-        for label in self.metrics['name']:
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+label].to(self.device)(tile_preds, tile_labels.int())
-            self.metrics['torchmetric'][split+self.metrics['category'][1]+label].to(self.device)(image_preds, ground_truth_labels)
-            self.metrics['torchmetric'][split+self.metrics['category'][2]+label].to(self.device)(image_preds, has_xml_labels)
-            self.metrics['torchmetric'][split+self.metrics['category'][3]+label].to(self.device)(image_preds, has_positive_tiles)
-
+        
         # Log loss (on_step only if split='train')
         self.log(split+'loss', loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
 
-        # Log other metrics
-        for title in self.metrics['category']:
-            for label in self.metrics['name']:
-                name = split+title+label
-                self.log(name, self.metrics['torchmetric'][name], on_step=False, on_epoch=True)
-
+        # Calculate & log evaluation metrics
+        for category, args in zip(self.metrics['category'], 
+                                  ((tile_preds, tile_labels.int()), 
+                                   (image_preds, ground_truth_labels), 
+                                   (image_preds, has_xml_labels), 
+                                   (image_preds, has_positive_tiles))
+                                 ):
+            # Have to move the metric to self.device 
+            accuracy = self.metrics['torchmetric'][split+category+'accuracy'].to(self.device)(args[0], args[1])
+            # Returns a tuple: (precision, recall)
+            precision_recall = self.metrics['torchmetric'][split+category+'precision-recall'].to(self.device)(args[0], args[1])
+            # Return a tuple: (_, f1_score)
+            f1 = self.metrics['torchmetric'][split+category+'f1'].to(self.device)(args[0], args[1])
+            
+            self.log(split+category+'accuracy', accuracy, on_step=False, on_epoch=True)
+            self.log(split+category+'precision', precision_recall[0], on_step=False, on_epoch=True)
+            self.log(split+category+'recall', precision_recall[1], on_step=False, on_epoch=True)
+            self.log(split+category+'f1', f1[1], on_step=False, on_epoch=True)
+        
         return image_names, outputs, loss, tile_preds, image_preds
 
     def training_step(self, batch, batch_idx):
