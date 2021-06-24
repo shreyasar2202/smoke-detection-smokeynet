@@ -52,7 +52,7 @@ class LightningModel(pl.LightningModule):
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
                 - function (list of torchmetrics functions): used to initiate torchmetric modules
         """
-        print("Initializing LightningModel... ")
+        print("Initializing LightningModel...")
         super().__init__()
 
         # Initialize model
@@ -86,7 +86,7 @@ class LightningModel(pl.LightningModule):
                 self.metrics['torchmetric'][split+category+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none')
                 self.metrics['torchmetric'][split+category+'f1'] = torchmetrics.F1(num_classes=2, average='none')
             
-        print("Initializing LightningModel Complete. ")
+        print("Initializing LightningModel Complete.")
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
@@ -206,7 +206,7 @@ class LightningModel(pl.LightningModule):
             - test_step_outputs (list of {image_names, tile_preds, image_preds}): what's returned from test_step
         """
         
-        print("Computing Test Evaluation Metrics... ")
+        print("Computing Test Evaluation Metrics...")
         fire_preds_dict = {}
         
         ### Save predictions as .txt files ###
@@ -247,8 +247,10 @@ class LightningModel(pl.LightningModule):
                 
         fire_preds = torch.as_tensor(fire_preds, dtype=int)
         
-        import pdb; pdb.set_trace()
-
+        if len(fire_preds) == 0:
+            print("Could not compute Test Evaluation Metrics.")
+            return
+        
         negative_preds = fire_preds[:,:fire_preds.shape[1]//2] 
         positive_preds = fire_preds[:,fire_preds.shape[1]//2:]
         
@@ -275,4 +277,4 @@ class LightningModel(pl.LightningModule):
         self.log(self.metrics['split'][2]+'average_time_to_detection',
                  util_fns.calculate_average_time_to_detection(positive_preds))
         
-        print("Computing Test Evaluation Metrics Complete. ")
+        print("Computing Test Evaluation Metrics Complete.")

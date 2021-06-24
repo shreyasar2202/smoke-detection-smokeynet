@@ -23,16 +23,22 @@
 
 # Debug run
 python3 main.py \
-    --experiment-name "ResnetFocal" \
-    --experiment-description "ResNet50 w Focal Loss" \
+    --experiment-name "ResNet50Focal" \
+    --experiment-description "ResNet50Focal full data" \
     --min-epochs 1 \
-    --max-epochs 100 \
+    --max-epochs 50 \
     --batch-size 8 \
-    --accumulate-grad-batches 5
+    --accumulate-grad-batches 10 \
+    --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels'
     
-#     --raw-data-path '~/raw_images'
-#     --labels-path '~/drive_clone_labels'
     
+#     --experiment-name "resnet50" \
+#     --experiment-description "ResNet50 vanilla run" \
+
+#     --raw-data-path '/root/raw_images' \
+#     --labels-path '/root/drive_clone_labels'
+
 #     --train-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/train_list.txt' \
 #     --val-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/val_list.txt' \
 #     --test-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/test_list.txt' \
@@ -42,4 +48,15 @@ python3 main.py \
 #     --val-split-path './lightning_logs/resnet50/version_9/val_images.txt' \
 #     --test-split-path './lightning_logs/resnet50/version_9/test_images.txt' \
 
-#     --is-test 
+#     --no-lr-schedule \
+#     --no-auto-lr-find \
+#     --no-early-stopping \
+#     --no-sixteen-bit \
+#     --no-stochastic-weight-avg \
+#     --gradient-clip-val 0 \
+#     --accumulate-grad-batches 1 \
+
+#     --min-epochs 4 \
+#     --max-epochs 8 \
+#     --batch-size 8 \
+#     --learning-rate 0.01 \

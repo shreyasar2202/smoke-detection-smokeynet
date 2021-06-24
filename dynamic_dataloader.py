@@ -33,6 +33,8 @@ class DynamicDataModule(pl.LightningDataModule):
                  train_split_path=None,
                  val_split_path=None,
                  test_split_path=None,
+                 train_split_size=0.6,
+                 test_split_size=0.2,
                  batch_size=1, 
                  num_workers=0, 
                  series_length=5, 
@@ -58,6 +60,8 @@ class DynamicDataModule(pl.LightningDataModule):
             - val_split_path (str): path to existing val split .txt file
             - test_split_path (str): path to existing test split .txt file
             
+            - train_split_size (float): % of data to split for train
+            - test_split_size (float): % of data to split for test
             - batch_size (int): batch_size for training
             - num_workers (int): number of workers for dataloader
             - series_length (int): how many sequential images should be used for training
@@ -86,6 +90,8 @@ class DynamicDataModule(pl.LightningDataModule):
         self.val_split_path = val_split_path
         self.test_split_path = test_split_path
         
+        self.train_split_size = train_split_size
+        self.test_split_size = test_split_size
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.series_length = series_length
@@ -145,8 +151,8 @@ class DynamicDataModule(pl.LightningDataModule):
 
         # If any split not provided, randomly create own train/val/test splits
         if self.train_split_path is None or self.val_split_path is None or self.test_split_path is None:
-            train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=0.4)
-            val_fires, test_fires = train_test_split(val_fires, test_size=0.5)
+            train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=(1-self.train_split_size))
+            val_fires, test_fires = train_test_split(val_fires, test_size=self.test_split_size/(1-self.train_split_size))
             
             # Shorten fire_to_images to relevant time frame
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], self.time_range, train_fires)
@@ -273,8 +279,7 @@ class DynamicDataloader(Dataset):
         
         # x.shape = [series_length, num_channels, height, width]
         # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2))
-        x = (x - x.mean())/255 
+        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
            
         # Load XML labels
         labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 

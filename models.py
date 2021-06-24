@@ -12,7 +12,7 @@ from torch.nn import functional as F
 import torchvision
 
     
-class PretrainedResNet50(nn.Module):
+class ResNet50(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
@@ -59,7 +59,7 @@ class PretrainedResNet50(nn.Module):
         return self.criterion(outputs, tile_labels)
     
     
-class PretrainedResNet50Focal(nn.Module):
+class ResNet50Focal(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
     Args:

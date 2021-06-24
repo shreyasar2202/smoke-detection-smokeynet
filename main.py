@@ -17,7 +17,7 @@ import datetime
 
 # File imports
 from lightning_model import LightningModel
-from models import PretrainedResNet50, PretrainedResNet50Focal
+from models import ResNet50, ResNet50Focal
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
@@ -52,6 +52,10 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
                     help='(Optional) Path to checkpoint to load.')
 
 # Dataloader args
+parser.add_argument('--train-split-size', type=int, default=0.6,
+                    help='% of data to split for train.')
+parser.add_argument('--test-split-size', type=int, default=0.2,
+                    help='% of data to split for test.')
 parser.add_argument('--batch-size', type=int, default=1,
                     help='Batch size for training.')
 parser.add_argument('--num-workers', type=int, default=0,
@@ -126,6 +130,8 @@ def main(# Path args
         parsed_args=None,
 
         # Dataloader args
+        train_split_size=0.6,
+        test_split_size=0.2,
         batch_size=1, 
         num_workers=0, 
         series_length=1, 
@@ -167,6 +173,8 @@ def main(# Path args
             test_split_path=test_split_path,
 
             # Dataloader args
+            train_split_size=train_split_size,
+            test_split_size=test_split_size,
             batch_size=batch_size,
             num_workers=num_workers,
             series_length=series_length,
@@ -177,11 +185,11 @@ def main(# Path args
             tile_dimensions=tile_dimensions)
         
         ### Initialize model ###
-        backbone = PretrainedResNet50Focal(series_length, 
-                                           pretrain_backbone=pretrain_backbone,
-                                           freeze_backbone=freeze_backbone,
-                                           focal_alpha=focal_alpha,
-                                           focal_gamma=focal_gamma)
+        backbone = ResNet50Focal(series_length, 
+                                pretrain_backbone=pretrain_backbone,
+                                freeze_backbone=freeze_backbone,
+                                focal_alpha=focal_alpha,
+                                focal_gamma=focal_gamma)
         model = LightningModel(model=backbone,
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
@@ -224,7 +232,7 @@ def main(# Path args
 
             # Dev args
 #             fast_dev_run=True, 
-            overfit_batches=11,
+#             overfit_batches=11,
 #             limit_train_batches=0.25,
 #             limit_val_batches=0.25,
 #             limit_test_batches=0.25,
@@ -273,6 +281,8 @@ if __name__ == '__main__':
         parsed_args=args,
 
         # Dataloader args
+        train_split_size=args.train_split_size,
+        test_split_size=args.test_split_size,
         batch_size=args.batch_size, 
         num_workers=args.num_workers, 
         series_length=args.series_length, 
