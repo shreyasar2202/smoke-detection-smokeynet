@@ -21,6 +21,7 @@ from models import ResNet50, ResNet50Focal
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
+IS_DEBUG = True
 
 #####################
 ## Argument Parser
@@ -77,6 +78,11 @@ parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
 parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='Number of pixels of smoke to consider tile positive.')
+
+parser.add_argument('--flip-augment', action='store_true',
+                    help='Enables data augmentation with horizontal flip.')
+parser.add_argument('--blur-augment', action='store_true',
+                    help='Enables data augmentation with Gaussian blur.')
 
 # Model args
 parser.add_argument('--learning-rate', type=float, default=0.001,
@@ -140,6 +146,8 @@ def main(# Path args
         crop_height=1344,
         tile_dimensions=(224,224),
         smoke_threshold=10,
+        flip_augment=False,
+        blur_augment=False,
 
         # Model args
         learning_rate=0.001,
@@ -160,7 +168,7 @@ def main(# Path args
         accumulate_grad_batches=1):
         
     try:
-        util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
+        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
         
         ### Initialize data_module ###
         data_module = DynamicDataModule(
@@ -182,7 +190,10 @@ def main(# Path args
         
             image_dimensions=image_dimensions,
             crop_height=crop_height,
-            tile_dimensions=tile_dimensions)
+            tile_dimensions=tile_dimensions,
+        
+            flip_augment=flip_augment,
+            blur_augment=blur_augment)
         
         ### Initialize model ###
         backbone = ResNet50Focal(series_length, 
@@ -232,7 +243,7 @@ def main(# Path args
 
             # Dev args
 #             fast_dev_run=True, 
-#             overfit_batches=11,
+            overfit_batches=1,
 #             limit_train_batches=0.25,
 #             limit_val_batches=0.25,
 #             limit_test_batches=0.25,
@@ -241,7 +252,7 @@ def main(# Path args
 #             logger=False,
 #             track_grad_norm=2,
 #             weights_summary='full',
-#             profiler="simple", # "advanced" "pytorch"
+            profiler="simple", # "advanced" "pytorch"
 #             log_gpu_memory=True,
             gpus=1)
         
@@ -257,9 +268,9 @@ def main(# Path args
         # Evaluate the best model on the test set
         trainer.test(model, datamodule=data_module)
 
-        util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
+        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:
-        util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
+        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
         raise(e) 
     
     
@@ -292,6 +303,9 @@ if __name__ == '__main__':
         crop_height=args.crop_height,
         tile_dimensions=(args.tile_size, args.tile_size),
         smoke_threshold=args.smoke_threshold,
+        
+        flip_augment=args.flip_augment,
+        blur_augment=args.blur_augment,
 
         # Model args
         learning_rate=args.learning_rate,

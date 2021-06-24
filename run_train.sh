@@ -20,15 +20,27 @@
 #     --max-epochs 8 \
 #     --batch-size 8 
 
+# Real Run
+# python3 main.py \
+#     --experiment-name "ResNet50Focal" \
+#     --experiment-description "ResNet50Focal full data" \
+#     --min-epochs 1 \
+#     --max-epochs 50 \
+#     --batch-size 8 \
+#     --accumulate-grad-batches 10 \
+#     --flip-augment \
+#     --blur-augment \
+#     --no-auto-lr-find \
+#     --raw-data-path '/root/raw_images' \
+#     --labels-path '/root/drive_clone_labels'
 
 # Debug run
 python3 main.py \
-    --experiment-name "debug" \
-    --experiment-description "debug" \
+    --experiment-name "Debug" \
+    --experiment-description "Debug" \
     --min-epochs 1 \
-    --max-epochs 50 \
+    --max-epochs 1 \
     --batch-size 8 \
-    --accumulate-grad-batches 10 \
     --no-auto-lr-find \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'

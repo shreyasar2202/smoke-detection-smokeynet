@@ -6,16 +6,18 @@ Description: Loads data from raw image and XML files
 """
 # Torch imports
 import pytorch_lightning as pl
-import pickle
+import torch
 import torchvision
+import torchvision.transforms as T
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
-from pathlib import Path
-import numpy as np
-from sklearn.model_selection import train_test_split
 
 # Other package imports
 import os
+import pickle
+from pathlib import Path
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 # File imports
 import util_fns
@@ -43,6 +45,8 @@ class DynamicDataModule(pl.LightningDataModule):
                  crop_height = 1344,
                  tile_dimensions = (224, 224),
                  smoke_threshold = 10,
+                 flip_augment=False,
+                 blur_augment=False,
                  create_data = False):
         """
         Args:
@@ -101,6 +105,9 @@ class DynamicDataModule(pl.LightningDataModule):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
+        
+        self.flip_augment = flip_augment
+        self.blur_augment = blur_augment
         
         self.create_data = create_data
         self.has_setup = False
@@ -197,7 +204,9 @@ class DynamicDataModule(pl.LightningDataModule):
                                           self.image_dimensions,
                                           self.crop_height,
                                           self.tile_dimensions,
-                                          self.smoke_threshold)
+                                          self.smoke_threshold,
+                                          self.flip_augment,
+                                          self.blur_augment)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
         return train_loader
 
@@ -209,7 +218,9 @@ class DynamicDataModule(pl.LightningDataModule):
                                         self.image_dimensions,
                                         self.crop_height,
                                         self.tile_dimensions,
-                                        self.smoke_threshold)
+                                        self.smoke_threshold,
+                                        self.flip_augment,
+                                        self.blur_augment)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return val_loader
 
@@ -221,7 +232,9 @@ class DynamicDataModule(pl.LightningDataModule):
                                          self.image_dimensions,
                                          self.crop_height,
                                          self.tile_dimensions,
-                                         self.smoke_threshold)
+                                         self.smoke_threshold,
+                                         self.flip_augment,
+                                         self.blur_augment)
         test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return test_loader
     
@@ -239,9 +252,11 @@ class DynamicDataloader(Dataset):
                  image_dimensions = (1536, 2016),
                  crop_height = 1344,
                  tile_dimensions = (224,224), 
-                 smoke_threshold = 10):
+                 smoke_threshold = 10,
+                 flip_augment = False,
+                 blur_augment = False):
         """
-        Args / Attributes:
+        Args:
             - raw_data_path (Path): path to raw data
             - labels_path (Path): path to XML labels
             - metadata (dict): metadata dictionary from DataModule
@@ -250,6 +265,8 @@ class DynamicDataloader(Dataset):
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
+            - flip_augment (bool): enables data augmentation with horizontal flip
+            - blur_augment (bool): enables data augmentation with Gaussian blur
         """
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
@@ -260,6 +277,9 @@ class DynamicDataloader(Dataset):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
+        
+        self.horizontal_flip = T.RandomHorizontalFlip(p=1) if flip_augment else None
+        self.gaussian_blur = T.GaussianBlur(kernel_size=(9, 9), sigma=(5, 5)) if blur_augment else None
 
     def __len__(self):
         return len(self.data_split)
@@ -267,20 +287,21 @@ class DynamicDataloader(Dataset):
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
         
-        # Load all images in the series
+        ### Load Images ### 
         x = []
         series_length = len(self.metadata['image_series'][image_name])
         
+        # Load all images in the series
         for file_name in self.metadata['image_series'][image_name]:
-            img = torchvision.io.read_image(file_name) # img.shape = [num_channels, height, width]
+            img = torchvision.io.read_image(self.raw_data_path+'/'+file_name+'.jpg') # img.shape = [num_channels, height, width]
             img = T.Resize(self.image_dimensions)(img)[:,-self.crop_height:] # Resize and crop
             x.append(img)
         
         # x.shape = [series_length, num_channels, height, width]
         # e.g. [5, 3, 1344, 2016]
-        x = torch.stack(x) / 255 # Normalize by /255 (good enough normalization)
+        x = torch.stack(x)
            
-        # Load XML labels        
+        ### Load XML labels ###        
         label_path = self.labels_path+'/'+image_name+'.pt'
         
         if Path(label_path).exists():
@@ -290,9 +311,19 @@ class DynamicDataloader(Dataset):
             labels = T.Resize(self.image_dimensions)(labels.unsqueeze(0))[:,-self.crop_height:].squeeze(0)
         else:
             labels = torch.zeros(x.shape[2:])
-                
-        # WARNING: Tile size must divide perfectly into image height and width
+            
+        ### Apply Transformations ###
+        x = self.gaussian_blur(x) if self.gaussian_blur else x
+
+        if self.horizontal_flip and torch.rand(1) > 0.5:
+            x = self.horizontal_flip(x)
+            labels = self.horizontal_flip(labels)
+
+        x = x / 255 # Normalize by /255 (good enough normalization)
+        
+        ### Tile Image ###
         if self.tile_dimensions:
+            # WARNING: Tile size must divide perfectly into image height and width
             # x.shape = [54, 5, 3, 224, 224]
             # labels.shape = [54, 224, 224]
             x = x.view((-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
@@ -305,7 +336,7 @@ class DynamicDataloader(Dataset):
             x = x.unsqueeze(0)
             labels = labels.unsqueeze(0)
 
-        # Load image-level labels for current image
+        ### Load Other Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
         has_xml_label = self.metadata['has_xml_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(labels)
