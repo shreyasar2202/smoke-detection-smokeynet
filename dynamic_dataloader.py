@@ -7,6 +7,7 @@ Description: Loads data from raw image and XML files
 # Torch imports
 import pytorch_lightning as pl
 import pickle
+import torchvision
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from pathlib import Path
@@ -15,7 +16,6 @@ from sklearn.model_selection import train_test_split
 
 # Other package imports
 import os
-import cv2
 
 # File imports
 import util_fns
@@ -272,45 +272,38 @@ class DynamicDataloader(Dataset):
         series_length = len(self.metadata['image_series'][image_name])
         
         for file_name in self.metadata['image_series'][image_name]:
-            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg') # img.shape = [height, width, num_channels]
-            # Resize and crop
-            img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+            img = torchvision.io.read_image(file_name) # img.shape = [num_channels, height, width]
+            img = T.Resize(self.image_dimensions)(img)[:,-self.crop_height:] # Resize and crop
             x.append(img)
         
         # x.shape = [series_length, num_channels, height, width]
         # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
+        x = torch.stack(x) / 255 # Normalize by /255 (good enough normalization)
            
-        # Load XML labels
-        labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
+        # Load XML labels        
+        label_path = self.labels_path+'/'+image_name+'.pt'
         
-        label_path = self.labels_path+'/'+image_name+'.npy'
         if Path(label_path).exists():
-            labels = np.load(label_path)
-        
-        # Uncomment if loading raw XML files
-#         label_path = self.labels_path+'/'+\
-#             util_fns.get_fire_name(image_name)+'/xml/'+\
-#             util_fns.get_only_image_name(image_name)+'.xml'
-#         if Path(label_path).exists():
-#             cv2.fillPoly(labels, util_fns.xml_to_record(label_path), 1)
-        
-        # labels.shape = [height, width]
-        labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
-        
+            labels = torch.load(label_path)
+            
+            # labels.shape = [height, width]
+            labels = T.Resize(self.image_dimensions)(labels.unsqueeze(0))[:,-self.crop_height:].squeeze(0)
+        else:
+            labels = torch.zeros(x.shape[2:])
+                
         # WARNING: Tile size must divide perfectly into image height and width
         if self.tile_dimensions:
             # x.shape = [54, 5, 3, 224, 224]
             # labels.shape = [54, 224, 224]
-            x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
-            labels = np.reshape(labels,(-1, self.tile_dimensions[0], self.tile_dimensions[1]))
+            x = x.view((-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
+            labels = labels.view((-1, self.tile_dimensions[0], self.tile_dimensions[1]))
 
             # tile_labels.shape = [54,]
-            labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+            labels = (labels.sum(dim=(1,2)) > self.smoke_threshold).float()
         else:
             # Pretend as if tile size = image size
-            x = np.expand_dims(x, 0)
-            labels = np.expand_dims(labels, 0)
+            x = x.unsqueeze(0)
+            labels = labels.unsqueeze(0)
 
         # Load image-level labels for current image
         ground_truth_label = self.metadata['ground_truth_label'][image_name]

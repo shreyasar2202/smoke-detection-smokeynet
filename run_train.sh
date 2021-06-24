@@ -23,12 +23,13 @@
 
 # Debug run
 python3 main.py \
-    --experiment-name "ResNet50Focal" \
-    --experiment-description "ResNet50Focal full data" \
+    --experiment-name "debug" \
+    --experiment-description "debug" \
     --min-epochs 1 \
     --max-epochs 50 \
     --batch-size 8 \
     --accumulate-grad-batches 10 \
+    --no-auto-lr-find \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'
     

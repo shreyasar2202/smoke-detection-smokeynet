@@ -10,6 +10,7 @@ import torchmetrics
 
 # Other package imports 
 import os
+import cv2
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -255,7 +256,7 @@ def save_labels(raw_data_path,
                 labels_path, 
                 output_path):
     """
-    Description: Converts XML files to Numpy arrays, with 1's for pixels with smoke and 0's for pixels without smoke
+    Description: Converts XML files to Torch tensors and saves to disk, with 1's for pixels with smoke and 0's for pixels without smoke
     """
     all_fires = [str(folder.stem) for folder in filter(Path.is_dir, Path(labels_path).iterdir())]
     count = 0
@@ -275,11 +276,11 @@ def save_labels(raw_data_path,
                 get_only_image_name(image_name)+'.xml'
 
             cv2.fillPoly(labels, xml_to_record(label_path), 1)
+            labels = torch.from_numpy(labels.astype(np.uint8))
 
-            save_path = output_path + '/' + image_name + '.npy'
-
+            save_path = output_path + '/' + image_name + '.pt'
             os.makedirs(output_path + '/' + fire, exist_ok=True)
-            np.save(save_path, labels.astype(np.uint8))
+            torch.save(labels, save_path)
 
 #########################
 ## Labels & Predictions
