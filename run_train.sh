@@ -40,8 +40,10 @@ python3 main.py \
     --experiment-description "Debug" \
     --min-epochs 1 \
     --max-epochs 1 \
-    --batch-size 8 \
+    --batch-size 1 \
     --no-auto-lr-find \
+    --flip-augment \
+    --blur-augment \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'
     

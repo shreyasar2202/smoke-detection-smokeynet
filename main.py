@@ -21,7 +21,7 @@ from models import ResNet50, ResNet50Focal
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
-IS_DEBUG = True
+IS_DEBUG = False
 
 #####################
 ## Argument Parser
@@ -252,7 +252,7 @@ def main(# Path args
 #             logger=False,
 #             track_grad_norm=2,
 #             weights_summary='full',
-            profiler="simple", # "advanced" "pytorch"
+#             profiler="simple", # "advanced" "pytorch"
 #             log_gpu_memory=True,
             gpus=1)
         

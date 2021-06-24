@@ -6,18 +6,16 @@ Description: Loads data from raw image and XML files
 """
 # Torch imports
 import pytorch_lightning as pl
-import torch
-import torchvision
-import torchvision.transforms as T
+import pickle
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
-
-# Other package imports
-import os
-import pickle
 from pathlib import Path
 import numpy as np
 from sklearn.model_selection import train_test_split
+
+# Other package imports
+import os
+import cv2
 
 # File imports
 import util_fns
@@ -45,8 +43,8 @@ class DynamicDataModule(pl.LightningDataModule):
                  crop_height = 1344,
                  tile_dimensions = (224, 224),
                  smoke_threshold = 10,
-                 flip_augment=False,
-                 blur_augment=False,
+                 flip_augment = False,
+                 blur_augment = False,
                  create_data = False):
         """
         Args:
@@ -75,6 +73,9 @@ class DynamicDataModule(pl.LightningDataModule):
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
+            
+            - flip_augment (bool): enables data augmentation with horizontal flip
+            - blur_augment (bool): enables data augmentation with Gaussian blur
             
             - create_data (bool): should prepare_data be run?
         
@@ -256,7 +257,7 @@ class DynamicDataloader(Dataset):
                  flip_augment = False,
                  blur_augment = False):
         """
-        Args:
+        Args / Attributes:
             - raw_data_path (Path): path to raw data
             - labels_path (Path): path to XML labels
             - metadata (dict): metadata dictionary from DataModule
@@ -278,8 +279,8 @@ class DynamicDataloader(Dataset):
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
         
-        self.horizontal_flip = T.RandomHorizontalFlip(p=1) if flip_augment else None
-        self.gaussian_blur = T.GaussianBlur(kernel_size=(9, 9), sigma=(5, 5)) if blur_augment else None
+        self.flip_augment = flip_augment
+        self.blur_augment = blur_augment
 
     def __len__(self):
         return len(self.data_split)
@@ -287,56 +288,68 @@ class DynamicDataloader(Dataset):
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
         
-        ### Load Images ### 
+        ### Load Images ###
         x = []
         series_length = len(self.metadata['image_series'][image_name])
         
+        if self.flip_augment:
+            should_flip = np.random.rand() > 0.5
+        if self.blur_augment:
+            blur_size = int(np.random.randn()*3+10)
+        
         # Load all images in the series
         for file_name in self.metadata['image_series'][image_name]:
-            img = torchvision.io.read_image(self.raw_data_path+'/'+file_name+'.jpg') # img.shape = [num_channels, height, width]
-            img = T.Resize(self.image_dimensions)(img)[:,-self.crop_height:] # Resize and crop
+            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg') # img.shape = [height, width, num_channels]
+            # Resize and crop
+            img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+            
+            # Add data augmentations
+            if self.flip_augment and should_flip:
+                img = cv2.flip(img, 1)
+            if self.blur_augment:
+                img = cv2.blur(img, (blur_size,blur_size))
+            
             x.append(img)
         
         # x.shape = [series_length, num_channels, height, width]
         # e.g. [5, 3, 1344, 2016]
-        x = torch.stack(x)
+        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
            
-        ### Load XML labels ###        
-        label_path = self.labels_path+'/'+image_name+'.pt'
-        
+        ### Load XML labels ###
+        label_path = self.labels_path+'/'+image_name+'.npy'
         if Path(label_path).exists():
-            labels = torch.load(label_path)
-            
-            # labels.shape = [height, width]
-            labels = T.Resize(self.image_dimensions)(labels.unsqueeze(0))[:,-self.crop_height:].squeeze(0)
+            labels = np.load(label_path)
         else:
-            labels = torch.zeros(x.shape[2:])
-            
-        ### Apply Transformations ###
-        x = self.gaussian_blur(x) if self.gaussian_blur else x
+            labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
 
-        if self.horizontal_flip and torch.rand(1) > 0.5:
-            x = self.horizontal_flip(x)
-            labels = self.horizontal_flip(labels)
-
-        x = x / 255 # Normalize by /255 (good enough normalization)
+        # Uncomment if loading raw XML files
+#         label_path = self.labels_path+'/'+\
+#             util_fns.get_fire_name(image_name)+'/xml/'+\
+#             util_fns.get_only_image_name(image_name)+'.xml'
+#         if Path(label_path).exists():
+#             cv2.fillPoly(labels, util_fns.xml_to_record(label_path), 1)
+        
+        # labels.shape = [height, width]
+        labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+        if self.flip_augment and should_flip:
+            labels = cv2.flip(labels, 1)
         
         ### Tile Image ###
         if self.tile_dimensions:
             # WARNING: Tile size must divide perfectly into image height and width
             # x.shape = [54, 5, 3, 224, 224]
             # labels.shape = [54, 224, 224]
-            x = x.view((-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
-            labels = labels.view((-1, self.tile_dimensions[0], self.tile_dimensions[1]))
+            x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
+            labels = np.reshape(labels,(-1, self.tile_dimensions[0], self.tile_dimensions[1]))
 
             # tile_labels.shape = [54,]
-            labels = (labels.sum(dim=(1,2)) > self.smoke_threshold).float()
+            labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
         else:
             # Pretend as if tile size = image size
-            x = x.unsqueeze(0)
-            labels = labels.unsqueeze(0)
+            x = np.expand_dims(x, 0)
+            labels = np.expand_dims(labels, 0)
 
-        ### Load Other Labels ###
+        # Load Image-level Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
         has_xml_label = self.metadata['has_xml_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(labels)
