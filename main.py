@@ -16,7 +16,8 @@ from argparse import ArgumentParser
 import datetime
 
 # File imports
-from model import LightningModel, ResNet50Backbone
+from lightning_model import LightningModel
+from models import PretrainedResNet50, PretrainedResNet50Focal
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
@@ -78,8 +79,14 @@ parser.add_argument('--learning-rate', type=float, default=0.001,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
+parser.add_argument('--no-pretrain-backbone', action='store_true',
+                    help='Disables pretraining of backbone.')
 parser.add_argument('--no-freeze-backbone', action='store_true',
                     help='Disables freezing of layers on pre-trained backbone.')
+parser.add_argument('--focal-alpha', type=float, default=0.25,
+                    help='Alpha for focal loss.')
+parser.add_argument('--focal-gamma', type=float, default=2,
+                    help='Gamma for focal loss.')
 
 # Training args
 parser.add_argument('--min-epochs', type=int, default=10,
@@ -94,9 +101,9 @@ parser.add_argument('--no-sixteen-bit', action='store_true',
                     help='Disables use of 16-bit training to reduce memory. See PyTorch Lightning docs for more details.')
 parser.add_argument('--no-stochastic-weight-avg', action='store_true',
                     help='Disables stochastic weight averaging. See PyTorch Lightning docs for more details.')
-parser.add_argument('--gradient-clip-val', type=float, default=0.5,
+parser.add_argument('--gradient-clip-val', type=float, default=0,
                     help='Clips gradients to prevent vanishing or exploding gradients. See PyTorch Lightning docs for more details.')
-parser.add_argument('--accumulate-grad-batches', type=int, default=16,
+parser.add_argument('--accumulate-grad-batches', type=int, default=1,
                     help='Accumulate multiple batches before calling loss.backward() to increase effective batch size. See PyTorch Lightning docs for more details.')
 
     
@@ -131,7 +138,10 @@ def main(# Path args
         # Model args
         learning_rate=0.001,
         lr_schedule=True,
+        pretrain_backbone=True,
         freeze_backbone=True,
+        focal_alpha=0.25,
+        focal_gamma=2,
 
         # Trainer args 
         min_epochs=10,
@@ -167,7 +177,11 @@ def main(# Path args
             tile_dimensions=tile_dimensions)
         
         ### Initialize model ###
-        backbone = ResNet50Backbone(series_length, freeze_backbone=freeze_backbone)
+        backbone = PretrainedResNet50Focal(series_length, 
+                                           pretrain_backbone=pretrain_backbone,
+                                           freeze_backbone=freeze_backbone,
+                                           focal_alpha=focal_alpha,
+                                           focal_gamma=focal_gamma)
         model = LightningModel(model=backbone,
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
@@ -177,9 +191,8 @@ def main(# Path args
         early_stop_callback = EarlyStopping(
            monitor='val/loss',
            min_delta=0.00,
-           patience=5,
-           verbose=False,
-           mode='max')
+           patience=3,
+           verbose=True)
 
         checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
 
@@ -211,10 +224,10 @@ def main(# Path args
 
             # Dev args
 #             fast_dev_run=True, 
-            overfit_batches=21,
-#             limit_train_batches=1,
-#             limit_val_batches=1,
-#             limit_test_batches=1,
+            overfit_batches=11,
+#             limit_train_batches=0.25,
+#             limit_val_batches=0.25,
+#             limit_test_batches=0.25,
 #             log_every_n_steps=1,
 #             checkpoint_callback=False,
 #             logger=False,
@@ -228,7 +241,7 @@ def main(# Path args
 
         # Auto find learning rate
         if auto_lr_find:
-            trainer.tune(model)
+            trainer.tune(model, datamodule=data_module)
 
         # Train the model
         trainer.fit(model, datamodule=data_module)
@@ -273,7 +286,10 @@ if __name__ == '__main__':
         # Model args
         learning_rate=args.learning_rate,
         lr_schedule=not args.no_lr_schedule,
+        pretrain_backbone=not args.no_pretrain_backbone,
         freeze_backbone=not args.no_freeze_backbone,
+        focal_alpha=args.focal_alpha,
+        focal_gamma=args.focal_gamma,
 
         # Trainer args
         min_epochs=args.min_epochs,

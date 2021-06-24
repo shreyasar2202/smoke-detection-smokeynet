@@ -7,11 +7,8 @@ Description: Main file with PyTorch Lightning LightningModule. Defines model, fo
 
 # Torch imports
 import torch
-from torch import nn
-from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import pytorch_lightning as pl
-import torchvision
 import torchmetrics
 
 # Other package imports
@@ -23,60 +20,12 @@ from pathlib import Path
 # File imports
 import util_fns
 
-    
-class ResNet50Backbone(nn.Module):
-    """
-    Description: Simple model with ResNet backbone and a few linear layers
-    Args:
-        - series_length: number of sequential video frames to process during training
-        - freeze_backbone: disables freezing of layers on pre-trained backbone
-    
-    Other Attributes:
-        - criterion (obj): objective function used to calculate loss
-    """
-    def __init__(self, series_length, freeze_backbone=True):
-        super().__init__()
-
-        resnet = torchvision.models.resnet50(pretrained=True)
-        resnet.fc = nn.Identity()
-
-        if freeze_backbone:
-            for param in resnet.parameters():
-                param.requires_grad = False
-
-        self.conv = resnet
-
-        self.fc1 = nn.Linear(in_features=series_length * 2048, out_features=512)
-        self.fc2 = nn.Linear(in_features=512, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=1)
-        
-        self.criterion = nn.BCEWithLogitsLoss()
-
-    def forward(self, x):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        x = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        x = self.conv(x) # [batch_size * num_tiles * series_length, 2048]
-
-        x = x.view(batch_size, num_tiles, -1) # [batch_size, num_tiles, series_length * 2048]
-        x = F.relu(self.fc1(x)) # [batch_size, num_tiles, 512]
-        x = F.relu(self.fc2(x)) # [batch_size, num_tiles, 64]
-        x = self.fc3(x) # [batch_size, num_tiles, 1]
-
-        return x
-    
-    def compute_loss(self, outputs, tile_labels):
-        return self.criterion(outputs, tile_labels)
-
-    
-#####################
-## Training Model
-#####################
 
 class LightningModel(pl.LightningModule):
 
-    ### Initialization ###
+    #####################
+    ## Initialization
+    #####################
 
     def __init__(self,
                  model=None,
@@ -116,8 +65,8 @@ class LightningModel(pl.LightningModule):
         self.lr_schedule = lr_schedule
 
         # Save hyperparameters
-        self.save_hyperparameters('learning_rate', 'lr_schedule')
         self.save_hyperparameters(parsed_args)
+        self.save_hyperparameters('learning_rate', 'lr_schedule')
 
         # Initialize evaluation metrics
         self.metrics = {}
@@ -140,14 +89,14 @@ class LightningModel(pl.LightningModule):
         print("Initializing LightningModel Complete. ")
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
         
         if self.lr_schedule:
             # Includes learning rate scheduler
-            scheduler = ReduceLROnPlateau(optimizer)
+            scheduler = ReduceLROnPlateau(optimizer, verbose=True)
             return {"optimizer": optimizer,
                     "lr_scheduler": scheduler,
-                    "monitor": "val_loss"}
+                    "monitor": "train/loss"}
         else:
             return optimizer
 
@@ -211,6 +160,7 @@ class LightningModel(pl.LightningModule):
         
         # Log loss (on_step only if split='train')
         self.log(split+'loss', loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+        self.log('general/learning_rate', self.learning_rate, on_step=False, on_epoch=True)
 
         # Calculate & log evaluation metrics
         for category, args in zip(self.metrics['category'], 
@@ -245,9 +195,9 @@ class LightningModel(pl.LightningModule):
         return image_names, tile_preds, image_preds
 
     
-    #####################
+    ########################
     ## Test Metric Logging
-    #####################
+    ########################
 
     def test_epoch_end(self, test_step_outputs):
         """
@@ -296,6 +246,8 @@ class LightningModel(pl.LightningModule):
                 fire_preds.append(fire_preds_dict[fire])
                 
         fire_preds = torch.as_tensor(fire_preds, dtype=int)
+        
+        import pdb; pdb.set_trace()
 
         negative_preds = fire_preds[:,:fire_preds.shape[1]//2] 
         positive_preds = fire_preds[:,fire_preds.shape[1]//2:]

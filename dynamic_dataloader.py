@@ -273,7 +273,8 @@ class DynamicDataloader(Dataset):
         
         # x.shape = [series_length, num_channels, height, width]
         # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2))/255 
+        x = np.transpose(np.stack(x), (0, 3, 1, 2))
+        x = (x - x.mean())/255 
            
         # Load XML labels
         labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
