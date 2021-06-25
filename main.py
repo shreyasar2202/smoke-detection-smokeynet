@@ -210,7 +210,7 @@ def main(# Path args
                                lr_schedule=lr_schedule,
                                parsed_args=parsed_args)
 
-        ### Implement EarlyStopping ###
+        ### Implement EarlyStopping & Other Callbacks ###
         early_stop_callback = EarlyStopping(
            monitor='val/loss',
            min_delta=0.00,
@@ -218,6 +218,12 @@ def main(# Path args
            verbose=True)
 
         checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
+        
+        callbacks = []
+        if early_stopping: 
+            callbacks.append(early_stop_callback)
+        if not IS_DEBUG: 
+            callbacks.append(checkpoint_callback)
 
         ### Initialize Trainer ###
 
@@ -235,7 +241,7 @@ def main(# Path args
             min_epochs=min_epochs,
             max_epochs=max_epochs,
             auto_lr_find=auto_lr_find,
-            callbacks=[early_stop_callback, checkpoint_callback] if early_stopping else [checkpoint_callback],
+            callbacks=callbacks,
             precision=16 if sixteen_bit else 32,
             stochastic_weight_avg=stochastic_weight_avg,
             gradient_clip_val=gradient_clip_val,
@@ -244,6 +250,7 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
+            log_every_n_steps=10,
 
             # Dev args
 #             fast_dev_run=True, 
@@ -251,7 +258,6 @@ def main(# Path args
 #             limit_train_batches=0.25,
 #             limit_val_batches=0.25,
 #             limit_test_batches=0.25,
-#             log_every_n_steps=1,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

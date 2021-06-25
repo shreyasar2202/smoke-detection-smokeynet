@@ -93,10 +93,13 @@ class LightningModel(pl.LightningModule):
         
         if self.lr_schedule:
             # Includes learning rate scheduler
-            scheduler = ReduceLROnPlateau(optimizer, verbose=True)
+            scheduler = ReduceLROnPlateau(optimizer, 
+                                          min_lr=self.learning_rate*1e-3, 
+                                          patience=2,
+                                          verbose=True)
             return {"optimizer": optimizer,
                     "lr_scheduler": scheduler,
-                    "monitor": "train/loss"}
+                    "monitor": "val/loss"}
         else:
             return optimizer
 

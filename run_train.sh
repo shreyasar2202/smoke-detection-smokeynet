@@ -37,48 +37,16 @@
 python3 main.py \
     --experiment-name "ResNet50Focal" \
     --experiment-description "ResNet50Focal full data + no-freeze" \
-    --min-epochs 1 \
-    --max-epochs 50 \
+    --min-epochs 3 \
+    --max-epochs 10 \
     --batch-size 2 \
-    --accumulate-grad-batches 40 \
-    --learning-rate 0.00008317637711 \
+    --accumulate-grad-batches 16 \
+    --time-range-min 0 \
+    --learning-rate 0.00001 \
     --no-auto-lr-find \
     --flip-augment \
     --blur-augment \
     --no-freeze-backbone \
-    --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels'
-    
-python3 main.py \
-    --experiment-name "ResNet50Focal" \
-    --experiment-description "ResNet50Focal full data + no-freeze" \
-    --min-epochs 1 \
-    --max-epochs 50 \
-    --batch-size 2 \
-    --accumulate-grad-batches 40 \
-    --flip-augment \
-    --blur-augment \
-    --learning-rate 0.0001 \
-    --no-auto-lr-find \
-    --no-freeze-backbone \
-    --focal-alpha 0.05 \
-    --focal-gamma 5 \
-    --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels'
-    
-python3 main.py \
-    --experiment-name "ResNet50Focal" \
-    --experiment-description "ResNet50Focal full data + no-pretrain" \
-    --min-epochs 1 \
-    --max-epochs 50 \
-    --batch-size 8 \
-    --accumulate-grad-batches 10 \
-    --learning-rate 0.0001 \
-    --no-auto-lr-find \
-    --flip-augment \
-    --blur-augment \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'
 

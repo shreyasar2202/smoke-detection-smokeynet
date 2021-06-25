@@ -56,7 +56,8 @@ cd pytorch-lightning-smoke-detection
 ## Training
 **Relevant Files:**
 - ```main.py```: Kicks off training and evaluation. Contains many command line arguments for hyperparameters. 
-- ```model.py```: Main file with PyTorch Lightning LightningModule. Defines model, forward pass, and training.
+- ```lightning_model.py```: Main file with PyTorch Lightning LightningModule. Defines model, forward pass, and training.
+- ```models.py```: Different torch models to use with lightning_model.py
 - ```run_train.sh```: Used to easily start training from main.py with command line arguments.
 
 **Steps to Run:**
