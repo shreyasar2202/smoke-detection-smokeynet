@@ -11,9 +11,9 @@ import torchmetrics
 # Other package imports 
 import os
 import cv2
-import numpy as np
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import numpy as np
 
 
 #############
@@ -116,7 +116,7 @@ def generate_fire_to_images(raw_data_path, labels_path):
         
     return fire_to_images
 
-def generate_fire_to_images(splits):
+def generate_fire_to_images_from_splits(splits):
     """
     Description: Given train/val/test splits, create dictionary mapping fire to list of images
     Args:
@@ -140,23 +140,6 @@ def generate_fire_to_images(splits):
         fire_to_images[fire].sort()
         
     return fire_to_images
-
-def generate_omit_images_list(metadata):
-    """
-    Description: Returns a list of images that are positive but don't have XML labels
-    Args:
-        - metadata (dict)
-    Returns:
-        - omit_images_list (list of str): list of images that are positive but don't have XML labels
-    """
-    omit_images_list = []
-    
-    for fire in metadata['fire_to_images']:
-        for image in metadata['fire_to_images'][fire]:
-            if metadata['ground_truth_label'][fire] != metadata['has_xml_label'][fire]:
-                omit_images_list.append(image)
-                
-    return omit_images_list
 
 def unpack_fire_images(fire_to_images, fires_list, omit_images_list, is_test=False):
     """
@@ -252,35 +235,20 @@ def xml_to_record(xml_file):
     
     return None
 
-def save_labels(raw_data_path, 
-                labels_path, 
-                output_path):
+def get_filled_labels(raw_data_path, raw_labels_path, image_name):
     """
-    Description: Converts XML files to Torch tensors and saves to disk, with 1's for pixels with smoke and 0's for pixels without smoke
+    Description: Given an image_name, returns pixel labels for the image 
     """
-    all_fires = [str(folder.stem) for folder in filter(Path.is_dir, Path(labels_path).iterdir())]
-    count = 0
+    x = cv2.imread(raw_data_path+'/'+image_name+'.jpg')
+    labels = np.zeros(x.shape[:2], dtype=np.uint8) 
 
-    for fire in all_fires:
-        print('Folder ', count)
-        count += 1
+    label_path = raw_labels_path+'/'+\
+        get_fire_name(image_name)+'/xml/'+\
+        get_only_image_name(image_name)+'.xml'
 
-        for image in [get_only_image_name(str(item)) for item in Path(labels_path+'/'+fire+'/xml').glob('*.xml')]:
-            image_name = fire+'/'+image
-
-            x = cv2.imread(raw_data_path+'/'+image_name+'.jpg')
-            labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-
-            label_path = labels_path+'/'+\
-                get_fire_name(image_name)+'/xml/'+\
-                get_only_image_name(image_name)+'.xml'
-
-            cv2.fillPoly(labels, xml_to_record(label_path), 1)
-            labels = torch.from_numpy(labels.astype(np.uint8))
-
-            save_path = output_path + '/' + image_name + '.pt'
-            os.makedirs(output_path + '/' + fire, exist_ok=True)
-            torch.save(labels, save_path)
+    cv2.fillPoly(labels, xml_to_record(label_path), 1)
+    
+    return labels
 
 #########################
 ## Labels & Predictions

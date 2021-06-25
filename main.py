@@ -41,6 +41,8 @@ parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/da
                     help='Path to raw images.')
 parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone_labels',
                     help='Path to processed XML labels.')
+parser.add_argument('--raw-labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
+                    help='Path to raw XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
 parser.add_argument('--train-split-path', type=str, default=None,
@@ -123,7 +125,8 @@ parser.add_argument('--accumulate-grad-batches', type=int, default=1,
     
 def main(# Path args
         raw_data_path, 
-        labels_path,
+        labels_path, 
+        raw_labels_path=None,
         metadata_path=None,
         train_split_path=None, 
         val_split_path=None, 
@@ -175,6 +178,7 @@ def main(# Path args
             # Path args
             raw_data_path=raw_data_path,
             labels_path=labels_path,
+            raw_labels_path=raw_labels_path,
             metadata_path=metadata_path,
             train_split_path=train_split_path,
             val_split_path=val_split_path,
@@ -239,17 +243,15 @@ def main(# Path args
             
             # Other args
             resume_from_checkpoint=checkpoint_path,
-            logger=logger,
+            logger=logger if not IS_DEBUG else False,
 
             # Dev args
 #             fast_dev_run=True, 
-            overfit_batches=1,
+#             overfit_batches=1,
 #             limit_train_batches=0.25,
 #             limit_val_batches=0.25,
 #             limit_test_batches=0.25,
 #             log_every_n_steps=1,
-#             checkpoint_callback=False,
-#             logger=False,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
@@ -280,6 +282,7 @@ if __name__ == '__main__':
     main(# Path args
         raw_data_path=args.raw_data_path, 
         labels_path=args.labels_path, 
+        raw_labels_path=args.raw_labels_path,
         metadata_path=args.metadata_path,
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 

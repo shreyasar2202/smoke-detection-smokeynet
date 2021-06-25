@@ -5,6 +5,19 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
+# Debug run
+# python3 main.py \
+#     --experiment-name "Debug" \
+#     --experiment-description "Debug" \
+#     --min-epochs 1 \
+#     --max-epochs 1 \
+#     --batch-size 1 \
+#     --no-auto-lr-find \
+#     --flip-augment \
+#     --blur-augment \
+#     --raw-data-path '/root/raw_images' \
+#     --labels-path '/root/drive_clone_labels'
+
 # Vanilla run
 # python3 main.py \
 #     --experiment-name "resnet50" \
@@ -21,31 +34,55 @@
 #     --batch-size 8 
 
 # Real Run
-# python3 main.py \
-#     --experiment-name "ResNet50Focal" \
-#     --experiment-description "ResNet50Focal full data" \
-#     --min-epochs 1 \
-#     --max-epochs 50 \
-#     --batch-size 8 \
-#     --accumulate-grad-batches 10 \
-#     --flip-augment \
-#     --blur-augment \
-#     --no-auto-lr-find \
-#     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels'
-
-# Debug run
 python3 main.py \
-    --experiment-name "Debug" \
-    --experiment-description "Debug" \
+    --experiment-name "ResNet50Focal" \
+    --experiment-description "ResNet50Focal full data + no-freeze" \
     --min-epochs 1 \
-    --max-epochs 1 \
-    --batch-size 1 \
+    --max-epochs 50 \
+    --batch-size 2 \
+    --accumulate-grad-batches 40 \
+    --learning-rate 0.00008317637711 \
     --no-auto-lr-find \
     --flip-augment \
     --blur-augment \
+    --no-freeze-backbone \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'
+    
+python3 main.py \
+    --experiment-name "ResNet50Focal" \
+    --experiment-description "ResNet50Focal full data + no-freeze" \
+    --min-epochs 1 \
+    --max-epochs 50 \
+    --batch-size 2 \
+    --accumulate-grad-batches 40 \
+    --flip-augment \
+    --blur-augment \
+    --learning-rate 0.0001 \
+    --no-auto-lr-find \
+    --no-freeze-backbone \
+    --focal-alpha 0.05 \
+    --focal-gamma 5 \
+    --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels'
+    
+python3 main.py \
+    --experiment-name "ResNet50Focal" \
+    --experiment-description "ResNet50Focal full data + no-pretrain" \
+    --min-epochs 1 \
+    --max-epochs 50 \
+    --batch-size 8 \
+    --accumulate-grad-batches 10 \
+    --learning-rate 0.0001 \
+    --no-auto-lr-find \
+    --flip-augment \
+    --blur-augment \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels'
+
+
     
     
 #     --experiment-name "resnet50" \

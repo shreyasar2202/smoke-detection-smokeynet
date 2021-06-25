@@ -9,13 +9,13 @@ import pytorch_lightning as pl
 import pickle
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
-from pathlib import Path
-import numpy as np
-from sklearn.model_selection import train_test_split
 
 # Other package imports
 import os
 import cv2
+import numpy as np
+from pathlib import Path
+from sklearn.model_selection import train_test_split
 
 # File imports
 import util_fns
@@ -29,6 +29,7 @@ class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
                  raw_data_path='./data/raw_data', 
                  labels_path='./data/labels', 
+                 raw_labels_path='./data/raw_labels',
                  metadata_path='./data/metadata.pkl',
                  train_split_path=None,
                  val_split_path=None,
@@ -49,14 +50,17 @@ class DynamicDataModule(pl.LightningDataModule):
         """
         Args:
             - raw_data_path (str): path to raw data
-            - labels_path (str): path to XML labels
+            - labels_path (str): path to Numpy labels
+            - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
                 - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
                 - num_fires (int): total number of fires in dataset
                 - num_images (int): total number of images in dataset
                 - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
                 - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
-                - omit_images_list (list of str): list of images that erroneously do not have XML files for labels
+                - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
+                - omit_no_bbox (list of str): list of images that erroneously do not have loaded bboxes for labels
+                - omit_images_list (list of str): union of omit_no_xml and omit_no_bbox
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -89,6 +93,7 @@ class DynamicDataModule(pl.LightningDataModule):
         
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
+        self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
         
         self.train_split_path = train_split_path
@@ -110,8 +115,9 @@ class DynamicDataModule(pl.LightningDataModule):
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
         
-        self.create_data = create_data
+        self.create_data = True
         self.has_setup = False
+        
         
     def prepare_data(self):
         """
@@ -124,27 +130,45 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata = {}
 
             self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path, self.labels_path)
+            self.metadata['ground_truth_label'] = {}
+            self.metadata['has_xml_label'] = {}
             self.metadata['num_fires'] = 0
             self.metadata['num_images'] = 0
+            self.metadata['omit_no_xml'] = []
+            self.metadata['omit_no_bbox'] = []
+            self.metadata['omit_images_list'] = []
+            
+            output_path = '/userdata/kerasData/data/new_data/drive_clone_new'
 
             for fire in self.metadata['fire_to_images']:
                 self.metadata['num_fires'] += 1
-                for image in self.metadata['fire_to_images']:
+                
+                print('Preparing Folder ', self.metadata['num_fires'])
+                
+                for image in self.metadata['fire_to_images'][fire]:
                     self.metadata['num_images'] += 1
                     
-                    self.metadata['ground_truth_label'] = util_fns.get_ground_truth_label(image)
-                    self.metadata['has_xml_label'] = util_fns.get_has_xml_label(image, self.labels_path)
+                    self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
+                    self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
+                    
+                    if self.metadata['ground_truth_label'][image] != self.metadata['has_xml_label'][image]:
+                        self.metadata['omit_no_xml'].append(image)
+                    
+                    if self.metadata['has_xml_label'][image]:
+                        labels = util_fns.get_filled_labels(self.raw_data_path, self.raw_labels_path, image)
+                        
+                        if labels.sum() == 0:
+                            self.metadata['omit_no_bbox'].append(image)
 
-            self.metadata['omit_images_list'] = util_fns.generate_omit_images_list(self.metadata)
+                        save_path = output_path + '/' + image + '.npy'
+
+                        os.makedirs(output_path + '/' + fire, exist_ok=True)
+                        np.save(save_path, labels.astype(np.uint8))
+
+            self.metadata['omit_images_list'] = list(set().union(self.metadata['omit_no_xml'], self.metadata['omit_no_bbox']))
         
             with open(f'./data/metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
-                
-            ### Generate saved labels ###
-            util_fns.save_labels(
-                raw_data_path='/userdata/kerasData/data/new_data/raw_images',
-                labels_path='/userdata/kerasData/data/new_data/drive_clone',
-                output_path='/userdata/kerasData/data/new_data/drive_clone_labels')
                 
             print("Preparing Data Complete.")
         
@@ -190,7 +214,7 @@ class DynamicDataModule(pl.LightningDataModule):
             self.test_split  = [util_fns.get_image_name(item) for item in test_list]
             
             # Recreate fire_to_images and image_series
-            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images([self.train_split, self.val_split, self.test_split])
+            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images_from_splits([self.train_split, self.val_split, self.test_split])
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
         
         self.has_setup = True
@@ -295,7 +319,8 @@ class DynamicDataloader(Dataset):
         if self.flip_augment:
             should_flip = np.random.rand() > 0.5
         if self.blur_augment:
-            blur_size = int(np.random.randn()*3+10)
+            should_blur = np.random.rand() > 0.5
+            blur_size = np.maximum(int(np.random.randn()*3+10), 1)
         
         # Load all images in the series
         for file_name in self.metadata['image_series'][image_name]:
@@ -306,7 +331,7 @@ class DynamicDataloader(Dataset):
             # Add data augmentations
             if self.flip_augment and should_flip:
                 img = cv2.flip(img, 1)
-            if self.blur_augment:
+            if self.blur_augment and should_blur:
                 img = cv2.blur(img, (blur_size,blur_size))
             
             x.append(img)
@@ -321,13 +346,6 @@ class DynamicDataloader(Dataset):
             labels = np.load(label_path)
         else:
             labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
-
-        # Uncomment if loading raw XML files
-#         label_path = self.labels_path+'/'+\
-#             util_fns.get_fire_name(image_name)+'/xml/'+\
-#             util_fns.get_only_image_name(image_name)+'.xml'
-#         if Path(label_path).exists():
-#             cv2.fillPoly(labels, util_fns.xml_to_record(label_path), 1)
         
         # labels.shape = [height, width]
         labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
