@@ -36,19 +36,33 @@
 # Real Run
 python3 main.py \
     --experiment-name "ResNet50Focal" \
-    --experiment-description "ResNet50Focal full data + no-freeze" \
+    --experiment-description "ResNet50Focal full data + crazy params" \
     --min-epochs 3 \
-    --max-epochs 10 \
+    --max-epochs 15 \
     --batch-size 2 \
     --accumulate-grad-batches 16 \
     --time-range-min 0 \
-    --learning-rate 0.00001 \
-    --no-auto-lr-find \
     --flip-augment \
-    --blur-augment \
     --no-freeze-backbone \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'
+    
+# python3 main.py \
+#     --experiment-name "ResNet50" \
+#     --experiment-description "ResNet50 full data + bce_pos_weight" \
+#     --min-epochs 3 \
+#     --max-epochs 10 \
+#     --batch-size 2 \
+#     --accumulate-grad-batches 16 \
+#     --time-range-min 0 \
+#     --no-auto-lr-find \
+#     --learning-rate 0.00001 \
+#     --bce-pos-weight 100 \
+#     --crop-height 1120 \
+#     --flip-augment \
+#     --no-freeze-backbone \
+#     --raw-data-path '/root/raw_images' \
+#     --labels-path '/root/drive_clone_labels'
 
 
     

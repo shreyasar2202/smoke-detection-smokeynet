@@ -74,7 +74,7 @@ parser.add_argument('--image-height', type=int, default=1536,
                     help='Desired resize height of image.')
 parser.add_argument('--image-width', type=int, default=2016,
                     help='Desired resize width of image.')
-parser.add_argument('--crop-height', type=int, default=1344,
+parser.add_argument('--crop-height', type=int, default=1120,
                     help='Desired height after cropping.')
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
@@ -95,6 +95,9 @@ parser.add_argument('--no-pretrain-backbone', action='store_true',
                     help='Disables pretraining of backbone.')
 parser.add_argument('--no-freeze-backbone', action='store_true',
                     help='Disables freezing of layers on pre-trained backbone.')
+
+parser.add_argument('--bce-pos-weight', type=float, default=10,
+                    help='Weight for positive class for BCE loss for tiles.')
 parser.add_argument('--focal-alpha', type=float, default=0.25,
                     help='Alpha for focal loss.')
 parser.add_argument('--focal-gamma', type=float, default=2,
@@ -157,6 +160,8 @@ def main(# Path args
         lr_schedule=True,
         pretrain_backbone=True,
         freeze_backbone=True,
+    
+        bce_pos_weight=10,
         focal_alpha=0.25,
         focal_gamma=2,
 
@@ -205,6 +210,10 @@ def main(# Path args
                                 freeze_backbone=freeze_backbone,
                                 focal_alpha=focal_alpha,
                                 focal_gamma=focal_gamma)
+#         backbone = ResNet50(series_length, 
+#                                 pretrain_backbone=pretrain_backbone,
+#                                 freeze_backbone=freeze_backbone,
+#                                 bce_pos_weight=bce_pos_weight)
         model = LightningModel(model=backbone,
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
@@ -250,7 +259,8 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=10,
+            log_every_n_steps=15,
+#             val_check_interval=0.5,
 
             # Dev args
 #             fast_dev_run=True, 

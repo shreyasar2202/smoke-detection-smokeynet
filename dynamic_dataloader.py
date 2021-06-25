@@ -324,7 +324,8 @@ class DynamicDataloader(Dataset):
         
         # Load all images in the series
         for file_name in self.metadata['image_series'][image_name]:
-            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg') # img.shape = [height, width, num_channels]
+            # img.shape = [height, width, num_channels]
+            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
             # Resize and crop
             img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
             

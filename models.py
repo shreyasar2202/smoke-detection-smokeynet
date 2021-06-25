@@ -23,8 +23,10 @@ class ResNet50(nn.Module):
     Other Attributes:
         - criterion (obj): objective function used to calculate loss
     """
-    def __init__(self, series_length, pretrain_backbone=True, freeze_backbone=True):
+    def __init__(self, series_length, pretrain_backbone=True, freeze_backbone=True, bce_pos_weight=10):
         super().__init__()
+        
+        print('Model: ResNet50')
 
         resnet = torchvision.models.resnet50(pretrained=pretrain_backbone)
         resnet.fc = nn.Identity()
@@ -39,7 +41,14 @@ class ResNet50(nn.Module):
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
         
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.init_weights([self.fc1, self.fc2, self.fc3])
+        
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor(bce_pos_weight))
+        
+    def init_weights(self, layers):
+        for layer in layers:
+            torch.nn.init.xavier_uniform_(layer.weight)
+            torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
 
     def forward(self, x):
         x = x.float()
@@ -74,6 +83,8 @@ class ResNet50Focal(nn.Module):
     """
     def __init__(self, series_length, freeze_backbone=True, pretrain_backbone=True, focal_alpha=0.25, focal_gamma=2):
         super().__init__()
+        
+        print('Model: ResNet50Focal')
 
         resnet = torchvision.models.resnet50(pretrained=pretrain_backbone)
         resnet.fc = nn.Identity()
@@ -88,8 +99,15 @@ class ResNet50Focal(nn.Module):
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
         
+        self.init_weights([self.fc1, self.fc2, self.fc3])
+        
         self.focal_alpha = focal_alpha
         self.focal_gamma = focal_gamma
+        
+    def init_weights(self, layers):
+        for layer in layers:
+            torch.nn.init.xavier_uniform_(layer.weight)
+            torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
         
     def forward(self, x):
         x = x.float()
