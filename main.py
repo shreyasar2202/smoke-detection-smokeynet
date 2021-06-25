@@ -55,9 +55,9 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
                     help='(Optional) Path to checkpoint to load.')
 
 # Dataloader args
-parser.add_argument('--train-split-size', type=int, default=0.6,
+parser.add_argument('--train-split-size', type=int, default=0.7,
                     help='% of data to split for train.')
-parser.add_argument('--test-split-size', type=int, default=0.2,
+parser.add_argument('--test-split-size', type=int, default=0.15,
                     help='% of data to split for test.')
 parser.add_argument('--batch-size', type=int, default=1,
                     help='Batch size for training.')
@@ -139,8 +139,8 @@ def main(# Path args
         parsed_args=None,
 
         # Dataloader args
-        train_split_size=0.6,
-        test_split_size=0.2,
+        train_split_size=0.7,
+        test_split_size=0.15,
         batch_size=1, 
         num_workers=0, 
         series_length=1, 

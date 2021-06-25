@@ -34,8 +34,8 @@ class DynamicDataModule(pl.LightningDataModule):
                  train_split_path=None,
                  val_split_path=None,
                  test_split_path=None,
-                 train_split_size=0.6,
-                 test_split_size=0.2,
+                 train_split_size=0.7,
+                 test_split_size=0.15,
                  batch_size=1, 
                  num_workers=0, 
                  series_length=5, 
@@ -115,7 +115,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
         
-        self.create_data = True
+        self.create_data = create_data
         self.has_setup = False
         
         
@@ -167,7 +167,7 @@ class DynamicDataModule(pl.LightningDataModule):
 
             self.metadata['omit_images_list'] = list(set().union(self.metadata['omit_no_xml'], self.metadata['omit_no_bbox']))
         
-            with open(f'./data/metadata.pkl', 'wb') as pkl_file:
+            with open(f'./metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
                 
             print("Preparing Data Complete.")
@@ -222,44 +222,44 @@ class DynamicDataModule(pl.LightningDataModule):
             
 
     def train_dataloader(self):
-        train_dataset = DynamicDataloader(self.raw_data_path, 
-                                          self.labels_path, 
-                                          self.metadata,
-                                          self.train_split,
-                                          self.image_dimensions,
-                                          self.crop_height,
-                                          self.tile_dimensions,
-                                          self.smoke_threshold,
-                                          self.flip_augment,
-                                          self.blur_augment)
+        train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+                                          labels_path=self.labels_path, 
+                                          metadata=self.metadata,
+                                          train_split=self.train_split,
+                                          image_dimensions=self.image_dimensions,
+                                          crop_height=self.crop_height,
+                                          tile_dimensions=self.tile_dimensions,
+                                          smoke_threshold=self.smoke_threshold,
+                                          flip_augment=self.flip_augment,
+                                          blur_augment=self.blur_augment)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
         return train_loader
 
     def val_dataloader(self):
-        val_dataset = DynamicDataloader(self.raw_data_path, 
-                                        self.labels_path,  
-                                        self.metadata, 
-                                        self.val_split,
-                                        self.image_dimensions,
-                                        self.crop_height,
-                                        self.tile_dimensions,
-                                        self.smoke_threshold,
-                                        self.flip_augment,
-                                        self.blur_augment)
+        val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+                                          labels_path=self.labels_path, 
+                                          metadata=self.metadata,
+                                          train_split=self.train_split,
+                                          image_dimensions=self.image_dimensions,
+                                          crop_height=self.crop_height,
+                                          tile_dimensions=self.tile_dimensions,
+                                          smoke_threshold=self.smoke_threshold,
+                                          flip_augment=self.flip_augment,
+                                          blur_augment=self.blur_augment)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return val_loader
 
     def test_dataloader(self):
-        test_dataset = DynamicDataloader(self.raw_data_path, 
-                                         self.labels_path,   
-                                         self.metadata,
-                                         self.test_split,
-                                         self.image_dimensions,
-                                         self.crop_height,
-                                         self.tile_dimensions,
-                                         self.smoke_threshold,
-                                         self.flip_augment,
-                                         self.blur_augment)
+        test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+                                          labels_path=self.labels_path, 
+                                          metadata=self.metadata,
+                                          train_split=self.train_split,
+                                          image_dimensions=self.image_dimensions,
+                                          crop_height=self.crop_height,
+                                          tile_dimensions=self.tile_dimensions,
+                                          smoke_threshold=self.smoke_threshold,
+                                          flip_augment=self.flip_augment,
+                                          blur_augment=self.blur_augment)
         test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
         return test_loader
     
