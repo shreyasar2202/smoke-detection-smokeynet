@@ -393,11 +393,3 @@ def calculate_average_time_to_detection(positive_preds):
     
     return average_time_to_detection
 
-#################
-## Models
-#################
-
-def init_weights(layers):
-    for layer in layers:
-        torch.nn.init.xavier_uniform_(layer.weight)
-        torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))

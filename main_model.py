@@ -24,23 +24,24 @@ class MainModel(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
+        - model_type: which backbone to use. Choices:
+            - 'ResNet50'
         - series_length: number of sequential video frames to process during training
         - pretrain_backbone: pretrains backbone
         - freeze_backbone: freezes layers on pre-trained backbone
-        - focal_alpha: lower alpha -> more importance of positive class vs. negative class
-        - focal_gamma: higher gamma -> more importance of hard examples vs. easy examples
-    
-    Other Attributes:
-        - criterion (obj): objective function used to calculate loss
+        - bce_pos_weight: how much to weight the positive class in BCE Loss
+        - focal_alpha: focal loss, lower alpha -> more importance of positive class vs. negative class
+        - focal_gamma: focal loss, higher gamma -> more importance of hard examples vs. easy examples
     """
     def __init__(self, 
                  model_type='ResNet50',
                  series_length=1, 
                  freeze_backbone=True, 
                  pretrain_backbone=True,
+                 loss_type='bce',
                  bce_pos_weight=10,
-                 focal_alpha=None, 
-                 focal_gamma=None):
+                 focal_alpha=0.25, 
+                 focal_gamma=2):
         
         print("Initializing MainModel...")
         super().__init__()
@@ -50,9 +51,15 @@ class MainModel(nn.Module):
                                 pretrain_backbone=pretrain_backbone,
                                 freeze_backbone=freeze_backbone)
         
+        self.loss_type = loss_type
         self.bce_pos_weight = bce_pos_weight
         self.focal_alpha = focal_alpha
         self.focal_gamma = focal_gamma
+        
+        if loss_type == 'focal':
+            print('Loss: Focal Loss')
+        else:
+            print('Loss: BCE Loss')
         
         print("Initializing MainModel Complete.")
         
@@ -79,7 +86,7 @@ class MainModel(nn.Module):
             - loss (float): total loss for model
         """
         
-        if self.focal_alpha and self.focal_gamma:
+        if self.loss_type == 'focal':
             loss = torchvision.ops.focal_loss.sigmoid_focal_loss(
                      outputs, 
                      tile_labels, 

@@ -11,9 +11,6 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 
-# File imports
-import util_fns
-
     
 class ResNet50(nn.Module):
     """
@@ -40,7 +37,7 @@ class ResNet50(nn.Module):
         self.fc2 = nn.Linear(in_features=512, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=1)
         
-        util_fns.init_weights([self.fc1, self.fc2, self.fc3])
+        self.init_weights([self.fc1, self.fc2, self.fc3])
         
     def forward(self, x):
         x = x.float()
@@ -55,3 +52,8 @@ class ResNet50(nn.Module):
         x = self.fc3(x) # [batch_size, num_tiles, 1]
 
         return x
+    
+    def init_weights(self, layers):
+        for layer in layers:
+            torch.nn.init.xavier_uniform_(layer.weight)
+            torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))

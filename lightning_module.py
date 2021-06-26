@@ -58,15 +58,16 @@ class LightningModule(pl.LightningModule):
         print("Initializing LightningModule...")
         super().__init__()
         
-        # Save hyperparameters
-        self.save_hyperparameters(parsed_args)
-        
         # Initialize model
         self.model = model
         
         # Initialize model params
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule
+        
+        # Save hyperparameters
+        self.save_hyperparameters(parsed_args)
+        self.save_hyperparameters('learning_rate')
         
         # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
         self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224))

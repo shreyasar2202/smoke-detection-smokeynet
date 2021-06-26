@@ -45,28 +45,44 @@ python3 main.py \
     --flip-augment \
     --no-auto-lr-find \
     --learning-rate 0.0000001 \
+    --loss_type 'focal' \
+    --focal-alpha 0.05 \
+    --focal-gamma 5 \
     --no-freeze-backbone \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels' 
     
-# python3 main.py \
-#     --experiment-name "ResNet50" \
-#     --experiment-description "ResNet50 full data + bce_pos_weight" \
-#     --min-epochs 3 \
-#     --max-epochs 10 \
-#     --batch-size 2 \
-#     --accumulate-grad-batches 16 \
-#     --time-range-min 0 \
-#     --no-auto-lr-find \
-#     --learning-rate 0.00001 \
-#     --bce-pos-weight 100 \
-#     --crop-height 1120 \
-#     --flip-augment \
-#     --no-freeze-backbone \
-#     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels'
+python3 main.py \
+    --experiment-name "ResNet50" \
+    --experiment-description "ResNet50 full data + bce_pos_weight" \
+    --min-epochs 3 \
+    --max-epochs 15 \
+    --batch-size 2 \
+    --accumulate-grad-batches 16 \
+    --time-range-min 0 \
+    --bce-pos-weight 100 \
+    --flip-augment \
+    --no-auto-lr-find \
+    --learning-rate 0.000005 \
+    --no-freeze-backbone \
+    --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels'
 
-
+python3 main.py \
+    --experiment-name "ResNet50" \
+    --experiment-description "ResNet50 full data + bce_pos_weight" \
+    --min-epochs 3 \
+    --max-epochs 15 \
+    --batch-size 2 \
+    --accumulate-grad-batches 16 \
+    --time-range-min 0 \
+    --bce-pos-weight 20 \
+    --flip-augment \
+    --no-auto-lr-find \
+    --learning-rate 0.0000005 \
+    --no-freeze-backbone \
+    --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels'
     
     
 #     --experiment-name "resnet50" \
