@@ -6,6 +6,7 @@ Description: Kicks off training and evaluation. Contains many command line argum
 """
 
 # Torch imports
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -87,6 +88,8 @@ parser.add_argument('--blur-augment', action='store_true',
                     help='Enables data augmentation with Gaussian blur.')
 
 # Model args
+parser.add_argument('--model-type', type=str, default='ResNet50',
+                    help='Type of model to use for training.')
 parser.add_argument('--learning-rate', type=float, default=0.001,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
@@ -134,7 +137,6 @@ def main(# Path args
         train_split_path=None, 
         val_split_path=None, 
         test_split_path=None,
-        checkpoint_path=None,
     
         # Experiment args
         experiment_name=None,
@@ -156,6 +158,7 @@ def main(# Path args
         blur_augment=False,
 
         # Model args
+        model_type='ResNet50',
         learning_rate=0.001,
         lr_schedule=True,
         pretrain_backbone=True,
@@ -173,7 +176,11 @@ def main(# Path args
         sixteen_bit=True,
         stochastic_weight_avg=True,
         gradient_clip_val=0,
-        accumulate_grad_batches=1):
+        accumulate_grad_batches=1,
+
+        # Checkpoint args
+        checkpoint_path=None,
+        checkpoint=None):
         
     try:
         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
@@ -206,7 +213,7 @@ def main(# Path args
         
         ### Initialize Model ###
         main_model = MainModel(
-                         model_type='ResNet50',
+                         model_type=model_type,
                          series_length=series_length, 
                          freeze_backbone=freeze_backbone, 
                          pretrain_backbone=pretrain_backbone,
@@ -215,12 +222,22 @@ def main(# Path args
                          focal_gamma=focal_gamma)
         
         ### Initialize LightningModule ###
-        lightning_module = LightningModule(
-                               model=main_model,
-                               learning_rate=learning_rate,
-                               lr_schedule=lr_schedule,
-                               parsed_args=parsed_args)
-
+        if checkpoint_path and checkpoint:
+            lightning_module = LightningModule.load_from_checkpoint(
+                                   checkpoint_path,
+                                   model=main_model,
+                                   learning_rate=learning_rate,
+                                   lr_schedule=lr_schedule,
+                                   series_length=series_length,
+                                   parsed_args=parsed_args)
+        else:
+            lightning_module = LightningModule(
+                                   model=main_model,
+                                   learning_rate=learning_rate,
+                                   lr_schedule=lr_schedule,
+                                   series_length=series_length,
+                                   parsed_args=parsed_args)
+            
         ### Implement EarlyStopping & Other Callbacks ###
         early_stop_callback = EarlyStopping(
            monitor='val/loss',
@@ -245,7 +262,7 @@ def main(# Path args
                                    version=None)
         
         # Set up data_module and save train/val/test splits
-        data_module.setup(log_dir=logger.log_dir)
+        data_module.setup(log_dir=logger.log_dir if not IS_DEBUG else None)
 
         trainer = pl.Trainer(
             # Trainer args
@@ -261,14 +278,14 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=15,
+            log_every_n_steps=1,
 #             val_check_interval=0.5,
 
             # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=1,
-#             limit_train_batches=0.25,
-#             limit_val_batches=0.25,
+#             limit_train_batches=1,
+#             limit_val_batches=1,
 #             limit_test_batches=0.25,
 #             track_grad_norm=2,
 #             weights_summary='full',
@@ -277,7 +294,6 @@ def main(# Path args
             gpus=1)
         
         ### Training & Evaluation ###
-
         # Auto find learning rate
         if auto_lr_find:
             trainer.tune(lightning_module, datamodule=data_module)
@@ -297,53 +313,110 @@ def main(# Path args
 if __name__ == '__main__':
     args = parser.parse_args()
     
-    main(# Path args
-        raw_data_path=args.raw_data_path, 
-        labels_path=args.labels_path, 
-        raw_labels_path=args.raw_labels_path,
-        metadata_path=args.metadata_path,
-        train_split_path=args.train_split_path, 
-        val_split_path=args.val_split_path, 
-        test_split_path=args.test_split_path,
-        checkpoint_path=args.checkpoint_path,
+    if not args.checkpoint_path:
+        main(# Path args
+            raw_data_path=args.raw_data_path, 
+            labels_path=args.labels_path, 
+            raw_labels_path=args.raw_labels_path,
+            metadata_path=args.metadata_path,
+            train_split_path=args.train_split_path, 
+            val_split_path=args.val_split_path, 
+            test_split_path=args.test_split_path,
 
-        # Experiment args
-        experiment_name=args.experiment_name,
-        experiment_description=args.experiment_description,
-        parsed_args=args,
+            # Experiment args
+            experiment_name=args.experiment_name,
+            experiment_description=args.experiment_description,
+            parsed_args=args,
 
-        # Dataloader args
-        train_split_size=args.train_split_size,
-        test_split_size=args.test_split_size,
-        batch_size=args.batch_size, 
-        num_workers=args.num_workers, 
-        series_length=args.series_length, 
-        time_range=(args.time_range_min,args.time_range_max), 
+            # Dataloader args
+            train_split_size=args.train_split_size,
+            test_split_size=args.test_split_size,
+            batch_size=args.batch_size, 
+            num_workers=args.num_workers, 
+            series_length=args.series_length, 
+            time_range=(args.time_range_min,args.time_range_max), 
+
+            image_dimensions=(args.image_height, args.image_width),
+            crop_height=args.crop_height,
+            tile_dimensions=(args.tile_size, args.tile_size),
+            smoke_threshold=args.smoke_threshold,
+
+            flip_augment=args.flip_augment,
+            blur_augment=args.blur_augment,
+
+            # Model args
+            model_type=args.model_type,
+            learning_rate=args.learning_rate,
+            lr_schedule=not args.no_lr_schedule,
+            pretrain_backbone=not args.no_pretrain_backbone,
+            freeze_backbone=not args.no_freeze_backbone,
+            focal_alpha=args.focal_alpha,
+            focal_gamma=args.focal_gamma,
+
+            # Trainer args
+            min_epochs=args.min_epochs,
+            max_epochs=args.max_epochs,
+            auto_lr_find=not args.no_auto_lr_find,
+            early_stopping=not args.no_early_stopping,
+            sixteen_bit=not args.no_sixteen_bit,
+            stochastic_weight_avg=not args.no_stochastic_weight_avg,
+            gradient_clip_val=args.gradient_clip_val,
+            accumulate_grad_batches=args.accumulate_grad_batches)
+    else:
+        # Load from checkpoint
+        checkpoint = torch.load(args.checkpoint_path)
+
+        main(# Path args
+            raw_data_path=args.raw_data_path, 
+            labels_path=args.labels_path, 
+            raw_labels_path=args.raw_labels_path,
+            metadata_path=args.metadata_path,
+            train_split_path=args.train_split_path, 
+            val_split_path=args.val_split_path, 
+            test_split_path=args.test_split_path,
+
+            # Experiment args
+            experiment_name=checkpoint['hyper_parameters']['experiment_name'],
+            experiment_description=checkpoint['hyper_parameters']['experiment_description'],
+            parsed_args=checkpoint['hyper_parameters'],
+
+            # Dataloader args
+            train_split_size=checkpoint['hyper_parameters']['train_split_size'],
+            test_split_size=checkpoint['hyper_parameters']['test_split_size'],
+            batch_size=checkpoint['hyper_parameters']['batch_size'], 
+            num_workers=checkpoint['hyper_parameters']['num_workers'], 
+            series_length=checkpoint['hyper_parameters']['series_length'], 
+            time_range=(checkpoint['hyper_parameters']['time_range_min'],checkpoint['hyper_parameters']['time_range_max']), 
+
+            image_dimensions=(checkpoint['hyper_parameters']['image_height'], checkpoint['hyper_parameters']['image_width']),
+            crop_height=checkpoint['hyper_parameters']['crop_height'],
+            tile_dimensions=(checkpoint['hyper_parameters']['tile_size'], checkpoint['hyper_parameters']['tile_size']),
+            smoke_threshold=checkpoint['hyper_parameters']['smoke_threshold'],
+
+            flip_augment=checkpoint['hyper_parameters']['flip_augment'],
+            blur_augment=checkpoint['hyper_parameters']['blur_augment'],
+            
+            # Model args
+            model_type=checkpoint['hyper_parameters']['model_type'],
+            learning_rate=checkpoint['hyper_parameters']['learning_rate'],
+            lr_schedule=not checkpoint['hyper_parameters']['no_lr_schedule'],
+            pretrain_backbone=not checkpoint['hyper_parameters']['no_pretrain_backbone'],
+            freeze_backbone=not checkpoint['hyper_parameters']['no_freeze_backbone'],
+            focal_alpha=checkpoint['hyper_parameters']['focal_alpha'],
+            focal_gamma=checkpoint['hyper_parameters']['focal_gamma'],
+            
+            # Trainer args
+            min_epochs=checkpoint['hyper_parameters']['min_epochs'],
+            max_epochs=checkpoint['hyper_parameters']['max_epochs'],
+            auto_lr_find=not checkpoint['hyper_parameters']['no_auto_lr_find'],
+            early_stopping=not checkpoint['hyper_parameters']['no_early_stopping'],
+            sixteen_bit=not checkpoint['hyper_parameters']['no_sixteen_bit'],
+            stochastic_weight_avg=not checkpoint['hyper_parameters']['no_stochastic_weight_avg'],
+            gradient_clip_val=checkpoint['hyper_parameters']['gradient_clip_val'],
+            accumulate_grad_batches=checkpoint['hyper_parameters']['accumulate_grad_batches'],
         
-        image_dimensions=(args.image_height, args.image_width),
-        crop_height=args.crop_height,
-        tile_dimensions=(args.tile_size, args.tile_size),
-        smoke_threshold=args.smoke_threshold,
-        
-        flip_augment=args.flip_augment,
-        blur_augment=args.blur_augment,
-
-        # Model args
-        learning_rate=args.learning_rate,
-        lr_schedule=not args.no_lr_schedule,
-        pretrain_backbone=not args.no_pretrain_backbone,
-        freeze_backbone=not args.no_freeze_backbone,
-        focal_alpha=args.focal_alpha,
-        focal_gamma=args.focal_gamma,
-
-        # Trainer args
-        min_epochs=args.min_epochs,
-        max_epochs=args.max_epochs,
-        auto_lr_find=not args.no_auto_lr_find,
-        early_stopping=not args.no_early_stopping,
-        sixteen_bit=not args.no_sixteen_bit,
-        stochastic_weight_avg=not args.no_stochastic_weight_avg,
-        gradient_clip_val=args.gradient_clip_val,
-        accumulate_grad_batches=args.accumulate_grad_batches)
+            # Checkpoint args
+            checkpoint_path=args.checkpoint_path,
+            checkpoint=checkpoint)
  
     

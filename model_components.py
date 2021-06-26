@@ -24,9 +24,8 @@ class ResNet50(nn.Module):
         - freeze_backbone: freezes layers on pre-trained backbone
     """
     def __init__(self, series_length=1, freeze_backbone=True, pretrain_backbone=True):
-        super().__init__()
-        
         print('Model: ResNet50')
+        super().__init__()
 
         resnet = torchvision.models.resnet50(pretrained=pretrain_backbone)
         resnet.fc = nn.Identity()

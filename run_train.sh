@@ -47,7 +47,7 @@ python3 main.py \
     --learning-rate 0.0000001 \
     --no-freeze-backbone \
     --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels'
+    --labels-path '/root/drive_clone_labels' 
     
 # python3 main.py \
 #     --experiment-name "ResNet50" \

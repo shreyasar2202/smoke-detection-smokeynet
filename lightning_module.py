@@ -19,6 +19,7 @@ from pathlib import Path
 
 # File imports
 import util_fns
+from main_model import MainModel
 
 
 class LightningModule(pl.LightningModule):
@@ -31,12 +32,14 @@ class LightningModule(pl.LightningModule):
                  model,
                  learning_rate=0.001,
                  lr_schedule=True,
+                 series_length=1,
                  parsed_args=None):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
             - learning_rate (float): learning rate for optimizer
             - lr_schedule (bool): should ReduceLROnPlateau learning rate schedule be used?
+            - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
 
         Other Attributes:
@@ -54,20 +57,19 @@ class LightningModule(pl.LightningModule):
         """
         print("Initializing LightningModule...")
         super().__init__()
-
+        
+        # Save hyperparameters
+        self.save_hyperparameters(parsed_args)
+        
         # Initialize model
         self.model = model
         
-        # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
-        self.example_input_array = torch.randn((parsed_args.batch_size,45,parsed_args.series_length, 3, 224, 224))
-
         # Initialize model params
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule
-
-        # Save hyperparameters
-        self.save_hyperparameters(parsed_args)
-        self.save_hyperparameters('learning_rate', 'lr_schedule')
+        
+        # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
+        self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224))
 
         # Initialize evaluation metrics
         self.metrics = {}

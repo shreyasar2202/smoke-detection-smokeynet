@@ -42,6 +42,7 @@ class MainModel(nn.Module):
                  focal_alpha=None, 
                  focal_gamma=None):
         
+        print("Initializing MainModel...")
         super().__init__()
         
         if model_type == 'ResNet50':
@@ -52,6 +53,8 @@ class MainModel(nn.Module):
         self.bce_pos_weight = bce_pos_weight
         self.focal_alpha = focal_alpha
         self.focal_gamma = focal_gamma
+        
+        print("Initializing MainModel Complete.")
         
     def forward(self, x):
         """
