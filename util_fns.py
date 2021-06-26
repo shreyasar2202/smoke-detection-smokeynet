@@ -301,9 +301,9 @@ def predict_image_from_tile_preds(tile_preds):
     return image_preds
 
 
-#################
-## Test Metrics
-#################
+####################################
+## LightningModule - Test Metrics
+####################################
 
 def calculate_negative_accuracy(negative_preds):
     """
@@ -392,3 +392,12 @@ def calculate_average_time_to_detection(positive_preds):
     average_time_to_detection = indices.float().mean()
     
     return average_time_to_detection
+
+#################
+## Models
+#################
+
+def init_weights(layers):
+    for layer in layers:
+        torch.nn.init.xavier_uniform_(layer.weight)
+        torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))

@@ -16,8 +16,8 @@ from argparse import ArgumentParser
 import datetime
 
 # File imports
-from lightning_model import LightningModel
-from models import ResNet50, ResNet50Focal
+from lightning_module import LightningModule
+from main_model import MainModel
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
@@ -204,17 +204,19 @@ def main(# Path args
             flip_augment=flip_augment,
             blur_augment=blur_augment)
         
-        ### Initialize model ###
-        backbone = ResNet50Focal(series_length, 
-                                pretrain_backbone=pretrain_backbone,
-                                freeze_backbone=freeze_backbone,
-                                focal_alpha=focal_alpha,
-                                focal_gamma=focal_gamma)
-#         backbone = ResNet50(series_length, 
-#                                 pretrain_backbone=pretrain_backbone,
-#                                 freeze_backbone=freeze_backbone,
-#                                 bce_pos_weight=bce_pos_weight)
-        model = LightningModel(model=backbone,
+        ### Initialize Model ###
+        main_model = MainModel(
+                         model_type='ResNet50',
+                         series_length=series_length, 
+                         freeze_backbone=freeze_backbone, 
+                         pretrain_backbone=pretrain_backbone,
+                         bce_pos_weight=bce_pos_weight,
+                         focal_alpha=focal_alpha, 
+                         focal_gamma=focal_gamma)
+        
+        ### Initialize LightningModule ###
+        lightning_module = LightningModule(
+                               model=main_model,
                                learning_rate=learning_rate,
                                lr_schedule=lr_schedule,
                                parsed_args=parsed_args)
@@ -223,7 +225,7 @@ def main(# Path args
         early_stop_callback = EarlyStopping(
            monitor='val/loss',
            min_delta=0.00,
-           patience=3,
+           patience=4,
            verbose=True)
 
         checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
@@ -278,13 +280,13 @@ def main(# Path args
 
         # Auto find learning rate
         if auto_lr_find:
-            trainer.tune(model, datamodule=data_module)
+            trainer.tune(lightning_module, datamodule=data_module)
 
         # Train the model
-        trainer.fit(model, datamodule=data_module)
+        trainer.fit(lightning_module, datamodule=data_module)
 
         # Evaluate the best model on the test set
-        trainer.test(model, datamodule=data_module)
+        trainer.test(lightning_module, datamodule=data_module)
 
         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:

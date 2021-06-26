@@ -43,6 +43,8 @@ python3 main.py \
     --accumulate-grad-batches 16 \
     --time-range-min 0 \
     --flip-augment \
+    --no-auto-lr-find \
+    --learning-rate 0.0000001 \
     --no-freeze-backbone \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels'

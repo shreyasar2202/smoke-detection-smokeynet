@@ -2,7 +2,7 @@
 Created by: Anshuman Dewangan
 Date: 2021
 
-Description: Main file with PyTorch Lightning LightningModule. Defines model, forward pass, and training.
+Description: Main file with PyTorch Lightning LightningModule. Defines optimizers, training step and metrics.
 """
 
 # Torch imports
@@ -21,14 +21,14 @@ from pathlib import Path
 import util_fns
 
 
-class LightningModel(pl.LightningModule):
+class LightningModule(pl.LightningModule):
 
     #####################
     ## Initialization
     #####################
 
     def __init__(self,
-                 model=None,
+                 model,
                  learning_rate=0.001,
                  lr_schedule=True,
                  parsed_args=None):
@@ -52,13 +52,14 @@ class LightningModel(pl.LightningModule):
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
                 - function (list of torchmetrics functions): used to initiate torchmetric modules
         """
-        print("Initializing LightningModel...")
+        print("Initializing LightningModule...")
         super().__init__()
 
         # Initialize model
         self.model = model
-        # ASSUMPTION: num_tiles=54, num_channels=3, image_height=224, image_width=224 
-        self.example_input_array = torch.randn((parsed_args.batch_size,54,parsed_args.series_length, 3, 224, 224))
+        
+        # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
+        self.example_input_array = torch.randn((parsed_args.batch_size,45,parsed_args.series_length, 3, 224, 224))
 
         # Initialize model params
         self.learning_rate = learning_rate
@@ -86,7 +87,7 @@ class LightningModel(pl.LightningModule):
                 self.metrics['torchmetric'][split+category+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none')
                 self.metrics['torchmetric'][split+category+'f1'] = torchmetrics.F1(num_classes=2, average='none')
             
-        print("Initializing LightningModel Complete.")
+        print("Initializing LightningModule Complete.")
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
@@ -104,52 +105,9 @@ class LightningModel(pl.LightningModule):
         else:
             return optimizer
 
-        
-    #####################
-    ## Model Functions
-    #####################
-    
     def forward(self, x):
-        """
-        Description: compute forward pass of all model_parts as well as adds additional layers
-        Args:
-            - x (tensor): input provided by dataloader
-        Returns:
-            - outputs (tensor): outputs after going through forward passes of all layers
-        """
+        return self.model(x)
         
-        outputs = self.model(x).squeeze(dim=2) # [batch_size, num_tiles]
-        return outputs
-    
-    def compute_loss(self, outputs, tile_labels, ground_truth_labels):
-        """
-        Description: computes total loss by computing loss of each sub-module
-        Args:
-            - outputs (tensor): outputs after going through forward passes of all layers
-            - tile_labels: see metadata.pkl documentation for more info
-            - ground_truth_labels: see metadata.pkl documentation for more info
-        Returns:
-            - loss (float): total loss for model
-        """
-        
-        loss = self.model.compute_loss(outputs, tile_labels)
-        return loss
-    
-    def compute_predictions(self, outputs):
-        """
-        Description: computes tile-level and image-level predictions
-        Args:
-            - outputs (tensor): outputs after going through forward passes of all layers
-        Returns:
-            - tile_preds (tensor): 0/1 prediction for each tile in each image of the batch
-            - image_preds (tensor): 0/1 prediction for each image in the batch
-        """
-        
-        tile_preds = util_fns.predict_tile(outputs)
-        image_preds = util_fns.predict_image_from_tile_preds(tile_preds)
-        
-        return tile_preds, image_preds
-
     #####################
     ## Step Functions
     #####################
@@ -158,9 +116,9 @@ class LightningModel(pl.LightningModule):
         image_names, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
 
         # Compute outputs, loss, and predictions
-        outputs = self(x)
-        loss = self.compute_loss(outputs, tile_labels, ground_truth_labels)
-        tile_preds, image_preds = self.compute_predictions(outputs)
+        outputs = self.model(x)
+        loss = self.model.compute_loss(outputs, tile_labels, ground_truth_labels)
+        tile_preds, image_preds = self.model.compute_predictions(outputs)
         
         # Log loss (on_step only if split='train')
         self.log(split+'loss', loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
