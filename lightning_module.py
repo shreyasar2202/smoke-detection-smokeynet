@@ -77,18 +77,23 @@ class LightningModule(pl.LightningModule):
         self.metrics['torchmetric'] = {}
         self.metrics['split']       = ['train/', 'val/', 'test/']
         self.metrics['category']    = ['tile_', 'image-gt_', 'image-xml_', 'image-pos-tile_']
+        self.metrics['name']        = ['accuracy', 'precision', 'recall', 'f1']
         
         # WARNING: torchmetrics has a very weird way of calculating metrics! 
         for split in self.metrics['split']:
             # Use mdmc_average='global' for tile_preds only
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+'accuracy'] = torchmetrics.Accuracy(mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none', mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+'f1'] = torchmetrics.F1(num_classes=2, average='none', mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average='global')
+            # Recall and Precision are flipped in torchmetrics compared to sklearn
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][1]] = torchmetrics.Recall(multiclass=False, mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][2]] = torchmetrics.Precision(multiclass=False, mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average='global')
             
             for category in self.metrics['category'][1:]:
-                self.metrics['torchmetric'][split+category+'accuracy'] = torchmetrics.Accuracy()
-                self.metrics['torchmetric'][split+category+'precision-recall'] = torchmetrics.Precision(num_classes=2, average='none')
-                self.metrics['torchmetric'][split+category+'f1'] = torchmetrics.F1(num_classes=2, average='none')
+                self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy()
+                # Recall and Precision are flipped in torchmetrics compared to sklearn
+                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Recall(multiclass=False)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Precision(multiclass=False)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False)
             
         print("Initializing LightningModule Complete.")
 
@@ -134,17 +139,10 @@ class LightningModule(pl.LightningModule):
                                    (image_preds, has_xml_labels), 
                                    (image_preds, has_positive_tiles))
                                  ):
-            # Have to move the metric to self.device 
-            accuracy = self.metrics['torchmetric'][split+category+'accuracy'].to(self.device)(args[0], args[1])
-            # Returns a tuple: (precision, recall)
-            precision_recall = self.metrics['torchmetric'][split+category+'precision-recall'].to(self.device)(args[0], args[1])
-            # Return a tuple: (_, f1_score)
-            f1 = self.metrics['torchmetric'][split+category+'f1'].to(self.device)(args[0], args[1])
-            
-            self.log(split+category+'accuracy', accuracy, on_step=False, on_epoch=True)
-            self.log(split+category+'precision', precision_recall[0], on_step=False, on_epoch=True)
-            self.log(split+category+'recall', precision_recall[1], on_step=False, on_epoch=True)
-            self.log(split+category+'f1', f1[1], on_step=False, on_epoch=True)
+            for name in self.metrics['name']:
+                # Have to move the metric to self.device 
+                metric = self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
+                self.log(split+category+name, metric, on_step=False, on_epoch=True)
         
         return image_names, outputs, loss, tile_preds, image_preds
 

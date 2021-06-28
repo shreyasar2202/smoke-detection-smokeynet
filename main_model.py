@@ -12,7 +12,7 @@ from torch.nn import functional as F
 import torchvision
 
 # File imports
-from model_components import ResNet50
+from model_components import ResNet50, MobileNetV3Large
 import util_fns
 
     
@@ -48,6 +48,10 @@ class MainModel(nn.Module):
         
         if model_type == 'ResNet50':
             self.backbone = ResNet50(series_length=series_length, 
+                                pretrain_backbone=pretrain_backbone,
+                                freeze_backbone=freeze_backbone)
+        elif model_type == 'MobileNetV3Large':
+            self.backbone = MobileNetV3Large(series_length=series_length, 
                                 pretrain_backbone=pretrain_backbone,
                                 freeze_backbone=freeze_backbone)
         

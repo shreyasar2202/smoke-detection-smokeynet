@@ -22,7 +22,10 @@ from main_model import MainModel
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
-IS_DEBUG = True
+# Turns off logging and checkpointing
+IS_DEBUG = False
+
+# Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
 
 #####################
@@ -87,8 +90,8 @@ parser.add_argument('--blur-augment', action='store_true',
                     help='Enables data augmentation with Gaussian blur.')
 
 # Model args = 5
-parser.add_argument('--model-type', type=str, default='ResNet50',
-                    help='Type of model to use for training. Options: [ResNet50]')
+parser.add_argument('--model-type', type=str, default='MobileNetV3Large',
+                    help='Type of model to use for training. Options: [ResNet50] [MobileNetV3Large]')
 parser.add_argument('--learning-rate', type=float, default=0.001,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
@@ -194,6 +197,9 @@ def main(# Path args
         
     try:
         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
+            
+        print("IS_DEBUG: ",  IS_DEBUG)
+        print("TEST_ONLY: ", TEST_ONLY)
         
         ### Initialize data_module ###
         data_module = DynamicDataModule(
@@ -294,7 +300,7 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=15,
+            log_every_n_steps=3,
 #             val_check_interval=0.5,
 
             # Dev args
