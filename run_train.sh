@@ -22,36 +22,13 @@
 # Real Run
 python3 main.py \
     --experiment-name "MobileNetV3LargeFocal" \
-    --min-epochs 3 \
-    --max-epochs 15 \
+    --min-epochs 1 \
+    --max-epochs 3 \
     --batch-size 8 \
     --accumulate-grad-batches 4 \
-    --time-range-min 0 \
     --flip-augment \
     --no-freeze-backbone \
-    --no-auto-lr-find \
-    --learning-rate 0.0000001 \
     --loss-type 'focal' \
-    --focal-alpha 0.005 \
-    --focal-gamma 10 \
-    --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels' 
-    
-python3 main.py \
-    --experiment-name "MobileNetV3LargeFocal" \
-    --min-epochs 3 \
-    --max-epochs 15 \
-    --batch-size 8 \
-    --accumulate-grad-batches 4 \
-    --time-range-min 0 \
-    --flip-augment \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
-    --no-auto-lr-find \
-    --learning-rate 0.0000001 \
-    --loss-type 'focal' \
-    --focal-alpha 0.005 \
-    --focal-gamma 10 \
     --raw-data-path '/root/raw_images' \
     --labels-path '/root/drive_clone_labels' 
     

@@ -49,11 +49,13 @@ class MainModel(nn.Module):
         if model_type == 'ResNet50':
             self.backbone = ResNet50(series_length=series_length, 
                                 pretrain_backbone=pretrain_backbone,
-                                freeze_backbone=freeze_backbone)
+                                freeze_backbone=freeze_backbone,
+                                loss_type=loss_type)
         elif model_type == 'MobileNetV3Large':
             self.backbone = MobileNetV3Large(series_length=series_length, 
                                 pretrain_backbone=pretrain_backbone,
-                                freeze_backbone=freeze_backbone)
+                                freeze_backbone=freeze_backbone,
+                                loss_type=loss_type)
         
         self.loss_type = loss_type
         self.bce_pos_weight = bce_pos_weight
@@ -94,9 +96,10 @@ class MainModel(nn.Module):
             loss = torchvision.ops.focal_loss.sigmoid_focal_loss(
                      outputs, 
                      tile_labels, 
-                     reduction='mean', 
+                     reduction='sum', 
                      alpha=self.focal_alpha, 
                      gamma=self.focal_gamma)
+            loss = loss / ground_truth_labels.sum()
         else:
             loss = F.binary_cross_entropy_with_logits(
                       outputs, 

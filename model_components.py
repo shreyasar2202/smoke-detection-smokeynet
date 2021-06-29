@@ -11,6 +11,8 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 
+import numpy as np
+
     
 class ResNet50(nn.Module):
     """
@@ -19,10 +21,13 @@ class ResNet50(nn.Module):
         - series_length: number of sequential video frames to process during training
         - pretrain_backbone: pretrains backbone
         - freeze_backbone: freezes layers on pre-trained backbone
+        - loss_type: [bce] or [focal]
     """
-    def __init__(self, series_length=1, freeze_backbone=True, pretrain_backbone=True):
+    def __init__(self, series_length=1, freeze_backbone=True, pretrain_backbone=True, loss_type='bce'):
         print('Model: ResNet50')
         super().__init__()
+        
+        self.loss_type = loss_type
 
         model = torchvision.models.resnet50(pretrained=pretrain_backbone)
         model.fc = nn.Identity()
@@ -54,9 +59,15 @@ class ResNet50(nn.Module):
         return x
     
     def init_weights(self, layers):
-        for layer in layers:
-            torch.nn.init.xavier_uniform_(layer.weight)
-            torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
+        # Initialize weights as in RetinaNet paper
+        for i, layer in enumerate(layers):
+            torch.nn.init.normal_(layer.weight, 0, 0.01)
+
+            # Set last layer bias to special value from paper
+            if i == len(layers)-1:
+                torch.nn.init.constant_(layer.bias, -np.log((1-0.01)/0.01))
+            else:
+                torch.nn.init.zeros_(layer.bias)
             
 
 class MobileNetV3Large(nn.Module):
@@ -66,10 +77,13 @@ class MobileNetV3Large(nn.Module):
         - series_length: number of sequential video frames to process during training
         - pretrain_backbone: pretrains backbone
         - freeze_backbone: freezes layers on pre-trained backbone
+        - loss_type: [bce] or [focal]
     """
-    def __init__(self, series_length=1, freeze_backbone=True, pretrain_backbone=True):
+    def __init__(self, series_length=1, freeze_backbone=True, pretrain_backbone=True, loss_type='bce'):
         print('Model: MobileNetV3Large')
         super().__init__()
+        
+        self.loss_type = loss_type
 
         model = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
         model.classifier = nn.Identity()
@@ -101,6 +115,14 @@ class MobileNetV3Large(nn.Module):
         return x
     
     def init_weights(self, layers):
-        for layer in layers:
-            torch.nn.init.xavier_uniform_(layer.weight)
-            torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
+        # Initialize weights as in RetinaNet paper
+        for i, layer in enumerate(layers):
+            torch.nn.init.normal_(layer.weight, 0, 0.01)
+
+            # Set last layer bias to special value from paper
+            if i == len(layers)-1:
+                torch.nn.init.constant_(layer.bias, -np.log((1-0.01)/0.01))
+            else:
+                torch.nn.init.zeros_(layer.bias)
+                
+                
