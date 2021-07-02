@@ -250,6 +250,34 @@ def get_filled_labels(raw_data_path, raw_labels_path, image_name):
     
     return labels
 
+def randomly_sample_tiles(x, labels, num_samples=20):
+    """
+    Description: Randomly samples tiles to evenly balance positives and negatives
+    Args:
+        - x: pre-processed input (raw data -> resized, cropped, and tiled)
+        - labels: pre-processed labels (resized, cropped, and tiled)
+        - num_samples: total number of samples to keep
+    """
+    # Separate indices for positive and negative values
+    pos_indices = np.where(labels == 1)[0]
+    neg_indices = np.where(labels == 0)[0]
+    
+    # Randomly sample num_tiles of each
+    size = num_samples//2
+    sampled_pos_indices = np.random.choice(pos_indices, size=size, replace=len(pos_indices)<size)
+    sampled_neg_indices = np.random.choice(neg_indices, size=size, replace=len(neg_indices)<size)
+
+    # Update x and labels
+    x = x[np.concatenate((sampled_pos_indices, sampled_neg_indices))]
+    labels = labels[np.concatenate((sampled_pos_indices, sampled_neg_indices))]
+    
+    # Shuffle x and labels
+    shuffle_idx = np.random.permutation(len(x))
+    x = x[shuffle_idx]
+    labels = labels[shuffle_idx]
+    
+    return x, labels
+
 #########################
 ## Labels & Predictions
 #########################
@@ -275,30 +303,6 @@ def get_has_positive_tile(tile_labels):
     has_positive_tile = 1 if tile_labels.sum() > 0 else 0
     return has_positive_tile
 
-def predict_tile(outputs):
-    """
-    Description: Takes raw outputs per tile and returns 0/1 prediction per tile
-    Args:
-        - outputs (tensor): raw outputs from model. Shape = [batch_size, num_tiles]
-    Returns:
-        - tile_preds (tensor): 0/1 predictions per tile. Shape = [batch_size, num_tiles]
-    """
-    tile_preds = torch.sigmoid(outputs)
-    tile_preds = (tile_preds > 0.5).int()
-    
-    return tile_preds
-
-def predict_image_from_tile_preds(tile_preds):
-    """
-    Description: Takes predictions per tile and returns if any are true
-    Args:
-        - tile_preds (tensor): 0/1 predictions per tile. Use predict_tile function.
-    Returns:
-        - image_preds (tensor): 0/1 prediction per image. shape = [batch_size]
-    """
-    image_preds = (tile_preds.sum(dim=1) > 0).int()
-    
-    return image_preds
 
 
 ####################################

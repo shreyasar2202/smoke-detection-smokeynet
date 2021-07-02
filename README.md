@@ -53,21 +53,28 @@ cd pytorch-lightning-smoke-detection
 - ```omit_images_list``` (list of str): union of omit_no_xml and omit_no_bbox
 
 
+## Model Setup
+**Relevant Files:**
+- ```model_components.py```: Different torch models to use with ```main_model.py```. Each model has its own forward pass and loss function.
+- ```main_model.py```: Main model to use with ```lightning_module.py```. Chains forward passes and sums loss functions from individual model_components
+
+**Models:**
+Models are created with model_components that can be chained together using the ```--model-type-list``` command line argument. Intermediate supervision from tile_labels or image_labels provides additional feedback to each model_component. Models can be one of five types:
+1. RawToTile: Raw inputs -> tile predictions
+2. RawToImage: Raw inputs -> image predictions
+3. TileToTile: Tile predictions -> tile predictions
+4. TileToImage: Tile predictins -> image predictions
+5. ImageToImage: Image predictions -> image predictions
+
+
 ## Training
 **Relevant Files:**
 - ```main.py```: Kicks off training and evaluation. Contains many command line arguments for hyperparameters. 
-- ```lightning_model.py```: Main file with PyTorch Lightning LightningModule. Defines model, forward pass, and training.
-- ```models.py```: Different torch models to use with lightning_model.py
+- ```lightning_module.py```: PyTorch Lightning LightningModule that defines optimizers, training step and metrics.
 - ```run_train.sh```: Used to easily start training from main.py with command line arguments.
 
 **Steps to Run:**
 To run training, use ```python3 main.py``` in the command line. You can optionally use ```./run_train.sh```. You can check ```main.py``` for a full list of tunable hyperparameters as command line arguments, but the defaults will be set to give good performance.
-
-**Models:**
-Each model has three parts:
-1. backbone: Input = [batch_size/arbitrary_value, num_channels=3, height=224, width=224]. Output = [batch_size, num_tiles=54, 1]. This allows for intermediate supervision using tile_labels.
-2. middle_layer: Input = [batch_size, num_tiles=54, 1]. Output = [batch_size, num_tiles=54, 1]. This allows to use backbone as input, chain multiple middle layers, and use intermediate supervision using tile_labels.
-3. final_layer: Input = [batch_size, num_tiles=54, 1]. Output = [batch_size, 1]. This gives a final prediction per image. 
 
 
 ## Logging

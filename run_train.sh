@@ -12,7 +12,6 @@
 #     --min-epochs 1 \
 #     --max-epochs 1 \
 #     --batch-size 1 \
-#     --no-auto-lr-find \
 #     --flip-augment \
 #     --blur-augment \
 #     --raw-data-path '/root/raw_images' \
@@ -21,17 +20,16 @@
 
 # Real Run
 python3 main.py \
-    --experiment-name "MobileNetV3LargeFocal" \
-    --min-epochs 1 \
-    --max-epochs 3 \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_Linear" \
+    --min-epochs 3 \
+    --max-epochs 25 \
     --batch-size 8 \
-    --accumulate-grad-batches 4 \
+    --accumulate-grad-batches 64 \
     --flip-augment \
     --no-freeze-backbone \
-    --loss-type 'focal' \
+    --no-pretrain-backbone \
     --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels' 
-    
+    --labels-path '/root/drive_clone_labels'     
     
 # Command Line Options    
 #     --experiment-name "resnet50" \
@@ -50,7 +48,6 @@ python3 main.py \
 #     --test-split-path './lightning_logs/resnet50/version_9/test_images.txt' \
 
 #     --no-lr-schedule \
-#     --no-auto-lr-find \
 #     --no-early-stopping \
 #     --no-sixteen-bit \
 #     --no-stochastic-weight-avg \

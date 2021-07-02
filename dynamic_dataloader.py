@@ -21,6 +21,8 @@ from sklearn.model_selection import train_test_split
 import util_fns
 
 
+
+
 #####################
 ## Data Module
 #####################
@@ -44,6 +46,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
                  smoke_threshold = 10,
+                 num_tile_samples = 0,
                  flip_augment = False,
                  blur_augment = False,
                  create_data = False):
@@ -81,6 +84,8 @@ class DynamicDataModule(pl.LightningDataModule):
             - flip_augment (bool): enables data augmentation with horizontal flip
             - blur_augment (bool): enables data augmentation with Gaussian blur
             
+            - num_tile_samples (int): number of random tile samples per batch. If < 1, then turned off
+            
             - create_data (bool): should prepare_data be run?
         
         Other Attributes:
@@ -111,6 +116,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
+        self.num_tile_samples = num_tile_samples
         
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
@@ -230,9 +236,13 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
+                                          num_tile_samples=self.num_tile_samples,
                                           flip_augment=self.flip_augment,
                                           blur_augment=self.blur_augment)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        train_loader = DataLoader(train_dataset, 
+                                  batch_size=self.batch_size, 
+                                  num_workers=self.num_workers, 
+                                  shuffle=True)
         return train_loader
 
     def val_dataloader(self):
@@ -244,9 +254,12 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
+                                          num_tile_samples=0,
                                           flip_augment=self.flip_augment,
                                           blur_augment=self.blur_augment)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        val_loader = DataLoader(val_dataset, 
+                                batch_size=self.batch_size, 
+                                num_workers=self.num_workers)
         return val_loader
 
     def test_dataloader(self):
@@ -258,9 +271,12 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
+                                          num_tile_samples=0,
                                           flip_augment=self.flip_augment,
                                           blur_augment=self.blur_augment)
-        test_loader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        test_loader = DataLoader(test_dataset, 
+                                 batch_size=self.batch_size, 
+                                 num_workers=self.num_workers)
         return test_loader
     
     
@@ -278,21 +294,10 @@ class DynamicDataloader(Dataset):
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
                  smoke_threshold = 10,
+                 num_tile_samples = 0,
                  flip_augment = False,
                  blur_augment = False):
-        """
-        Args / Attributes:
-            - raw_data_path (Path): path to raw data
-            - labels_path (Path): path to XML labels
-            - metadata (dict): metadata dictionary from DataModule
-            - data_split (list): list of images of the current split
-            - image_dimensions (int, int): desired dimensions of image before cropping
-            - crop_height (int): height to crop image to
-            - tile_dimensions (int, int): desired size of tiles
-            - smoke_threshold (int): # of pixels of smoke to consider tile positive
-            - flip_augment (bool): enables data augmentation with horizontal flip
-            - blur_augment (bool): enables data augmentation with Gaussian blur
-        """
+        
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
         self.metadata = metadata
@@ -302,6 +307,7 @@ class DynamicDataloader(Dataset):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
+        self.num_tile_samples = num_tile_samples
         
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
@@ -356,13 +362,18 @@ class DynamicDataloader(Dataset):
         ### Tile Image ###
         if self.tile_dimensions:
             # WARNING: Tile size must divide perfectly into image height and width
-            # x.shape = [54, 5, 3, 224, 224]
-            # labels.shape = [54, 224, 224]
+            # x.shape = [45, 5, 3, 224, 224]
+            # labels.shape = [45, 224, 224]
             x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
             labels = np.reshape(labels,(-1, self.tile_dimensions[0], self.tile_dimensions[1]))
 
-            # tile_labels.shape = [54,]
+            # tile_labels.shape = [45,]
             labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+            
+            if self.num_tile_samples > 0:
+                # WARNING: Assumes that there are no labels with all 0s
+                # Tip: Use --time-range-min 0
+                x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_random_samples)
         else:
             # Pretend as if tile size = image size
             x = np.expand_dims(x, 0)

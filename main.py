@@ -22,11 +22,22 @@ from main_model import MainModel
 from dynamic_dataloader import DynamicDataModule, DynamicDataloader
 import util_fns
 
+
+#####################
+## Debug Flags
+#####################
+
 # Turns off logging and checkpointing
 IS_DEBUG = False
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
+
+# Uses learning rate tuner to find LR only
+AUTO_LR_FIND = False
+
+assert not (IS_DEBUG and TEST_ONLY), "Cannot have IS_DEBUG and TEST_ONLY flags enabled at same time."
+
 
 #####################
 ## Argument Parser
@@ -57,7 +68,7 @@ parser.add_argument('--val-split-path', type=str, default=None,
 parser.add_argument('--test-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are provided.')
 
-# Dataloader args = 7 + 5 + 2
+# Dataloader args = 7 + 6 + 2
 parser.add_argument('--train-split-size', type=int, default=0.7,
                     help='% of data to split for train.')
 parser.add_argument('--test-split-size', type=int, default=0.15,
@@ -83,41 +94,48 @@ parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
 parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='Number of pixels of smoke to consider tile positive.')
+parser.add_argument('--num-tile-samples', type=int, default=0,
+                    help='Number of random tile samples per batch. If < 1, then turned off')
 
 parser.add_argument('--flip-augment', action='store_true',
                     help='Enables data augmentation with horizontal flip.')
 parser.add_argument('--blur-augment', action='store_true',
                     help='Enables data augmentation with Gaussian blur.')
 
-# Model args = 5
-parser.add_argument('--model-type', type=str, default='MobileNetV3Large',
-                    help='Type of model to use for training. Options: [ResNet50] [MobileNetV3Large]')
-parser.add_argument('--learning-rate', type=float, default=0.001,
-                    help='Learning rate for training.')
-parser.add_argument('--no-lr-schedule', action='store_true',
-                    help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
+
+# Model args = 1 + 2 + 4
+parser.add_argument('--model-type-list', nargs='*',
+                    help='Specify the model type through multiple model components.')
+
 parser.add_argument('--no-pretrain-backbone', action='store_true',
                     help='Disables pretraining of backbone.')
 parser.add_argument('--no-freeze-backbone', action='store_true',
                     help='Disables freezing of layers on pre-trained backbone.')
 
-# Loss args = 4
-parser.add_argument('--loss-type', type=str, default='bce',
+parser.add_argument('--tile-loss-type', type=str, default='bce',
                     help='Type of loss to use for training. Options: [bce], [focal]')
-parser.add_argument('--bce-pos-weight', type=float, default=10,
+parser.add_argument('--bce-pos-weight', type=float, default=25,
                     help='Weight for positive class for BCE loss for tiles.')
 parser.add_argument('--focal-alpha', type=float, default=0.25,
                     help='Alpha for focal loss.')
 parser.add_argument('--focal-gamma', type=float, default=2,
                     help='Gamma for focal loss.')
 
-# Training args = 8
+# Optimizer args = 4
+parser.add_argument('--optimizer-type', type=str, default='AdamW',
+                    help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
+parser.add_argument('--optimizer-weight-decay', type=float, default=0.001,
+                    help='Weight decay of optimizer.')
+parser.add_argument('--learning-rate', type=float, default=0.0001,
+                    help='Learning rate for training.')
+parser.add_argument('--no-lr-schedule', action='store_true',
+                    help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
+
+# Training args = 7
 parser.add_argument('--min-epochs', type=int, default=10,
                     help='Min number of epochs to train for.')
 parser.add_argument('--max-epochs', type=int, default=50,
                     help='Max number of epochs to train for.')
-parser.add_argument('--no-auto-lr-find', action='store_true',
-                    help='Disables auto learning rate finder. See PyTorch Lightning docs for more details.')
 parser.add_argument('--no-early-stopping', action='store_true',
                     help='Disables early stopping based on validation loss. See PyTorch Lightning docs for more details.')
 parser.add_argument('--no-sixteen-bit', action='store_true',
@@ -164,27 +182,31 @@ def main(# Path args
         crop_height=1344,
         tile_dimensions=(224,224),
         smoke_threshold=10,
+        num_tile_samples=0,
     
         flip_augment=False,
         blur_augment=False,
 
         # Model args
-        model_type='ResNet50',
-        learning_rate=0.001,
-        lr_schedule=True,
+        model_type_list=['RawToTile_MobileNetV3Large'],
+    
         pretrain_backbone=True,
         freeze_backbone=True,
     
-        # Loss args
-        loss_type='bce',
-        bce_pos_weight=10,
+        tile_loss_type='bce',
+        bce_pos_weight=25,
         focal_alpha=0.25,
         focal_gamma=2,
 
+        # Optimizer args
+        optimizer_type='AdamW',
+        optimizer_weight_decay=0.001,
+        learning_rate=0.001,
+        lr_schedule=True,
+    
         # Trainer args 
         min_epochs=10,
         max_epochs=50,
-        auto_lr_find=True,
         early_stopping=True,
         sixteen_bit=True,
         stochastic_weight_avg=True,
@@ -200,6 +222,7 @@ def main(# Path args
             
         print("IS_DEBUG: ",  IS_DEBUG)
         print("TEST_ONLY: ", TEST_ONLY)
+        print("AUTO_LR_FIND: ", AUTO_LR_FIND)
         
         ### Initialize data_module ###
         data_module = DynamicDataModule(
@@ -224,23 +247,28 @@ def main(# Path args
             crop_height=crop_height,
             tile_dimensions=tile_dimensions,
             smoke_threshold=smoke_threshold,
+            num_tile_samples=num_tile_samples,
         
             flip_augment=flip_augment,
             blur_augment=blur_augment)
         
         ### Initialize MainModel ###
+        num_tiles = int((crop_height / tile_dimensions[0]) * (image_dimensions[1] / tile_dimensions[1]))
+        
         main_model = MainModel(
                          # Model args
-                         model_type=model_type,
+                         model_type_list=model_type_list,
+            
                          series_length=series_length, 
                          freeze_backbone=freeze_backbone, 
                          pretrain_backbone=pretrain_backbone,
                          
-                         # Loss args
-                         loss_type=loss_type,
+                         tile_loss_type=tile_loss_type,
                          bce_pos_weight=bce_pos_weight,
                          focal_alpha=focal_alpha, 
-                         focal_gamma=focal_gamma)
+                         focal_gamma=focal_gamma,
+        
+                         num_tiles=num_tiles)
         
         ### Initialize LightningModule ###
         if checkpoint_path and checkpoint:
@@ -248,15 +276,23 @@ def main(# Path args
             lightning_module = LightningModule.load_from_checkpoint(
                                    checkpoint_path,
                                    model=main_model,
+                
+                                   optimizer_type=optimizer_type,
+                                   optimizer_weight_decay=optimizer_weight_decay,
                                    learning_rate=learning_rate,
                                    lr_schedule=lr_schedule,
+                
                                    series_length=series_length,
                                    parsed_args=parsed_args)
         else:
             lightning_module = LightningModule(
                                    model=main_model,
+                
+                                   optimizer_type=optimizer_type,
+                                   optimizer_weight_decay=optimizer_weight_decay,
                                    learning_rate=learning_rate,
                                    lr_schedule=lr_schedule,
+                
                                    series_length=series_length,
                                    parsed_args=parsed_args)
             
@@ -290,7 +326,7 @@ def main(# Path args
             # Trainer args
             min_epochs=min_epochs,
             max_epochs=max_epochs,
-            auto_lr_find=auto_lr_find,
+            auto_lr_find=AUTO_LR_FIND,
             callbacks=callbacks,
             precision=16 if sixteen_bit else 32,
             stochastic_weight_avg=stochastic_weight_avg,
@@ -300,13 +336,13 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=3,
+            log_every_n_steps=1,
 #             val_check_interval=0.5,
 
             # Dev args
 #             fast_dev_run=True, 
-#             overfit_batches=1,
-#             limit_train_batches=1,
+#             overfit_batches=65,
+#             limit_train_batches=65,
 #             limit_val_batches=1,
 #             limit_test_batches=0.25,
 #             track_grad_norm=2,
@@ -316,16 +352,13 @@ def main(# Path args
             gpus=1)
         
         ### Training & Evaluation ###
-        if not TEST_ONLY:
-            # Auto find learning rate
-            if auto_lr_find:
-                trainer.tune(lightning_module, datamodule=data_module)
-
-            # Train the model
+        if AUTO_LR_FIND:
+            trainer.tune(lightning_module, datamodule=data_module)
+        elif TEST_ONLY:
+            trainer.test(lightning_module, datamodule=data_module)
+        else:
             trainer.fit(lightning_module, datamodule=data_module)
-
-        # Evaluate the best model on the test set
-        trainer.test(lightning_module, datamodule=data_module)
+            trainer.test(lightning_module, datamodule=data_module)
 
         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:
@@ -337,7 +370,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Load hyperparameters from checkpoint if it exists
-    if args.checkpoint_path:
+    if args.checkpoint_path is not None:
         checkpoint = torch.load(args.checkpoint_path)
         parsed_args = Namespace(**checkpoint['hyper_parameters'])
     else:
@@ -370,27 +403,31 @@ if __name__ == '__main__':
         crop_height=parsed_args.crop_height,
         tile_dimensions=(parsed_args.tile_size, args.tile_size),
         smoke_threshold=parsed_args.smoke_threshold,
+        num_tile_samples=parsed_args.num_tile_samples,
 
         flip_augment=parsed_args.flip_augment,
         blur_augment=parsed_args.blur_augment,
 
         # Model args
-        model_type=parsed_args.model_type,
-        learning_rate=parsed_args.learning_rate,
-        lr_schedule=not parsed_args.no_lr_schedule,
+        model_type_list=parsed_args.model_type_list,
+        
         pretrain_backbone=not parsed_args.no_pretrain_backbone,
         freeze_backbone=not parsed_args.no_freeze_backbone,
         
-        # Loss args
-        loss_type=parsed_args.loss_type,
+        tile_loss_type=parsed_args.tile_loss_type,
         bce_pos_weight=parsed_args.bce_pos_weight,
         focal_alpha=parsed_args.focal_alpha,
         focal_gamma=parsed_args.focal_gamma,
+        
+        # Optimizer args
+        optimizer_type=parsed_args.optimizer_type,
+        optimizer_weight_decay=parsed_args.optimizer_weight_decay,
+        learning_rate=parsed_args.learning_rate,
+        lr_schedule=not parsed_args.no_lr_schedule,
 
         # Trainer args
         min_epochs=parsed_args.min_epochs,
         max_epochs=parsed_args.max_epochs,
-        auto_lr_find=not parsed_args.no_auto_lr_find,
         early_stopping=not parsed_args.no_early_stopping,
         sixteen_bit=not parsed_args.no_sixteen_bit,
         stochastic_weight_avg=not parsed_args.no_stochastic_weight_avg,
@@ -400,4 +437,3 @@ if __name__ == '__main__':
         # Checkpoint args
         checkpoint_path=parsed_args.checkpoint_path,
         checkpoint=checkpoint)
-    

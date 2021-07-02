@@ -2,7 +2,7 @@
 Created by: Anshuman Dewangan
 Date: 2021
 
-Description: Main file with PyTorch Lightning LightningModule. Defines optimizers, training step and metrics.
+Description: PyTorch Lightning LightningModule that defines optimizers, training step and metrics.
 """
 
 # Torch imports
@@ -30,15 +30,23 @@ class LightningModule(pl.LightningModule):
 
     def __init__(self,
                  model,
-                 learning_rate=0.001,
+                 
+                 optimizer_type='AdamW',
+                 optimizer_weight_decay=0.001,
+                 learning_rate=0.0001,
                  lr_schedule=True,
+                 
                  series_length=1,
                  parsed_args=None):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
+            
+            - optimizer_type (str): type of optimizer to use. Options: [AdamW] [SGD]
+            - optimizer_weight_decay (float): weight decay to use with optimizer
             - learning_rate (float): learning rate for optimizer
             - lr_schedule (bool): should ReduceLROnPlateau learning rate schedule be used?
+            
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
 
@@ -53,7 +61,6 @@ class LightningModule(pl.LightningModule):
                     - 'image_xml': labels based on if image has XML file associated
                     - 'image-pos-tile': labels based on if image has at least one positive tile 
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
-                - function (list of torchmetrics functions): used to initiate torchmetric modules
         """
         print("Initializing LightningModule...")
         super().__init__()
@@ -61,7 +68,9 @@ class LightningModule(pl.LightningModule):
         # Initialize model
         self.model = model
         
-        # Initialize model params
+        # Initialize optimizer params
+        self.optimizer_type = optimizer_type
+        self.optimizer_weight_decay = optimizer_weight_decay
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule
         
@@ -98,14 +107,24 @@ class LightningModule(pl.LightningModule):
         print("Initializing LightningModule Complete.")
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
+        if self.optimizer_type == 'SGD':
+            optimizer = torch.optim.SGD(self.model.parameters(), 
+                                        lr=self.learning_rate, 
+                                        momentum=0.9, 
+                                        weight_decay=self.optimizer_weight_decay)
+            print('Optimizer: SGD')
+        elif self.optimizer_type == 'AdamW':
+            optimizer = torch.optim.AdamW(self.model.parameters(), 
+                                          lr=self.learning_rate, 
+                                          weight_decay=self.optimizer_weight_decay)
+            print('Optimizer: AdamW')
         
         if self.lr_schedule:
             # Includes learning rate scheduler
             scheduler = ReduceLROnPlateau(optimizer, 
                                           min_lr=self.learning_rate*1e-5, 
                                           patience=1,
-                                          threshold=0,
+                                          threshold=0.1,
                                           verbose=True)
             return {"optimizer": optimizer,
                     "lr_scheduler": scheduler,
@@ -121,15 +140,17 @@ class LightningModule(pl.LightningModule):
     #####################
 
     def step(self, batch, split):
+        """Description: Takes a batch, calculates forward pass, losses, and predictions, and logs metrics"""
         image_names, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
 
         # Compute outputs, loss, and predictions
-        outputs = self.model(x)
-        loss = self.model.compute_loss(outputs, tile_labels, ground_truth_labels)
-        tile_preds, image_preds = self.model.compute_predictions(outputs)
+        outputs, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels)
         
-        # Log loss (on_step only if split='train')
-        self.log(split+'loss', loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+        # Log losses (on_step only if split='train')
+        for i, loss in enumerate(losses):
+            self.log(split+'loss_'+str(i), tile_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+        
+        self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
         self.log('general/learning_rate', self.learning_rate, on_step=False, on_epoch=True)
 
         # Calculate & log evaluation metrics
@@ -140,21 +161,22 @@ class LightningModule(pl.LightningModule):
                                    (image_preds, has_positive_tiles))
                                  ):
             for name in self.metrics['name']:
-                # Have to move the metric to self.device 
-                metric = self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
-                self.log(split+category+name, metric, on_step=False, on_epoch=True)
+                if args[0] is not None:
+                    # Have to move the metric to self.device 
+                    metric = self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
+                    self.log(split+category+name, metric, on_step=False, on_epoch=True)
         
-        return image_names, outputs, loss, tile_preds, image_preds
+        return image_names, total_loss, tile_preds, image_preds
 
     def training_step(self, batch, batch_idx):
-        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][0])
+        image_names, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][0])
         return loss
 
     def validation_step(self, batch, batch_idx):
-        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][1])
+        image_names, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][1])
 
     def test_step(self, batch, batch_idx):
-        image_names, outputs, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][2])
+        image_names, loss, tile_preds, image_preds = self.step(batch, self.metrics['split'][2])
         return image_names, tile_preds, image_preds
 
     
