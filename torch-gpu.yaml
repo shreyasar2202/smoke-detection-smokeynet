@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: torch-gpu-anshumand
+  name: pytorch-gpu-anshumand
   namespace: digits
 spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: torch-gpu-anshumand
+      k8s-app: pytorch-gpu-anshumand
   template:
     metadata:
       labels:
-        k8s-app: torch-gpu-anshumand
+        k8s-app: pytorch-gpu-anshumand
     spec:
       tolerations:
       - key: "region"
@@ -19,12 +19,8 @@ spec:
         value: "allow"
         effect: "NoSchedule"
       containers:
-      - name: torch-gpu-anshumand
+      - name: pytorch-gpu-anshumand
         image: gitlab-registry.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection
-        # Define the port you want to run jupyter lab on. If not defined, will default to 8888.
-        env:
-        - name: MY_JUPYTER_LAB_PORT
-          value: "8888"
         imagePullPolicy: Always
         securityContext:
           capabilities:
@@ -35,14 +31,33 @@ spec:
             nvidia.com/gpu: 1
             memory: "64Gi"
             cpu: "8"
+            ephemeral-storage: 100Gi
           requests:
             nvidia.com/gpu: 1
             memory: "16Gi"
-            cpu: "2"
+            cpu: "4"
+            ephemeral-storage: 100Gi
         volumeMounts:
-        - mountPath: /userdata/kerasData
-          name: modeltraining
+          - mountPath: /userdata/kerasData
+            name: modeltraining
+            # dshm volume is very important to use num_workers > 0 and speed up training!
+          - mountPath: /dev/shm
+            name: dshm
       volumes:
         - name: modeltraining
           persistentVolumeClaim:
             claimName: modeltraining
+        - name: dshm
+          emptyDir:
+            medium: Memory
+      affinity:
+       nodeAffinity:
+         requiredDuringSchedulingIgnoredDuringExecution:
+           nodeSelectorTerms:
+           - matchExpressions:
+             - key: gpu-type
+               operator: In
+               # Specifies GPU types
+               values:
+               - 1080Ti
+               - 2080Ti

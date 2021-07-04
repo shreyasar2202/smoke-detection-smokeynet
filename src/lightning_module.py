@@ -79,7 +79,7 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters('learning_rate')
         
         # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
-        self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224))
+        self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224)).float()
 
         # Initialize evaluation metrics
         self.metrics = {}
@@ -148,7 +148,7 @@ class LightningModule(pl.LightningModule):
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):
-            self.log(split+'loss_'+str(i), tile_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+            self.log(split+'loss_'+str(i), loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
         
         self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
         self.log('general/learning_rate', self.learning_rate, on_step=False, on_epoch=True)
@@ -195,16 +195,18 @@ class LightningModule(pl.LightningModule):
         fire_preds_dict = {}
         
         ### Save predictions as .txt files ###
-        with open(self.logger.log_dir+'/image_preds.csv', 'w') as image_preds_csv:
+        if self.logger is not None:
+            image_preds_csv = open(self.logger.log_dir+'/image_preds.csv', 'w')
             image_preds_csv_writer = csv.writer(image_preds_csv)
 
-            # Loop through batch
-            for image_names, tile_preds, image_preds in test_step_outputs:
-                # Loop through entry in batch
-                for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
-                    fire_name = util_fns.get_fire_name(image_name)
-                    image_pred = image_pred.item()
-                    
+        # Loop through batch
+        for image_names, tile_preds, image_preds in test_step_outputs:
+            # Loop through entry in batch
+            for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
+                fire_name = util_fns.get_fire_name(image_name)
+                image_pred = image_pred.item()
+
+                if self.logger is not None:
                     # Save image predictions
                     image_preds_csv_writer.writerow([image_name, image_pred])
 
@@ -214,13 +216,15 @@ class LightningModule(pl.LightningModule):
                     np.save(self.logger.log_dir+'/tile_preds/'+\
                             image_name+\
                             '.npy', tile_pred.cpu().numpy())
-                    
-                    # Add prediction to fire_preds_dict list
-                    # ASSUMPTION: images are in order and test data has not been shuffled
-                    if fire_name not in fire_preds_dict:
-                        fire_preds_dict[fire_name] = []
-                        
-                    fire_preds_dict[fire_name].append(image_pred)
+
+                # Add prediction to fire_preds_dict list
+                # ASSUMPTION: images are in order and test data has not been shuffled
+                if fire_name not in fire_preds_dict:
+                    fire_preds_dict[fire_name] = []
+
+                fire_preds_dict[fire_name].append(image_pred)
+        
+        if self.logger is not None: image_preds_csv.close()
         
         ### Create data structures ###
         # Create data structure to store preds of all relevant fires

@@ -190,7 +190,7 @@ def generate_series(fire_to_images, series_length):
         - fire_to_images (dict): maps fire to a list of images for that fire
         - series_length (int): how many sequential images should be used for training
     Returns:
-        - image_series (dict): maps image names to lists of past <series_length> images
+        - image_series (dict): maps image names to lists of past <series_length> images in chronological order
     """
     image_series = {}
         
@@ -202,6 +202,8 @@ def generate_series(fire_to_images, series_length):
             while (len(image_series[img]) < series_length):
                 image_series[img].append(fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
+                    
+            image_series[img].reverse()
     
     return image_series
 
@@ -397,3 +399,40 @@ def calculate_average_time_to_detection(positive_preds):
     
     return average_time_to_detection
 
+
+####################################
+## Model Components
+####################################
+
+def init_weights_RetinaNet(*layers):
+    """
+    Description: Initialize weights as in RetinaNet paper
+    Args:
+        - layers (torch nn.Modules): layers to initialize
+    Returns:
+        - layers (torch nn.Modules): layers with weights initialized
+    """
+    for i, layer in enumerate(layers):
+        torch.nn.init.normal_(layer.weight, 0, 0.01)
+
+        # Set last layer bias to special value from paper
+        if i == len(layers)-1:
+            torch.nn.init.constant_(layer.bias, -np.log((1-0.01)/0.01))
+        else:
+            torch.nn.init.zeros_(layer.bias)
+    
+    return layers
+
+def init_weights_Xavier(*layers):
+    """
+    Description: Initialize weights using xavier_uniform
+    Args:
+        - layers (torch nn.Modules): layers to initialize
+    Returns:
+        - layers (torch nn.Modules): layers with weights initialized
+    """
+    for layer in layers:
+        torch.nn.init.xavier_uniform_(layer.weight, gain=torch.nn.init.calculate_gain('relu'))
+        torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
+    
+    return layers

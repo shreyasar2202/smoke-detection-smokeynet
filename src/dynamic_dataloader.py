@@ -373,7 +373,7 @@ class DynamicDataloader(Dataset):
             if self.num_tile_samples > 0:
                 # WARNING: Assumes that there are no labels with all 0s
                 # Tip: Use --time-range-min 0
-                x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_random_samples)
+                x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
         else:
             # Pretend as if tile size = image size
             x = np.expand_dims(x, 0)

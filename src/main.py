@@ -36,7 +36,7 @@ TEST_ONLY = False
 # Uses learning rate tuner to find LR only
 AUTO_LR_FIND = False
 
-assert not (IS_DEBUG and TEST_ONLY), "Cannot have IS_DEBUG and TEST_ONLY flags enabled at same time."
+# assert not (IS_DEBUG and TEST_ONLY), "Cannot have IS_DEBUG and TEST_ONLY flags enabled at same time."
 
 
 #####################
@@ -95,7 +95,7 @@ parser.add_argument('--tile-size', type=int, default=224,
 parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='Number of pixels of smoke to consider tile positive.')
 parser.add_argument('--num-tile-samples', type=int, default=0,
-                    help='Number of random tile samples per batch. If < 1, then turned off')
+                    help='Number of random tile samples per batch. If < 1, then turned off. Recommended to use 20.')
 
 parser.add_argument('--flip-augment', action='store_true',
                     help='Enables data augmentation with horizontal flip.')
@@ -258,17 +258,15 @@ def main(# Path args
         main_model = MainModel(
                          # Model args
                          model_type_list=model_type_list,
+                         num_tiles=num_tiles,
             
-                         series_length=series_length, 
                          freeze_backbone=freeze_backbone, 
                          pretrain_backbone=pretrain_backbone,
                          
                          tile_loss_type=tile_loss_type,
                          bce_pos_weight=bce_pos_weight,
                          focal_alpha=focal_alpha, 
-                         focal_gamma=focal_gamma,
-        
-                         num_tiles=num_tiles)
+                         focal_gamma=focal_gamma)
         
         ### Initialize LightningModule ###
         if checkpoint_path and checkpoint:
@@ -314,7 +312,7 @@ def main(# Path args
         ### Initialize Trainer ###
 
         # Initialize logger 
-        logger = TensorBoardLogger("lightning_logs/", 
+        logger = TensorBoardLogger("./lightning_logs/", 
                                    name=experiment_name, 
                                    log_graph=True,
                                    version=None)
@@ -344,7 +342,7 @@ def main(# Path args
 #             overfit_batches=65,
 #             limit_train_batches=65,
 #             limit_val_batches=1,
-#             limit_test_batches=0.25,
+#             limit_test_batches=1,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

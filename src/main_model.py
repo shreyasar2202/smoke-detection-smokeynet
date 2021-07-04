@@ -12,9 +12,8 @@ from torch.nn import functional as F
 import torchvision
 
 # File imports
-import model_components
+from model_components import *
 import util_fns
-
 
     
 #####################
@@ -26,56 +25,24 @@ class MainModel(nn.Module):
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
         - model_type_list: a sequential list of model_components to use to make up full model
+        - kwargs: any other args used in the models
     """
-    def __init__(self, 
-                 model_type_list=['RawToTile_MobileNetV3Large'],
-                 
-                 # Backbone Args
-                 series_length=1, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True,
-                 
-                 # Tile Loss args
-                 tile_loss_type='bce',
-                 bce_pos_weight=25,
-                 focal_alpha=0.25, 
-                 focal_gamma=2, 
-                
-                 # TileToImage args
-                 num_tiles=45):
+    def __init__(self, model_type_list=['RawToTile_MobileNetV3Large'], **kwargs):
         
         print("Initializing MainModel...")
         super().__init__()
         
+        self.tile_loss = TileLoss(
+                             tile_loss_type='bce',
+                             bce_pos_weight=25,
+                             focal_alpha=0.25, 
+                             focal_gamma=2)
+        
         self.model_list = torch.nn.ModuleList()
                 
+        # Initializes each model using the class name and kwargs and adds it to model_list
         for model_type in model_type_list:
-            if model_type == 'RawToTile_ResNet50':
-                model = model_components.RawToTile_ResNet50(
-                                series_length=series_length, 
-                                pretrain_backbone=pretrain_backbone,
-                                freeze_backbone=freeze_backbone,
-                    
-                                tile_loss_type=tile_loss_type, 
-                                bce_pos_weight=bce_pos_weight,
-                                focal_alpha=focal_alpha, 
-                                focal_gamma=focal_gamma)
-            
-            elif model_type == 'RawToTile_MobileNetV3Large':
-                model = model_components.RawToTile_MobileNetV3Large(
-                                series_length=series_length, 
-                                pretrain_backbone=pretrain_backbone,
-                                freeze_backbone=freeze_backbone,
-                                                                  
-                                tile_loss_type=tile_loss_type, 
-                                bce_pos_weight=bce_pos_weight,
-                                focal_alpha=focal_alpha, 
-                                focal_gamma=focal_gamma)
-                
-            elif model_type == 'TileToImage_Linear':
-                model = model_components.TileToImage_Linear(num_tiles=num_tiles)
-            
-            self.model_list.append(model)
+            self.model_list.append(globals()[model_type](**kwargs))
         
         print("Initializing MainModel Complete.")
         
@@ -119,13 +86,13 @@ class MainModel(nn.Module):
             # If model predicts tiles...
             if len(x.shape) > 1:
                 tile_outputs = x
-                loss = model.compute_loss(x, tile_labels)
+                loss = self.tile_loss(x[:,:,-1], tile_labels)
                 losses.append(loss)
             
             # Else if model predicts images...
             else:
                 image_outputs = x
-                loss = model.compute_loss(x, ground_truth_labels)
+                loss = F.binary_cross_entropy_with_logits(x[:,-1], ground_truth_labels.float())
                 losses.append(loss)
             
             # Add loss to total loss
@@ -133,11 +100,11 @@ class MainModel(nn.Module):
         
         # Compute predictions for tiles and images 
         if tile_outputs is not None:
-            tile_preds = (torch.sigmoid(tile_outputs) > 0.5).int()
+            tile_preds = (torch.sigmoid(tile_outputs[:,:,-1]) > 0.5).int()
         
         # If created image_outputs, predict directly
         if image_outputs is not None:
-            image_preds = (torch.sigmoid(image_outputs) > 0.5).int()
+            image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
         # Else, use tile_preds to determine image_preds
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
