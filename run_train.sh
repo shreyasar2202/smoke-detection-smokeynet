@@ -8,6 +8,7 @@
 python3 src/main.py \
     --experiment-name "SpatialViT" \
     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_ViT" \
+    --model-pretrain-epochs 2 0 \
     --min-epochs 3 \
     --max-epochs 25 \
     --batch-size 8 \

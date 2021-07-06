@@ -11,6 +11,9 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 
+# Other imports
+import numpy as np
+
 # File imports
 from model_components import *
 import util_fns
@@ -33,16 +36,22 @@ class MainModel(nn.Module):
         super().__init__()
         
         self.tile_loss = TileLoss(
-                             tile_loss_type='bce',
-                             bce_pos_weight=25,
-                             focal_alpha=0.25, 
-                             focal_gamma=2)
+                             tile_loss_type=kwargs['tile_loss_type'],
+                             bce_pos_weight=kwargs['bce_pos_weight'],
+                             focal_alpha=kwargs['focal_alpha'], 
+                             focal_gamma=kwargs['focal_gamma'])
         
         self.model_list = torch.nn.ModuleList()
                 
         # Initializes each model using the class name and kwargs and adds it to model_list
         for model_type in model_type_list:
             self.model_list.append(globals()[model_type](**kwargs))
+        
+        # Saves the number of epochs to pretrain each part of the model
+        if kwargs['model_pretrain_epochs'] is not None:
+            self.model_pretrain_epochs = np.array(kwargs['model_pretrain_epochs']).astype(int)
+        else:
+            self.model_pretrain_epochs = np.zeros(len(kwargs['model_pretrain_epochs'])).astype(int)
         
         print("Initializing MainModel Complete.")
         
@@ -53,13 +62,14 @@ class MainModel(nn.Module):
             
         return x
         
-    def forward_pass(self, x, tile_labels, ground_truth_labels):
+    def forward_pass(self, x, tile_labels, ground_truth_labels, num_epoch):
         """
         Description: compute forward pass of all model_list models
         Args:
             - x (tensor): raw image input
             - tile_labels (tensor): labels for tiles for tile_loss
             - ground_truth_labels (tensor): labels for images for image_loss
+            - num_epoch (int): current epoch number
         Outputs:
             - x (tensor): final outputs of model
             - tile_losses (list of tensor): all tile-level losses (for logging purposes)
@@ -79,7 +89,11 @@ class MainModel(nn.Module):
         image_preds = None
         
         # Compute forward pass and loss for each model in model_list
-        for model in self.model_list:
+        for i, model in enumerate(self.model_list):
+            # Skip iteration if pretraining model
+            if i != 0 and self.model_pretrain_epochs[:i].sum() > num_epoch:
+                break
+            
             # Compute forward pass
             x = model(x)
                         
