@@ -204,7 +204,7 @@ def generate_series(fire_to_images, series_length):
                 if idx != 0: idx -= 1
                     
             image_series[img].reverse()
-    
+        
     return image_series
 
 def xml_to_record(xml_file):

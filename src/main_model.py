@@ -82,9 +82,9 @@ class MainModel(nn.Module):
         for model in self.model_list:
             # Compute forward pass
             x = model(x)
-            
+                        
             # If model predicts tiles...
-            if len(x.shape) > 1:
+            if len(x.shape) > 2:
                 tile_outputs = x
                 loss = self.tile_loss(x[:,:,-1], tile_labels)
                 losses.append(loss)

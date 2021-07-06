@@ -40,7 +40,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  test_split_size=0.15,
                  batch_size=1, 
                  num_workers=0, 
-                 series_length=5, 
+                 series_length=1, 
                  time_range=(-2400, 2400), 
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
@@ -95,7 +95,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - self.has_setup (bool): if setup has already occurred to prevent from doing twice
         """
         super().__init__()
-        
+                
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
@@ -241,7 +241,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           blur_augment=self.blur_augment)
         train_loader = DataLoader(train_dataset, 
                                   batch_size=self.batch_size, 
-                                  num_workers=self.num_workers, 
+                                  num_workers=self.num_workers,
+                                  pin_memory=True, 
                                   shuffle=True)
         return train_loader
 
@@ -259,7 +260,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           blur_augment=self.blur_augment)
         val_loader = DataLoader(val_dataset, 
                                 batch_size=self.batch_size, 
-                                num_workers=self.num_workers)
+                                num_workers=self.num_workers,
+                                pin_memory=True)
         return val_loader
 
     def test_dataloader(self):
@@ -276,7 +278,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           blur_augment=self.blur_augment)
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size, 
-                                 num_workers=self.num_workers)
+                                 num_workers=self.num_workers,
+                                 pin_memory=True)
         return test_loader
     
     
@@ -383,5 +386,5 @@ class DynamicDataloader(Dataset):
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
         has_xml_label = self.metadata['has_xml_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(labels)
-                
+                        
         return image_name, x, labels, ground_truth_label, has_xml_label, has_positive_tile

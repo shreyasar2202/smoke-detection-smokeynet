@@ -29,14 +29,14 @@ spec:
         resources:
           limits:
             nvidia.com/gpu: 1
-            memory: "64Gi"
-            cpu: "8"
-            ephemeral-storage: 100Gi
+            memory: "12Gi"
+            cpu: "4"
+            ephemeral-storage: 64Gi
           requests:
             nvidia.com/gpu: 1
-            memory: "16Gi"
+            memory: "12Gi"
             cpu: "4"
-            ephemeral-storage: 100Gi
+            ephemeral-storage: 64Gi
         volumeMounts:
           - mountPath: /userdata/kerasData
             name: modeltraining

@@ -19,6 +19,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 import torchvision
+import transformers
 
 # Other imports 
 import numpy as np
@@ -266,16 +267,43 @@ class TileToImage_Linear(nn.Module):
         print('- TileToImage: Linear')
         super().__init__()
         
-        self.fc = nn.Linear(in_features=45, out_features=1)
+        self.fc = nn.Linear(in_features=num_tiles, out_features=1)
         
         self.fc = util_fns.init_weights_Xavier(self.fc)
         
     def forward(self, tile_outputs):
         batch_size, num_tiles, series_length = tile_outputs.size()
-        tile_outputs = tile_outputs.view(batch_size, num_tiles * series_length)
+        tile_outputs = tile_outputs.view(batch_size * series_length, num_tiles)
         
-        image_outputs = F.relu(tile_outputs) # [batch_size, num_tiles * series_length]
-        image_outputs = self.fc(image_outputs) # [batch_size, 1]
+        image_outputs = F.relu(tile_outputs) # [batch_size * series_length, num_tiles]
+        image_outputs = self.fc(image_outputs) # [batch_size * series_length]
+        image_outputs = image_outputs.view(batch_size, series_length)
 
-        return image_outputs # [batch_size, 1]
+        return image_outputs # [batch_size, series_length]
+    
+class TileToImage_ViT(nn.Module):
+    """
+    Description: Vision Transformer operating on tiles to produce image prediction
+    Args:
+        - num_tiles_height (int): number of tiles that make up the height of the image
+        - num_tiles_width (int): number of tiles that make up the width of the image
+    """
+    def __init__(self, num_tiles_height=5, num_tiles_width=9, **kwargs):
+        print('- TileToImage: ViT')
+        super().__init__()
+        
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        
+        vit_config = transformers.ViTConfig(image_size=(num_tiles_height,num_tiles_width), patch_size=1, num_channels=1, num_labels=1)
+        self.vit_model = transformers.ViTForImageClassification(vit_config)
+                
+    def forward(self, tile_outputs):
+        batch_size, num_tiles, series_length = tile_outputs.size()
+        tile_outputs = tile_outputs.view(batch_size * series_length, 1, self.num_tiles_height, self.num_tiles_width)
+        
+        image_outputs = self.vit_model(tile_outputs).logits # [batch_size * series_length]
+        image_outputs = image_outputs.view(batch_size, series_length) 
+
+        return image_outputs # [batch_size, series_length]
     

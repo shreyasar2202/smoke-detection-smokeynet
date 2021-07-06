@@ -36,8 +36,6 @@ TEST_ONLY = False
 # Uses learning rate tuner to find LR only
 AUTO_LR_FIND = False
 
-# assert not (IS_DEBUG and TEST_ONLY), "Cannot have IS_DEBUG and TEST_ONLY flags enabled at same time."
-
 
 #####################
 ## Argument Parser
@@ -75,9 +73,9 @@ parser.add_argument('--test-split-size', type=int, default=0.15,
                     help='% of data to split for test.')
 parser.add_argument('--batch-size', type=int, default=1,
                     help='Batch size for training.')
-parser.add_argument('--num-workers', type=int, default=0,
+parser.add_argument('--num-workers', type=int, default=4,
                     help='Number of workers for dataloader.')
-parser.add_argument('--series-length', type=int, default=1,
+parser.add_argument('--series-length', type=int, default=4,
                     help='Number of sequential video frames to process during training.')
 parser.add_argument('--time-range-min', type=int, default=-2400,
                     help='Start time of fire images to consider during training. ')
@@ -112,7 +110,7 @@ parser.add_argument('--no-pretrain-backbone', action='store_true',
 parser.add_argument('--no-freeze-backbone', action='store_true',
                     help='Disables freezing of layers on pre-trained backbone.')
 
-parser.add_argument('--tile-loss-type', type=str, default='bce',
+parser.add_argument('--tile-loss-type', type=str, default='focal',
                     help='Type of loss to use for training. Options: [bce], [focal]')
 parser.add_argument('--bce-pos-weight', type=float, default=25,
                     help='Weight for positive class for BCE loss for tiles.')
@@ -122,11 +120,11 @@ parser.add_argument('--focal-gamma', type=float, default=2,
                     help='Gamma for focal loss.')
 
 # Optimizer args = 4
-parser.add_argument('--optimizer-type', type=str, default='AdamW',
+parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
-parser.add_argument('--optimizer-weight-decay', type=float, default=0.001,
+parser.add_argument('--optimizer-weight-decay', type=float, default=0.005,
                     help='Weight decay of optimizer.')
-parser.add_argument('--learning-rate', type=float, default=0.0001,
+parser.add_argument('--learning-rate', type=float, default=0.01,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
@@ -218,7 +216,7 @@ def main(# Path args
         checkpoint=None):
         
     try:
-        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
+#         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Started...')
             
         print("IS_DEBUG: ",  IS_DEBUG)
         print("TEST_ONLY: ", TEST_ONLY)
@@ -334,7 +332,7 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=1,
+            log_every_n_steps=512 / (batch_size * accumulate_grad_batches),
 #             val_check_interval=0.5,
 
             # Dev args
@@ -358,9 +356,9 @@ def main(# Path args
             trainer.fit(lightning_module, datamodule=data_module)
             trainer.test(lightning_module, datamodule=data_module)
 
-        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
+#         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {experiment_name} Complete')
     except Exception as e:
-        if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
+#         if not IS_DEBUG: util_fns.send_fb_message(f'Experiment {args.experiment_name} Failed. Error: ' + str(e))
         raise(e) 
     
     

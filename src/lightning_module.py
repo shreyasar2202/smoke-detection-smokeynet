@@ -123,7 +123,7 @@ class LightningModule(pl.LightningModule):
             # Includes learning rate scheduler
             scheduler = ReduceLROnPlateau(optimizer, 
                                           min_lr=self.learning_rate*1e-5, 
-                                          patience=1,
+                                          patience=0,
                                           threshold=0.1,
                                           verbose=True)
             return {"optimizer": optimizer,

@@ -31,6 +31,7 @@ RUN pip3 install pytorch-lightning
 RUN pip3 install torchmetrics
 RUN pip3 install sklearn
 RUN pip3 install opencv-python
+RUN pip3 install transformers
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 
