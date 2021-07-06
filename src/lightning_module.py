@@ -31,9 +31,9 @@ class LightningModule(pl.LightningModule):
     def __init__(self,
                  model,
                  
-                 optimizer_type='AdamW',
-                 optimizer_weight_decay=0.001,
-                 learning_rate=0.0001,
+                 optimizer_type='SGD',
+                 optimizer_weight_decay=0.0001,
+                 learning_rate=0.005,
                  lr_schedule=True,
                  
                  series_length=1,
@@ -118,6 +118,8 @@ class LightningModule(pl.LightningModule):
                                           lr=self.learning_rate, 
                                           weight_decay=self.optimizer_weight_decay)
             print('Optimizer: AdamW')
+            
+        print('Learning Rate: ', self.learning_rate)
         
         if self.lr_schedule:
             # Includes learning rate scheduler

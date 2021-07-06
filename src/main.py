@@ -124,9 +124,9 @@ parser.add_argument('--focal-gamma', type=float, default=2,
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
-parser.add_argument('--optimizer-weight-decay', type=float, default=0.005,
+parser.add_argument('--optimizer-weight-decay', type=float, default=0.0001,
                     help='Weight decay of optimizer.')
-parser.add_argument('--learning-rate', type=float, default=0.01,
+parser.add_argument('--learning-rate', type=float, default=0.005,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
@@ -194,15 +194,15 @@ def main(# Path args
         pretrain_backbone=True,
         freeze_backbone=True,
     
-        tile_loss_type='bce',
+        tile_loss_type='focal',
         bce_pos_weight=25,
         focal_alpha=0.25,
         focal_gamma=2,
 
         # Optimizer args
-        optimizer_type='AdamW',
-        optimizer_weight_decay=0.001,
-        learning_rate=0.001,
+        optimizer_type='SGD',
+        optimizer_weight_decay=0.0001,
+        learning_rate=0.005,
         lr_schedule=True,
     
         # Trainer args 

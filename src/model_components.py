@@ -42,7 +42,7 @@ class TileLoss():
         - focal_gamma: focal loss, higher gamma -> more importance of hard examples vs. easy examples
     """
     def __init__(self, 
-                 tile_loss_type='bce',
+                 tile_loss_type='focal',
                  bce_pos_weight=25,
                  focal_alpha=0.25, 
                  focal_gamma=2):
@@ -82,48 +82,48 @@ class TileLoss():
 ## RawToTile Models
 #####################
 
-class RawToTile_ResNet50(nn.Module):
-    """
-    Description: ResNet backbone with a few linear layers.
-    Args:
-        - series_length (int)
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone
-    """
-    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs): 
+# class RawToTile_ResNet50(nn.Module):
+#     """
+#     Description: ResNet backbone with a few linear layers.
+#     Args:
+#         - series_length (int)
+#         - freeze_backbone (bool): Freezes layers of pretrained backbone
+#         - pretrain_backbone (bool): Pretrains backbone
+#     """
+#     def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs): 
         
-        print('- RawToTile: ResNet50')
-        super().__init__()
+#         print('- RawToTile: ResNet50')
+#         super().__init__()
         
-        model = torchvision.models.resnet50(pretrained=pretrain_backbone)
-        model.fc = nn.Identity()
+#         model = torchvision.models.resnet50(pretrained=pretrain_backbone)
+#         model.fc = nn.Identity()
 
-        if pretrain_backbone and freeze_backbone:
-            for param in model.parameters():
-                param.requires_grad = False
+#         if pretrain_backbone and freeze_backbone:
+#             for param in model.parameters():
+#                 param.requires_grad = False
 
-        self.conv = model
+#         self.conv = model
 
-        self.fc1 = nn.Linear(in_features=2048, out_features=512)
-        self.fc2 = nn.Linear(in_features=512, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=1)
+#         self.fc1 = nn.Linear(in_features=2048, out_features=512)
+#         self.fc2 = nn.Linear(in_features=512, out_features=64)
+#         self.fc3 = nn.Linear(in_features=64, out_features=1)
         
-        self.fc1, self.fc2, self.fc3 = util_fns.init_weights_RetinaNet(self.fc1, self.fc2, self.fc3)
+#         self.fc1, self.fc2, self.fc3 = util_fns.init_weights_RetinaNet(self.fc1, self.fc2, self.fc3)
         
-    def forward(self, x):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+#     def forward(self, x):
+#         x = x.float()
+#         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, 2048]
+#         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+#         tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, 2048]
 
-        tile_outputs = tile_outputs.view(batch_size, num_tiles * series_length, -1) # [batch_size, num_tiles * series_length, 2048]
-        tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles * series_length, 512]
-        tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles * series_length, 64]
-        tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles * series_length, 1]
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length)
+#         tile_outputs = tile_outputs.view(batch_size, num_tiles * series_length, -1) # [batch_size, num_tiles * series_length, 2048]
+#         tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles * series_length, 512]
+#         tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles * series_length, 64]
+#         tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles * series_length, 1]
+#         tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length)
 
-        return tile_outputs # [batch_size, num_tiles, series_length]
+#         return tile_outputs # [batch_size, num_tiles, series_length]
             
 class RawToTile_MobileNetV3Large(nn.Module):
     """

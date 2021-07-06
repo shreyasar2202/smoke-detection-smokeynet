@@ -28,18 +28,25 @@ class MainModel(nn.Module):
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
         - model_type_list: a sequential list of model_components to use to make up full model
+        - model_pretrain_epochs: a sequential list of epochs to pretrain each model part for
         - kwargs: any other args used in the models
     """
-    def __init__(self, model_type_list=['RawToTile_MobileNetV3Large'], **kwargs):
+    def __init__(self, model_type_list=['RawToTile_MobileNetV3Large'], 
+                 model_pretrain_epochs=None,
+                 tile_loss_type='focal',
+                 bce_pos_weight=25,
+                 focal_alpha=0.25, 
+                 focal_gamma=2,
+                 **kwargs):
         
         print("Initializing MainModel...")
         super().__init__()
         
         self.tile_loss = TileLoss(
-                             tile_loss_type=kwargs['tile_loss_type'],
-                             bce_pos_weight=kwargs['bce_pos_weight'],
-                             focal_alpha=kwargs['focal_alpha'], 
-                             focal_gamma=kwargs['focal_gamma'])
+                             tile_loss_type=tile_loss_type,
+                             bce_pos_weight=bce_pos_weight,
+                             focal_alpha=focal_alpha, 
+                             focal_gamma=focal_gamma)
         
         self.model_list = torch.nn.ModuleList()
                 
@@ -48,10 +55,10 @@ class MainModel(nn.Module):
             self.model_list.append(globals()[model_type](**kwargs))
         
         # Saves the number of epochs to pretrain each part of the model
-        if kwargs['model_pretrain_epochs'] is not None:
-            self.model_pretrain_epochs = np.array(kwargs['model_pretrain_epochs']).astype(int)
+        if model_pretrain_epochs is not None:
+            self.model_pretrain_epochs = np.array(model_pretrain_epochs).astype(int)
         else:
-            self.model_pretrain_epochs = np.zeros(len(kwargs['model_pretrain_epochs'])).astype(int)
+            self.model_pretrain_epochs = np.zeros(len(model_pretrain_epochs)).astype(int)
         
         print("Initializing MainModel Complete.")
         
