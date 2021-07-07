@@ -10,7 +10,7 @@ Description: Different torch models to use with main_model.py. Models can be one
     5. ImageToImage: Image predictions -> image predictions
 Sizes:
     1. Raw inputs: [batch_size, num_tiles, series_length, num_channels, tile_height, tile_width]
-    2. ToTile: tile_outputs=[batch_size, num_tiles, series_length or 1], embeddings=[batch_size, num_tiles, series_length or 1, 512]
+    2. ToTile: tile_outputs=[batch_size, num_tiles, series_length or 1], embeddings=[batch_size, num_tiles, series_length or 1, 960]
     3. ToImage: image_outputs=[batch_size, series_length or 1], embeddings=None
 """
 
@@ -164,17 +164,17 @@ class RawToTile_MobileNetV3Large(nn.Module):
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
         tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, 960]
 
-        # Use single linear layer to save embeddings of dim=512
-        tile_outputs = tile_outputs.view(batch_size, num_tiles * series_length, 960) # [batch_size, num_tiles * series_length, 960]
-        tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles * series_length, 512]
-        embeddings = tile_outputs.view(batch_size, num_tiles, series_length, 512)
+        # Save embeddings of dim=960
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 960)
+        embeddings = tile_outputs
         
-        # Use additional linear layers to get dim=1
-        tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles * series_length, 64]
-        tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles * series_length, 1]
+        # Use linear layers to get dim=1
+        tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles, series_length, 512]
+        tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles, series_length, 64]
+        tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles, series_length, 1]
         tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length)
 
-        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 512]
+        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
 
     
 # class RawToTile_MobileNetV3LargeLSTM(nn.Module):
@@ -231,40 +231,85 @@ class RawToTile_MobileNetV3Large(nn.Module):
     
 class TileToTile_LSTM(nn.Module):
     """
-    Description: Single linear layer to go from tile outputs to image predictions
-    Args:
-        - num_tiles (int): number of tiles in image
+    Description: LSTM that takes tile embeddings and outputs tile predictions
     """
     def __init__(self, **kwargs):
         print('- TileToTile: LSTM')
         super().__init__()
         
-        self.lstm = torch.nn.LSTM(input_size=512, hidden_size=512, num_layers=1, batch_first=True)
-        self.fc1 = nn.Linear(in_features=512, out_features=64)
-        self.fc2 = nn.Linear(in_features=64, out_features=1)
+        self.lstm = torch.nn.LSTM(input_size=960, hidden_size=960, num_layers=1, batch_first=True)
+        self.fc1 = nn.Linear(in_features=960, out_features=512)
+        self.fc2 = nn.Linear(in_features=512, out_features=64)
+        self.fc3 = nn.Linear(in_features=64, out_features=1)
         
-        self.fc1, self.fc2 = util_fns.init_weights_RetinaNet(self.fc1, self.fc2)
+        self.fc1, self.fc2, self.fc3 = util_fns.init_weights_RetinaNet(self.fc1, self.fc2, self.fc3)
+                
+    def forward(self, tile_embeddings):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
+                
+        # Run through LSTM
+        tile_embeddings = tile_embeddings.view(batch_size * num_tiles, series_length, embedding_size).float()
+        tile_outputs, (hidden, cell) = self.lstm(tile_embeddings) # [batch_size * num_tiles, series_length, lstm_num_hidden]
+        
+        # Only save the last time step's outputs
+        tile_outputs = tile_outputs[:,-1] # [batch_size * num_tiles, embedding_size]
+        
+        # Save embeddings of dim=960
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, embedding_size)
+        embeddings = tile_outputs.view(batch_size, num_tiles, 1, embedding_size)
+        
+        # Use linear layers to get dim=1
+        tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles, 512]
+        tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles, 64]
+        tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles, 1]
+        
+        return tile_outputs, embeddings # [batch_size, num_tiles, 1], [batch_size, num_tiles, 1, 960]
+
+    
+class TileToTile_Transformer(nn.Module):
+    """
+    Description: Transformer that takes tile embeddings and outputs tile predictions
+    Args:
+        - num_tiles (int): number of tiles in image
+    """
+    def __init__(self, series_length=1, **kwargs):
+        print('- TileToTile: LSTM')
+        super().__init__()
+        
+        self.fc1 = nn.Linear(in_features=960, out_features=512)
+        self.fc2 = nn.Linear(in_features=512, out_features=int(960/series_length))
+        
+        self.transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=960, nhead=8)
+        self.transformer_encoder = nn.TransformerEncoder(self.transformer_encoder_layer, num_layers=6)
+        
+        self.fc3 = nn.Linear(in_features=960, out_features=512)
+        self.fc4 = nn.Linear(in_features=512, out_features=64)
+        self.fc5 = nn.Linear(in_features=64, out_features=1)
+        
+        self.fc1, self.fc2, self.fc3, self.fc4, self.fc5 = util_fns.init_weights_RetinaNet(self.fc1, self.fc2, self.fc3, self.fc4, self.fc5)
                 
     def forward(self, tile_embeddings):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
         
-        # Run through LSTM
-        tile_embeddings = tile_embeddings.view(batch_size * num_tiles, series_length, 512)
-        tile_outputs, (hidden, cell) = self.lstm(tile_embeddings) # [batch_size * num_tiles, series_length, lstm_num_hidden]
+        # Run through initial linear layers
+        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 512]
+        tile_embeddings = F.relu(self.fc2(tile_embeddings)) # [batch_size, num_tiles, series_length, 960 / series_length]
         
-        # Only save the last time step's outputs
-        tile_outputs = tile_outputs[:,-1] # [batch_size * num_tiles, 512]
+        # Run through transformer
+        tile_embeddings = tile_embeddings.view(batch_size, num_tiles, embedding_size).float()
+        tile_outputs = self.transformer_encoder(tile_embeddings) # [batch_size, num_tiles, 960]
         
-        # Save embeddings of dim=512
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, 512)
-        embeddings = tile_outputs.view(batch_size, num_tiles, 1, 512)
+        # Save embeddings of dim=960
+        embeddings = tile_outputs.view(batch_size, num_tiles, 1, embedding_size)
         
-        # Use additional linear layers to get dim=1
-        tile_outputs = F.relu(self.fc1(tile_outputs)) # [batch_size, num_tiles, 64]
-        tile_outputs = self.fc2(tile_outputs) # [batch_size, num_tiles, 1]
+        # Use linear layers to get dim=1
+        tile_outputs = F.relu(self.fc3(tile_outputs)) # [batch_size, num_tiles, 512]
+        tile_outputs = F.relu(self.fc4(tile_outputs)) # [batch_size, num_tiles, 64]
+        tile_outputs = self.fc5(tile_outputs) # [batch_size, num_tiles, 1]
         
-        return tile_outputs, embeddings # [batch_size, num_tiles, 1], [batch_size, num_tiles, 1, 512]
+        return tile_outputs, embeddings # [batch_size, num_tiles, 1], [batch_size, num_tiles, 1, 960]
 
     
 ###########################
@@ -281,20 +326,22 @@ class TileToImage_Linear(nn.Module):
         print('- TileToImage: Linear')
         super().__init__()
         
-        self.fc1 = nn.Linear(in_features=num_tiles * series_length * 512, out_features=64)
-        self.fc2 = nn.Linear(in_features=64, out_features=1)
+        self.fc1 = nn.Linear(in_features=num_tiles * series_length * 960, out_features=512)
+        self.fc2 = nn.Linear(in_features=512, out_features=64)
+        self.fc3 = nn.Linear(in_features=64, out_features=1)
         
-        self.fc1, self.fc2 = util_fns.init_weights_Xavier(self.fc1, self.fc2)
+        self.fc1, self.fc2, self.fc3 = util_fns.init_weights_Xavier(self.fc1, self.fc2, self.fc3)
         
     def forward(self, tile_embeddings):
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
-        tile_embeddings = tile_embeddings.view(batch_size, num_tiles * series_length * 512)
+        tile_embeddings = tile_embeddings.view(batch_size, num_tiles * series_length * embedding_size)
         
-        image_outputs = F.relu(tile_embeddings) # [batch_size, num_tiles * series_length * 512]
-        image_outputs = F.relu(self.fc1(image_outputs)) # [batch_size, 64]
-        image_outputs = self.fc2(image_outputs) # [batch_size, 1]
+        image_outputs = F.relu(self.fc1(image_outputs)) # [batch_size, 512]
+        image_outputs = F.relu(self.fc2(image_outputs)) # [batch_size, 64]
+        image_outputs = self.fc3(image_outputs) # [batch_size, 1]
 
         return image_outputs # [batch_size, 1]
+    
     
 class TileToImage_ViT(nn.Module):
     """
@@ -307,8 +354,11 @@ class TileToImage_ViT(nn.Module):
         print('- TileToImage: ViT')
         super().__init__()
         
+        self.fc1 = nn.Linear(in_features=960, out_features=512)
+        self.fc2 = nn.Linear(in_features=512, out_features=256)
+        
         self.embeddings_height = num_tiles_height * 16
-        self.embeddings_width = num_tiles_width * 32
+        self.embeddings_width = num_tiles_width * 16
         
         vit_config = transformers.ViTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
                                             patch_size=16, 
@@ -319,6 +369,11 @@ class TileToImage_ViT(nn.Module):
                 
     def forward(self, tile_embeddings):
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
+        tile_embeddings = tile_embeddings.view(batch_size, num_tiles * series_length, embedding_size)
+        
+        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles * series_length, 512]
+        tile_embeddings = F.relu(self.fc2(tile_embeddings)) # [batch_size, num_tiles * series_length, 256]
+        
         tile_embeddings = tile_embeddings.view(batch_size, series_length, self.embeddings_height, self.embeddings_width)
         
         image_outputs = self.vit_model(tile_embeddings).logits # [batch_size]

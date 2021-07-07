@@ -31,7 +31,8 @@ class MainModel(nn.Module):
         - model_pretrain_epochs: a sequential list of epochs to pretrain each model part for
         - kwargs: any other args used in the models
     """
-    def __init__(self, model_type_list=['RawToTile_MobileNetV3Large'], 
+    def __init__(self, 
+                 model_type_list=['RawToTile_MobileNetV3Large'], 
                  model_pretrain_epochs=None,
                  
                  tile_loss_type='bce',

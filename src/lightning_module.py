@@ -83,7 +83,7 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters('learning_rate')
         
         if is_embeddings:
-            self.example_input_array = torch.randn((1,45,series_length, 512)).float()
+            self.example_input_array = torch.randn((1,45,series_length, 960)).float()
         else:
             # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
             self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224)).float()
@@ -160,8 +160,8 @@ class LightningModule(pl.LightningModule):
         # DEBUG: uncomment to save embeddings to file
 #         if split == self.metrics['split'][2]:
 #             for image_name, embedding in zip(image_names, embeddings):
-#                 os.makedirs('./data/embeddings/'+util_fns.get_fire_name(image_name), exist_ok=True)
-#                 np.save('./data/embeddings/'+image_name+'.npy', embedding.cpu())
+#                 os.makedirs('./data/embeddings_flip/'+util_fns.get_fire_name(image_name), exist_ok=True)
+#                 np.save('./data/embeddings_flip/'+image_name+'.npy', embedding.cpu())
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):

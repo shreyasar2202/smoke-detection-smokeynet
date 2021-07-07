@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = True
+IS_DEBUG = False
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
@@ -50,7 +50,7 @@ parser.add_argument('--experiment-name', type=str, default=None,
 parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
-# Path args = 7
+# Path args = 8
 parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
                     help='Path to raw images.')
 parser.add_argument('--embeddings-path', type=str, default=None,
