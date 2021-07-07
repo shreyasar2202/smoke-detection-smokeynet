@@ -44,12 +44,7 @@ class MainModel(nn.Module):
         print("Initializing MainModel...")
         super().__init__()
         
-        self.tile_loss = TileLoss(
-                             tile_loss_type=tile_loss_type,
-                             bce_pos_weight=bce_pos_weight,
-                             focal_alpha=focal_alpha, 
-                             focal_gamma=focal_gamma)
-        
+        ### Initialize Model ###
         self.model_list = torch.nn.ModuleList()
                 
         # Initializes each model using the class name and kwargs and adds it to model_list
@@ -61,6 +56,14 @@ class MainModel(nn.Module):
             self.model_pretrain_epochs = np.array(model_pretrain_epochs).astype(int)
         else:
             self.model_pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
+            
+        ### Initialize Loss ###
+        self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
+                                  bce_pos_weight=bce_pos_weight,
+                                  focal_alpha=focal_alpha, 
+                                  focal_gamma=focal_gamma)
+        
+        self.loss_weights = nn.Parameter(torch.ones(len(model_type_list)))
         
         print("Initializing MainModel Complete.")
         
@@ -109,18 +112,18 @@ class MainModel(nn.Module):
             # If model predicts tiles...
             if len(outputs.shape) > 2:
                 tile_outputs = outputs
-                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels)
-                losses.append(loss)
+                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
             
             # Else if model predicts images...
             else:
                 image_outputs = outputs
-                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float())
-                losses.append(loss)
+                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
             
             # Add loss to total loss
+            loss *= self.loss_weights[i]
+            losses.append(loss)
             total_loss += loss
-        
+
         # Compute predictions for tiles and images 
         if tile_outputs is not None:
             tile_preds = (torch.sigmoid(tile_outputs[:,:,-1]) > 0.5).int()
