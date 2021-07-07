@@ -33,10 +33,12 @@ class MainModel(nn.Module):
     """
     def __init__(self, model_type_list=['RawToTile_MobileNetV3Large'], 
                  model_pretrain_epochs=None,
-                 tile_loss_type='focal',
+                 
+                 tile_loss_type='bce',
                  bce_pos_weight=25,
                  focal_alpha=0.25, 
                  focal_gamma=2,
+                 
                  **kwargs):
         
         print("Initializing MainModel...")
@@ -58,16 +60,16 @@ class MainModel(nn.Module):
         if model_pretrain_epochs is not None:
             self.model_pretrain_epochs = np.array(model_pretrain_epochs).astype(int)
         else:
-            self.model_pretrain_epochs = np.zeros(len(model_pretrain_epochs)).astype(int)
+            self.model_pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
         
         print("Initializing MainModel Complete.")
         
     def forward(self, x):
         """Description: Maps raw inputs to outputs"""
         for model in self.model_list:
-            x = model(x)
+            outputs, x = model(x)
             
-        return x
+        return outputs
         
     def forward_pass(self, x, tile_labels, ground_truth_labels, num_epoch):
         """
@@ -102,18 +104,18 @@ class MainModel(nn.Module):
                 break
             
             # Compute forward pass
-            x = model(x)
+            outputs, x = model(x)
                         
             # If model predicts tiles...
-            if len(x.shape) > 2:
-                tile_outputs = x
-                loss = self.tile_loss(x[:,:,-1], tile_labels)
+            if len(outputs.shape) > 2:
+                tile_outputs = outputs
+                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels)
                 losses.append(loss)
             
             # Else if model predicts images...
             else:
-                image_outputs = x
-                loss = F.binary_cross_entropy_with_logits(x[:,-1], ground_truth_labels.float())
+                image_outputs = outputs
+                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float())
                 losses.append(loss)
             
             # Add loss to total loss
@@ -126,9 +128,10 @@ class MainModel(nn.Module):
         # If created image_outputs, predict directly
         if image_outputs is not None:
             image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
+        
         # Else, use tile_preds to determine image_preds
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
         
-        return x, losses, total_loss, tile_preds, image_preds
+        return outputs, losses, total_loss, tile_preds, image_preds

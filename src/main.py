@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = True
+IS_DEBUG = False
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
@@ -101,7 +101,7 @@ parser.add_argument('--blur-augment', action='store_true',
                     help='Enables data augmentation with Gaussian blur.')
 
 
-# Model args = 1 + 2 + 4
+# Model args = 2 + 2 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--model-pretrain-epochs', nargs='*',
@@ -112,7 +112,7 @@ parser.add_argument('--no-pretrain-backbone', action='store_true',
 parser.add_argument('--no-freeze-backbone', action='store_true',
                     help='Disables freezing of layers on pre-trained backbone.')
 
-parser.add_argument('--tile-loss-type', type=str, default='focal',
+parser.add_argument('--tile-loss-type', type=str, default='bce',
                     help='Type of loss to use for training. Options: [bce], [focal]')
 parser.add_argument('--bce-pos-weight', type=float, default=25,
                     help='Weight for positive class for BCE loss for tiles.')
@@ -132,9 +132,9 @@ parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
 
 # Training args = 7
-parser.add_argument('--min-epochs', type=int, default=10,
+parser.add_argument('--min-epochs', type=int, default=3,
                     help='Min number of epochs to train for.')
-parser.add_argument('--max-epochs', type=int, default=50,
+parser.add_argument('--max-epochs', type=int, default=25,
                     help='Max number of epochs to train for.')
 parser.add_argument('--no-early-stopping', action='store_true',
                     help='Disables early stopping based on validation loss. See PyTorch Lightning docs for more details.')
@@ -194,7 +194,7 @@ def main(# Path args
         pretrain_backbone=True,
         freeze_backbone=True,
     
-        tile_loss_type='focal',
+        tile_loss_type='bce',
         bce_pos_weight=25,
         focal_alpha=0.25,
         focal_gamma=2,
@@ -261,19 +261,19 @@ def main(# Path args
                          # Model args
                          model_type_list=model_type_list,
                          model_pretrain_epochs=model_pretrain_epochs,
+                        
+                         tile_loss_type=tile_loss_type,
+                         bce_pos_weight=bce_pos_weight,
+                         focal_alpha=focal_alpha, 
+                         focal_gamma=focal_gamma,
+            
+                         freeze_backbone=freeze_backbone, 
+                         pretrain_backbone=pretrain_backbone,
             
                          num_tiles=num_tiles_height * num_tiles_width,
                          num_tiles_height=num_tiles_height,
                          num_tiles_width=num_tiles_width,
-                         series_length=series_length,
-            
-                         freeze_backbone=freeze_backbone, 
-                         pretrain_backbone=pretrain_backbone,
-                         
-                         tile_loss_type=tile_loss_type,
-                         bce_pos_weight=bce_pos_weight,
-                         focal_alpha=focal_alpha, 
-                         focal_gamma=focal_gamma)
+                         series_length=series_length)
         
         ### Initialize LightningModule ###
         if checkpoint_path and checkpoint:
@@ -341,14 +341,14 @@ def main(# Path args
             # Other args
             resume_from_checkpoint=checkpoint_path,
             logger=logger if not IS_DEBUG else False,
-            log_every_n_steps=512 / (batch_size * accumulate_grad_batches),
+            log_every_n_steps=512/(batch_size*accumulate_grad_batches),
 #             val_check_interval=0.5,
 
             # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=65,
-            limit_train_batches=1,
-            limit_val_batches=1,
+#             limit_train_batches=1,
+#             limit_val_batches=1,
 #             limit_test_batches=1,
 #             track_grad_norm=2,
 #             weights_summary='full',

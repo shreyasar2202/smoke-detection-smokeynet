@@ -85,6 +85,13 @@ To run training, use ```python3 main.py``` in the command line. You can optional
 **Steps to Access:**
 Logs can be accessed using Tensorboard: ```tensorboard --logdir ./lightning_logs```
 
+# Other Stuff
+
+## Training Tricks
+The following steps can increase training speed by 2-5x:
+1. Copy the dataset to your home directory (```/root/``` for admin and ```/home/``` for user)
+2. Add ```dshm``` volume to YAML file. Also recommended to specify GPU type to ```1080Ti``` or ```2080Ti```, use 4 CPUs, aand set memory=12GB. See torch-gpu.yaml for an example.
+3. Set num_workers=4 (equal to the # of CPUs and 4x # of GPUs) in dataloader
 
 ## Archive
 **Relevant Files:**

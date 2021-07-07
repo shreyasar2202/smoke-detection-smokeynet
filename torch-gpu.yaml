@@ -47,6 +47,7 @@ spec:
         - name: modeltraining
           persistentVolumeClaim:
             claimName: modeltraining
+        # dshm volume is very important to use num_workers > 0 and speed up training!
         - name: dshm
           emptyDir:
             medium: Memory

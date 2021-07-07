@@ -118,6 +118,8 @@ class LightningModule(pl.LightningModule):
                                           lr=self.learning_rate, 
                                           weight_decay=self.optimizer_weight_decay)
             print('Optimizer: AdamW')
+        else:
+            raise ValueError('Optimizer not recognized.')
             
         print('Learning Rate: ', self.learning_rate)
         
@@ -126,7 +128,7 @@ class LightningModule(pl.LightningModule):
             scheduler = ReduceLROnPlateau(optimizer, 
                                           min_lr=self.learning_rate*1e-5, 
                                           patience=0,
-                                          threshold=0.1,
+                                          threshold=0.01,
                                           verbose=True)
             return {"optimizer": optimizer,
                     "lr_scheduler": scheduler,
