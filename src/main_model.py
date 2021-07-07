@@ -62,9 +62,7 @@ class MainModel(nn.Module):
                                   bce_pos_weight=bce_pos_weight,
                                   focal_alpha=focal_alpha, 
                                   focal_gamma=focal_gamma)
-        
-        self.loss_weights = nn.Parameter(torch.ones(len(model_type_list)))
-        
+                
         print("Initializing MainModel Complete.")
         
     def forward(self, x):
@@ -120,7 +118,6 @@ class MainModel(nn.Module):
                 loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
             
             # Add loss to total loss
-            loss *= self.loss_weights[i]
             losses.append(loss)
             total_loss += loss
 
@@ -136,5 +133,4 @@ class MainModel(nn.Module):
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
-        
-        return outputs, losses, total_loss, tile_preds, image_preds
+        return outputs, x, losses, total_loss, tile_preds, image_preds

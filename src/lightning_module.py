@@ -16,6 +16,8 @@ import numpy as np
 import datetime
 import csv
 from pathlib import Path
+import pickle
+import os
 
 # File imports
 import util_fns
@@ -37,7 +39,8 @@ class LightningModule(pl.LightningModule):
                  lr_schedule=True,
                  
                  series_length=1,
-                 parsed_args=None):
+                 parsed_args=None,
+                 is_embeddings=False):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
@@ -49,6 +52,7 @@ class LightningModule(pl.LightningModule):
             
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
+            - is_embeddings (bool): if the input of the model are embeddings instead of raw data
 
         Other Attributes:
             - example_input_array (tensor): example of input to log computational graph in tensorboard
@@ -78,8 +82,11 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters(parsed_args)
         self.save_hyperparameters('learning_rate')
         
-        # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
-        self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224)).float()
+        if is_embeddings:
+            self.example_input_array = torch.randn((1,45,series_length, 512)).float()
+        else:
+            # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
+            self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224)).float()
 
         # Initialize evaluation metrics
         self.metrics = {}
@@ -148,7 +155,13 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
 
         # Compute outputs, loss, and predictions
-        outputs, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
+        outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
+        
+        # DEBUG: uncomment to save embeddings to file
+#         if split == self.metrics['split'][2]:
+#             for image_name, embedding in zip(image_names, embeddings):
+#                 os.makedirs('./data/embeddings/'+util_fns.get_fire_name(image_name), exist_ok=True)
+#                 np.save('./data/embeddings/'+image_name+'.npy', embedding.cpu())
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):

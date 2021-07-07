@@ -27,9 +27,10 @@ import util_fns
 
 class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
-                 raw_data_path='./data/raw_data', 
-                 labels_path='./data/labels', 
-                 raw_labels_path='./data/raw_labels',
+                 raw_data_path=None, 
+                 embeddings_path=None,
+                 labels_path=None, 
+                 raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
                  train_split_path=None,
                  val_split_path=None,
@@ -51,6 +52,7 @@ class DynamicDataModule(pl.LightningDataModule):
         """
         Args:
             - raw_data_path (str): path to raw data
+            - embeddings_path (str): path to embeddings generated from pretrained model
             - labels_path (str): path to Numpy labels
             - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
@@ -95,6 +97,7 @@ class DynamicDataModule(pl.LightningDataModule):
         super().__init__()
                 
         self.raw_data_path = raw_data_path
+        self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
@@ -226,7 +229,8 @@ class DynamicDataModule(pl.LightningDataModule):
             
 
     def train_dataloader(self):
-        train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+        train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
+                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
                                           data_split=self.train_split,
@@ -246,6 +250,7 @@ class DynamicDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
                                           data_split=self.val_split,
@@ -264,6 +269,7 @@ class DynamicDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
+                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
                                           data_split=self.test_split,
@@ -287,10 +293,11 @@ class DynamicDataModule(pl.LightningDataModule):
     
 class DynamicDataloader(Dataset):
     def __init__(self, 
-                 raw_data_path, 
-                 labels_path, 
-                 metadata,
-                 data_split, 
+                 raw_data_path=None, 
+                 embeddings_path=None,
+                 labels_path=None, 
+                 metadata=None,
+                 data_split=None, 
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
@@ -300,6 +307,7 @@ class DynamicDataloader(Dataset):
                  blur_augment = False):
         
         self.raw_data_path = raw_data_path
+        self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         self.metadata = metadata
         self.data_split = data_split
@@ -331,22 +339,33 @@ class DynamicDataloader(Dataset):
         
         # Load all images in the series
         for file_name in self.metadata['image_series'][image_name]:
-            # img.shape = [height, width, num_channels]
-            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-            # Resize and crop
-            img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
-            
-            # Add data augmentations
-            if self.flip_augment and should_flip:
-                img = cv2.flip(img, 1)
-            if self.blur_augment and should_blur:
-                img = cv2.blur(img, (blur_size,blur_size))
+            if self.embeddings_path is not None:
+                if self.flip_augment and should_flip:
+                    img = np.load(self.embeddings_path+'/cnn_embeddings_flip/'+file_name+'.npy').squeeze()
+                else:
+                    img = np.load(self.embeddings_path+'/cnn_embeddings/'+file_name+'.npy').squeeze()
+            else:
+                # img.shape = [height, width, num_channels]
+                img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+                # Resize and crop
+                img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+
+                # Add data augmentations
+                if self.flip_augment and should_flip:
+                    img = cv2.flip(img, 1)
+                if self.blur_augment and should_blur:
+                    img = cv2.blur(img, (blur_size,blur_size))
             
             x.append(img)
         
-        # x.shape = [series_length, num_channels, height, width]
-        # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
+        if self.embeddings_path is not None:
+            # x.shape = [num_tiles, series_length, embedding_size]
+            # e.g. [45, 4, 512]
+            x = np.transpose(np.stack(x), (1, 0, 2))
+        else:
+            # x.shape = [series_length, num_channels, height, width]
+            # e.g. [5, 3, 1344, 2016]
+            x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
            
         ### Load XML labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
@@ -365,7 +384,8 @@ class DynamicDataloader(Dataset):
             # WARNING: Tile size must divide perfectly into image height and width
             # x.shape = [45, 5, 3, 224, 224]
             # labels.shape = [45, 224, 224]
-            x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
+            if self.embeddings_path is None:
+                x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
             labels = np.reshape(labels,(-1, self.tile_dimensions[0], self.tile_dimensions[1]))
 
             # tile_labels.shape = [45,]
@@ -377,7 +397,8 @@ class DynamicDataloader(Dataset):
                 x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
         else:
             # Pretend as if tile size = image size
-            x = np.expand_dims(x, 0)
+            if self.embeddings_path is None:
+                x = np.expand_dims(x, 0)
             labels = np.expand_dims(labels, 0)
 
         # Load Image-level Labels ###

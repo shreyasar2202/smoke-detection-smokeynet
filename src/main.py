@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = False
+IS_DEBUG = True
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
@@ -53,7 +53,9 @@ parser.add_argument('--experiment-description', type=str, default=None,
 # Path args = 7
 parser.add_argument('--raw-data-path', type=str, default='/userdata/kerasData/data/new_data/raw_images',
                     help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone_labels',
+parser.add_argument('--embeddings-path', type=str, default=None,
+                    help='Path to raw images. Default: /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings')
+parser.add_argument('--labels-path', type=str, default='/userdata/kerasData/data/new_data/pytorch_lightning_data/drive_clone_labels',
                     help='Path to processed XML labels.')
 parser.add_argument('--raw-labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
                     help='Path to raw XML labels.')
@@ -126,7 +128,7 @@ parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
 parser.add_argument('--optimizer-weight-decay', type=float, default=0.0001,
                     help='Weight decay of optimizer.')
-parser.add_argument('--learning-rate', type=float, default=0.005,
+parser.add_argument('--learning-rate', type=float, default=5e-3,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
@@ -157,8 +159,9 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
 #####################
     
 def main(# Path args
-        raw_data_path, 
-        labels_path, 
+        raw_data_path=None, 
+        embeddings_path=None,
+        labels_path=None, 
         raw_labels_path=None,
         metadata_path=None,
         train_split_path=None, 
@@ -229,6 +232,7 @@ def main(# Path args
         data_module = DynamicDataModule(
             # Path args
             raw_data_path=raw_data_path,
+            embeddings_path=embeddings_path,
             labels_path=labels_path,
             raw_labels_path=raw_labels_path,
             metadata_path=metadata_path,
@@ -288,7 +292,8 @@ def main(# Path args
                                    lr_schedule=lr_schedule,
                 
                                    series_length=series_length,
-                                   parsed_args=parsed_args)
+                                   parsed_args=parsed_args,
+                                   is_embeddings=embeddings_path is not None)
         else:
             lightning_module = LightningModule(
                                    model=main_model,
@@ -299,7 +304,8 @@ def main(# Path args
                                    lr_schedule=lr_schedule,
                 
                                    series_length=series_length,
-                                   parsed_args=parsed_args)
+                                   parsed_args=parsed_args,
+                                   is_embeddings=embeddings_path is not None)
             
         ### Implement EarlyStopping & Other Callbacks ###
         early_stop_callback = EarlyStopping(
@@ -383,7 +389,8 @@ if __name__ == '__main__':
         parsed_args = args
         
     main(# Path args - always used command line args for these
-        raw_data_path=args.raw_data_path, 
+        raw_data_path=args.raw_data_path,
+        embeddings_path=args.embeddings_path,
         labels_path=args.labels_path, 
         raw_labels_path=args.raw_labels_path,
         metadata_path=args.metadata_path,
@@ -441,5 +448,5 @@ if __name__ == '__main__':
         accumulate_grad_batches=parsed_args.accumulate_grad_batches,
     
         # Checkpoint args
-        checkpoint_path=parsed_args.checkpoint_path,
+        checkpoint_path=args.checkpoint_path,
         checkpoint=checkpoint)
