@@ -59,7 +59,7 @@ class MainModel(nn.Module):
         else:
             self.model_pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
             
-        self.intermediate_supervision=intermediate_supervision
+        self.intermediate_supervision = intermediate_supervision
 
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,

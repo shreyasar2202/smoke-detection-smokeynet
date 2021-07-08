@@ -6,8 +6,8 @@
 #############################################
 
 python3 src/main.py \
-    --experiment-name "RawToTile_ViT" \
-    --model-type-list "RawToTile_ViT" \
+    --experiment-name "RawToTile_DeiT" \
+    --model-type-list "RawToTile_DeiT" \
     --min-epochs 3 \
     --max-epochs 5 \
     --batch-size 1 \
@@ -21,8 +21,8 @@ python3 src/main.py \
     --raw-data-path '/root/raw_images'
 
 python3 src/main.py \
-    --experiment-name "MobileToViT" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_ViT" \
+    --experiment-name "MobileToDeiT" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
     --min-epochs 3 \
     --max-epochs 5 \
     --batch-size 8 \
@@ -35,8 +35,23 @@ python3 src/main.py \
     --raw-data-path '/root/raw_images'
     
 python3 src/main.py \
-    --experiment-name "MobileToViTNoSupervise" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_ViT" \
+    --experiment-name "MobileToDeiTPretrained" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 5 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --model-pretrain-epochs 2 0 \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+    
+python3 src/main.py \
+    --experiment-name "MobileToDeiTNoSupervise" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
     --min-epochs 3 \
     --max-epochs 5 \
     --batch-size 8 \
@@ -50,13 +65,43 @@ python3 src/main.py \
     --raw-data-path '/root/raw_images'
     
 python3 src/main.py \
-    --experiment-name "MobileToViTToLinear" \
-    --model-type-list "TileToTile_ViT" "TileToImage_Linear" \
+    --experiment-name "MobileToDeiTNoSupervisePretrained" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 5 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --no-intermediate-supervision \
+    --model-pretrain-epochs 2 0 \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+    
+python3 src/main.py \
+    --experiment-name "MobileToDeiT" \
+    --model-type-list "TileToTile_DeiT" \
     --min-epochs 3 \
     --max-epochs 10 \
-    --batch-size 32 \
+    --batch-size 8 \
     --series-length 1 \
-    --accumulate-grad-batches 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --embeddings-path '/root/pytorch_lightning_data/embeddings'
+    
+python3 src/main.py \
+    --experiment-name "MobileToDeiTToLinear" \
+    --model-type-list "TileToTile_DeiT" "TileToImage_Linear" \
+    --min-epochs 3 \
+    --max-epochs 10 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
     --no-freeze-backbone \
     --no-pretrain-backbone \
     --flip-augment \
