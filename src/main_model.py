@@ -34,6 +34,7 @@ class MainModel(nn.Module):
     def __init__(self, 
                  model_type_list=['RawToTile_MobileNetV3Large'], 
                  model_pretrain_epochs=None,
+                 intermediate_supervision=True,
                  
                  tile_loss_type='bce',
                  bce_pos_weight=25,
@@ -58,6 +59,8 @@ class MainModel(nn.Module):
         else:
             self.model_pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
             
+        self.intermediate_supervision=intermediate_supervision
+
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
                                   bce_pos_weight=bce_pos_weight,
@@ -120,7 +123,10 @@ class MainModel(nn.Module):
             
             # Add loss to total loss
             losses.append(loss)
-            total_loss += loss
+            if self.intermediate_supervision:
+                total_loss += loss
+            else:
+                total_loss = loss
 
         # Compute predictions for tiles and images 
         if tile_outputs is not None:

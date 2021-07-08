@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = True
+IS_DEBUG = False
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
@@ -106,11 +106,13 @@ parser.add_argument('--blur-augment', action='store_true',
                     help='Enables data augmentation with Gaussian blur.')
 
 
-# Model args = 2 + 2 + 4
+# Model args = 3 + 2 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--model-pretrain-epochs', nargs='*',
                     help='Specify the number of epochs to pretrain each model component.')
+parser.add_argument('--no-intermediate-supervision', action='store_true',
+                    help='Disables intermediate supervision for chained models.')
 
 parser.add_argument('--no-pretrain-backbone', action='store_true',
                     help='Disables pretraining of backbone.')
@@ -196,7 +198,8 @@ def main(# Path args
         # Model args
         model_type_list=['RawToTile_MobileNetV3Large'],
         model_pretrain_epochs=None,
-    
+        intermediate_supervision=True,
+
         pretrain_backbone=True,
         freeze_backbone=True,
     
@@ -268,6 +271,7 @@ def main(# Path args
                          # Model args
                          model_type_list=model_type_list,
                          model_pretrain_epochs=model_pretrain_epochs,
+                         intermediate_supervision=intermediate_supervision,
                         
                          tile_loss_type=tile_loss_type,
                          bce_pos_weight=bce_pos_weight,
@@ -359,9 +363,9 @@ def main(# Path args
             # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=65,
-            limit_train_batches=1,
-            limit_val_batches=1,
-            limit_test_batches=1,
+#             limit_train_batches=1,
+#             limit_val_batches=1,
+#             limit_test_batches=1,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
@@ -429,6 +433,7 @@ if __name__ == '__main__':
         # Model args
         model_type_list=parsed_args.model_type_list,
         model_pretrain_epochs=parsed_args.model_pretrain_epochs,
+        intermediate_supervision=not parsed_args.no_intermediate_supervision,
         
         pretrain_backbone=not parsed_args.no_pretrain_backbone,
         freeze_backbone=not parsed_args.no_freeze_backbone,

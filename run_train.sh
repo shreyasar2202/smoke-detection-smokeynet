@@ -8,17 +8,75 @@
 python3 src/main.py \
     --experiment-name "RawToTile_ViT" \
     --model-type-list "RawToTile_ViT" \
-    --min-epochs 0 \
-    --max-epochs 1 \
+    --min-epochs 3 \
+    --max-epochs 5 \
     --batch-size 1 \
-    --series-length 4 \
     --num-workers 0 \
+    --series-length 1 \
     --accumulate-grad-batches 32 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
     --flip-augment \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images'
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
 
+python3 src/main.py \
+    --experiment-name "MobileToViT" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_ViT" \
+    --min-epochs 3 \
+    --max-epochs 5 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+    
+python3 src/main.py \
+    --experiment-name "MobileToViTNoSupervise" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_ViT" \
+    --min-epochs 3 \
+    --max-epochs 5 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --no-intermediate-supervision \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+    
+python3 src/main.py \
+    --experiment-name "MobileToViTToLinear" \
+    --model-type-list "TileToTile_ViT" "TileToImage_Linear" \
+    --min-epochs 3 \
+    --max-epochs 10 \
+    --batch-size 32 \
+    --series-length 1 \
+    --accumulate-grad-batches 1 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --embeddings-path '/root/pytorch_lightning_data/embeddings'
+
+python3 src/main.py \
+    --experiment-name "TileToImage_ViViT" \
+    --model-type-list "TileToImage_ViViT" \
+    --min-epochs 3 \
+    --max-epochs 10 \
+    --batch-size 1 \
+    --num-workers 0 \
+    --series-length 1 \
+    --accumulate-grad-batches 32 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --embeddings-path '/root/pytorch_lightning_data/embeddings'
     
     
 
