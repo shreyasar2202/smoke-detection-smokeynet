@@ -28,13 +28,16 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = False
+IS_DEBUG = True
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
 
 # Uses learning rate tuner to find LR only
 AUTO_LR_FIND = False
+
+# Whether to log the computational graph
+LOG_GRAPH = False
 
 
 #####################
@@ -182,7 +185,7 @@ def main(# Path args
         time_range=(-2400,2400), 
     
         image_dimensions=(1536, 2016),
-        crop_height=1344,
+        crop_height=1120,
         tile_dimensions=(224,224),
         smoke_threshold=10,
         num_tile_samples=0,
@@ -277,6 +280,9 @@ def main(# Path args
                          num_tiles=num_tiles_height * num_tiles_width,
                          num_tiles_height=num_tiles_height,
                          num_tiles_width=num_tiles_width,
+            
+                         image_size=(crop_height, image_dimensions[1]),
+                         tile_size=tile_dimensions[0],
                          series_length=series_length)
         
         ### Initialize LightningModule ###
@@ -327,7 +333,7 @@ def main(# Path args
         # Initialize logger 
         logger = TensorBoardLogger("./lightning_logs/", 
                                    name=experiment_name, 
-                                   log_graph=True,
+                                   log_graph=LOG_GRAPH,
                                    version=None)
         
         # Set up data_module and save train/val/test splits
@@ -353,9 +359,9 @@ def main(# Path args
             # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=65,
-#             limit_train_batches=1,
-#             limit_val_batches=1,
-#             limit_test_batches=1,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            limit_test_batches=1,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

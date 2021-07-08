@@ -6,56 +6,22 @@
 #############################################
 
 python3 src/main.py \
-    --experiment-name "MobileEmbeddings_LSTM" \
-    --model-type-list "TileToTile_LSTM" \
-    --min-epochs 3 \
-    --max-epochs 6 \
-    --batch-size 2 \
+    --experiment-name "RawToTile_ViT" \
+    --model-type-list "RawToTile_ViT" \
+    --min-epochs 0 \
+    --max-epochs 1 \
+    --batch-size 1 \
     --series-length 4 \
-    --accumulate-grad-batches 16 \
+    --num-workers 0 \
+    --accumulate-grad-batches 32 \
     --flip-augment \
-    --learning-rate 1e-3 \
-    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels'
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
 
-python3 src/main.py \
-    --experiment-name "MobileEmbeddings_Transformer" \
-    --model-type-list "TileToTile_Transformer" \
-    --min-epochs 1 \
-    --max-epochs 4 \
-    --batch-size 2 \
-    --series-length 4 \
-    --accumulate-grad-batches 16 \
-    --flip-augment \
-    --learning-rate 1e-2 \
-    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels'
     
-python3 src/main.py \
-    --experiment-name "MobileEmbeddings_Transformer" \
-    --model-type-list "TileToTile_Transformer" \
-    --min-epochs 1 \
-    --max-epochs 4 \
-    --batch-size 2 \
-    --series-length 4 \
-    --accumulate-grad-batches 16 \
-    --flip-augment \
-    --learning-rate 1e-3 \
-    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels'
+    
 
-python3 src/main.py \
-    --experiment-name "MobileEmbeddings_Transformer" \
-    --model-type-list "TileToTile_Transformer" \
-    --min-epochs 1 \
-    --max-epochs 4 \
-    --batch-size 2 \
-    --series-length 4 \
-    --accumulate-grad-batches 16 \
-    --flip-augment \
-    --learning-rate 1e-4 \
-    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels'
 
 
 #####################

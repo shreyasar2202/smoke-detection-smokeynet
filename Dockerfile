@@ -32,6 +32,7 @@ RUN pip3 install torchmetrics
 RUN pip3 install sklearn
 RUN pip3 install opencv-python
 RUN pip3 install transformers
+RUN pip3 install einops
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 

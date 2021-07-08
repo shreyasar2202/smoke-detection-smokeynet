@@ -360,7 +360,7 @@ class DynamicDataloader(Dataset):
         
         if self.embeddings_path is not None:
             # x.shape = [num_tiles, series_length, embedding_size]
-            # e.g. [45, 4, 512]
+            # e.g. [45, 4, 960]
             x = np.transpose(np.stack(x), (1, 0, 2))
         else:
             # x.shape = [series_length, num_channels, height, width]

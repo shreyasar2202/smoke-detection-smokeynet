@@ -218,6 +218,9 @@ class LightningModule(pl.LightningModule):
 
         # Loop through batch
         for image_names, tile_preds, image_preds in test_step_outputs:
+            if tile_preds is None:
+                tile_preds = [None] * len(image_names)
+            
             # Loop through entry in batch
             for image_name, tile_pred, image_pred in zip(image_names, tile_preds, image_preds):
                 fire_name = util_fns.get_fire_name(image_name)
@@ -228,11 +231,12 @@ class LightningModule(pl.LightningModule):
                     image_preds_csv_writer.writerow([image_name, image_pred])
 
                     # Save tile predictions
-                    tile_preds_path = self.logger.log_dir+'/tile_preds/'+fire_name
-                    Path(tile_preds_path).mkdir(parents=True, exist_ok=True)
-                    np.save(self.logger.log_dir+'/tile_preds/'+\
-                            image_name+\
-                            '.npy', tile_pred.cpu().numpy())
+                    if tile_pred is not None:
+                        tile_preds_path = self.logger.log_dir+'/tile_preds/'+fire_name
+                        Path(tile_preds_path).mkdir(parents=True, exist_ok=True)
+                        np.save(self.logger.log_dir+'/tile_preds/'+\
+                                image_name+\
+                                '.npy', tile_pred.cpu().numpy())
 
                 # Add prediction to fire_preds_dict list
                 # ASSUMPTION: images are in order and test data has not been shuffled
