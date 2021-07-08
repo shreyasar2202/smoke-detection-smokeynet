@@ -129,7 +129,7 @@ class RawToTile_MobileNetV3Large(nn.Module):
         # Initialize additional hidden layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
         
-    def forward(self, x):
+    def forward(self, x, *args):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -174,7 +174,7 @@ class RawToTile_DeiT(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
 
-    def forward(self, x):
+    def forward(self, x, *args):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -208,7 +208,7 @@ class TileToTile_LSTM(nn.Module):
         
         self.embeddings_to_output = TileEmbeddingsToOutput()
                 
-    def forward(self, tile_embeddings):
+    def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
                 
@@ -251,7 +251,7 @@ class TileToTile_Transformer(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
                 
-    def forward(self, tile_embeddings):
+    def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
         
@@ -304,7 +304,7 @@ class TileToTile_DeiT(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
                 
-    def forward(self, tile_embeddings):
+    def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
         
@@ -333,113 +333,23 @@ class TileToTile_DeiT(nn.Module):
 
 class TileToImage_Linear(nn.Module):
     """
-    Description: Single linear layer to go from tile outputs to image predictions
+    Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1
     Args:
         - num_tiles (int): number of tiles in image
     """
-    def __init__(self, num_tiles=45, series_length=1, **kwargs):
+    def __init__(self, num_tiles=45, **kwargs):
         print('- TileToImage_Linear')
         super().__init__()
         
-        self.fc1 = nn.Linear(in_features=num_tiles * series_length * 960, out_features=512)
-        self.fc2 = nn.Linear(in_features=512, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=1)
+        self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
+        self.fc1 = util_fns.init_weights_Xavier(self.fc1)
         
-        self.fc1, self.fc2, self.fc3 = util_fns.init_weights_Xavier(self.fc1, self.fc2, self.fc3)
+    def forward(self, tile_embeddings, tile_outputs):
+        batch_size, num_tiles, series_length = tile_outputs.size()
+        tile_outputs = tile_outputs.view(batch_size, num_tiles)
         
-    def forward(self, tile_embeddings):
-        batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
-        tile_embeddings = tile_embeddings.view(batch_size, num_tiles * series_length * embedding_size)
-        
-        image_outputs = F.relu(self.fc1(tile_embeddings)) # [batch_size, 512]
-        image_outputs = F.relu(self.fc2(image_outputs)) # [batch_size, 64]
-        image_outputs = self.fc3(image_outputs) # [batch_size, 1]
+        image_outputs = self.fc1(tile_outputs) # [batch_size, 1]
 
         return image_outputs, None # [batch_size, 1]
     
-    
-class TileToImage_DeiT(nn.Module):
-    """
-    Description: Vision Transformer operating on tiles to produce image prediction
-    Args:
-        - num_tiles_height (int): number of tiles that make up the height of the image
-        - num_tiles_width (int): number of tiles that make up the width of the image
-    """
-    def __init__(self, num_tiles_height=5, num_tiles_width=9, series_length=1, **kwargs):
-        print('- TileToImage_DeiT')
-        super().__init__()
-        
-        # Initialize initial linear layers
-        self.fc1 = nn.Linear(in_features=960, out_features=512)
-        self.fc2 = nn.Linear(in_features=512, out_features=256)
-        
-        # Initialize DeiT
-        self.embeddings_height = num_tiles_height * 16
-        self.embeddings_width = num_tiles_width * 16
-        
-        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
-                                            patch_size=16, 
-                                            num_channels=series_length, 
-                                            num_labels=1)
-        
-        self.deit_model = transformers.DeiTForImageClassification(deit_config)
-                
-    def forward(self, tile_embeddings):
-        batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
-        tile_embeddings = tile_embeddings.view(batch_size, num_tiles * series_length, embedding_size)
-        
-        # Run through initial linear layers
-        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles * series_length, 512]
-        tile_embeddings = F.relu(self.fc2(tile_embeddings)) # [batch_size, num_tiles * series_length, 256]
-        
-        # Run through DeiT
-        tile_embeddings = tile_embeddings.view(batch_size, series_length, self.embeddings_height, self.embeddings_width)
-        
-        image_outputs = self.deit_model(tile_embeddings).logits # [batch_size]
-        image_outputs = image_outputs.view(batch_size, 1) 
-
-        return image_outputs, None # [batch_size, 1]
-    
-    
-class TileToImage_ViViT(nn.Module):
-    """
-    Description: Video Vision Transformer operating on tiles to produce image predictions
-    """
-    def __init__(self, series_length=1, **kwargs):
-        print('- TileToImage_ViViT')
-        super().__init__()
-                
-        # Initialize initial linear layers
-        self.fc1 = nn.Linear(in_features=960, out_features=720)
-        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
-
-        # Initialize ViViT
-        self.image_size = 180 # 180 = 5 * 36 = 9 * 20 
-        
-        self.vivit_model = ViViT(image_size=self.image_size, 
-                                  patch_size=18, 
-                                  num_classes=1, 
-                                  num_frames=series_length, 
-                                  dim = 192, 
-                                  depth = 4, 
-                                  heads = 3, 
-                                  pool = 'cls', 
-                                  in_channels = 1, 
-                                  dim_head = 64, 
-                                  dropout = 0.,
-                                  emb_dropout = 0., 
-                                  scale_dim = 4)
-                
-    def forward(self, tile_embeddings):
-        tile_embeddings = tile_embeddings.float()
-        batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
-        
-        # Run through initial linear layers
-        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 720]
-        
-        # Run through ViViT
-        tile_embeddings = tile_embeddings.view(batch_size, series_length, 1, self.image_size, self.image_size)
-        image_outputs = self.vivit_model(tile_embeddings) # [batch_size, 1]
-        
-        return image_outputs, None # [batch_size, 1]
     

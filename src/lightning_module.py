@@ -99,16 +99,14 @@ class LightningModule(pl.LightningModule):
         for split in self.metrics['split']:
             # Use mdmc_average='global' for tile_preds only
             self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average='global')
-            # Recall and Precision are flipped in torchmetrics compared to sklearn
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][1]] = torchmetrics.Recall(multiclass=False, mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][2]] = torchmetrics.Precision(multiclass=False, mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average='global')
+            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average='global')
             self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average='global')
             
             for category in self.metrics['category'][1:]:
                 self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy()
-                # Recall and Precision are flipped in torchmetrics compared to sklearn
-                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Recall(multiclass=False)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Precision(multiclass=False)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False)
                 self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False)
             
         print("Initializing LightningModule Complete.")
@@ -168,7 +166,6 @@ class LightningModule(pl.LightningModule):
             self.log(split+'loss_'+str(i), loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
         
         self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
-        self.log('general/learning_rate', self.learning_rate, on_step=False, on_epoch=True)
 
         # Calculate & log evaluation metrics
         for category, args in zip(self.metrics['category'], 

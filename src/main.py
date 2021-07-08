@@ -9,7 +9,7 @@ Description: Kicks off training and evaluation. Contains many command line argum
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger
 
 # Other package imports
@@ -318,19 +318,21 @@ def main(# Path args
                                    is_embeddings=embeddings_path is not None)
             
         ### Implement EarlyStopping & Other Callbacks ###
-        early_stop_callback = EarlyStopping(
-           monitor='val/loss',
-           min_delta=0.00,
-           patience=4,
-           verbose=True)
-
-        checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
-        
         callbacks = []
+        
         if early_stopping: 
+            early_stop_callback = EarlyStopping(
+                                   monitor='val/loss',
+                                   min_delta=0.00,
+                                   patience=4,
+                                   verbose=True)
             callbacks.append(early_stop_callback)
         if not IS_DEBUG: 
+            checkpoint_callback = ModelCheckpoint(monitor='val/loss', save_last=True)
             callbacks.append(checkpoint_callback)
+            
+            lr_monitor = LearningRateMonitor(logging_interval='epoch')
+            callbacks.append(lr_monitor)
 
         ### Initialize Trainer ###
 

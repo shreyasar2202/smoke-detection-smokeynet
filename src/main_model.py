@@ -93,6 +93,7 @@ class MainModel(nn.Module):
             - image_preds (tensor): final predictions for each image
         """
         
+        outputs = None
         tile_outputs = None
         image_outputs = None
         
@@ -109,7 +110,7 @@ class MainModel(nn.Module):
                 break
             
             # Compute forward pass
-            outputs, x = model(x)
+            outputs, x = model(x, outputs)
                         
             # If model predicts tiles...
             if len(outputs.shape) > 2:
