@@ -98,7 +98,7 @@ parser.add_argument('--tile-size', type=int, default=224,
 parser.add_argument('--smoke-threshold', type=int, default=10,
                     help='Number of pixels of smoke to consider tile positive.')
 parser.add_argument('--num-tile-samples', type=int, default=0,
-                    help='Number of random tile samples per batch. If < 1, then turned off. Recommended to use 20.')
+                    help='Number of random tile samples per batch. If < 1, then turned off. Recommended: 20. To avoid errors, use with --time-range-min 0')
 
 parser.add_argument('--flip-augment', action='store_true',
                     help='Enables data augmentation with horizontal flip.')
@@ -131,7 +131,7 @@ parser.add_argument('--focal-gamma', type=float, default=2,
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
-parser.add_argument('--optimizer-weight-decay', type=float, default=0.0001,
+parser.add_argument('--optimizer-weight-decay', type=float, default=0.001,
                     help='Weight decay of optimizer.')
 parser.add_argument('--learning-rate', type=float, default=5e-3,
                     help='Learning rate for training.')

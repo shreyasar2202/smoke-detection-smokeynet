@@ -71,8 +71,9 @@ class MainModel(nn.Module):
         
     def forward(self, x):
         """Description: Maps raw inputs to outputs"""
+        outputs = None
         for model in self.model_list:
-            outputs, x = model(x)
+            outputs, x = model(x, outputs)
             
         return outputs
         

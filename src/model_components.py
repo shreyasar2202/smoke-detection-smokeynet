@@ -26,7 +26,6 @@ import numpy as np
 
 # File imports
 import util_fns
-from ViViT_pytorch.vivit import ViViT
 
 
 #####################
@@ -77,7 +76,13 @@ class TileLoss():
             tile_loss = F.binary_cross_entropy_with_logits(
                       tile_outputs, 
                       tile_labels,
+                      reduction='sum', 
                       pos_weight=torch.as_tensor(self.bce_pos_weight))
+            
+            # Normalize by count of positives in ground truth only as in RetinaNet paper
+            # Prevent divide by 0 error
+            # Also divide by pos_weight+1 to normalize weights
+            tile_loss = tile_loss / (torch.maximum(torch.as_tensor(1), tile_labels.sum()) * (self.bce_pos_weight+1) )
         
         return tile_loss
 
@@ -342,7 +347,7 @@ class TileToImage_Linear(nn.Module):
         super().__init__()
         
         self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
-        self.fc1 = util_fns.init_weights_Xavier(self.fc1)
+        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
         
     def forward(self, tile_embeddings, tile_outputs):
         batch_size, num_tiles, series_length = tile_outputs.size()

@@ -259,8 +259,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=0,
-                                          flip_augment=self.flip_augment,
-                                          blur_augment=self.blur_augment)
+                                          flip_augment=False,
+                                          blur_augment=False)
         val_loader = DataLoader(val_dataset, 
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
@@ -278,8 +278,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=0,
-                                          flip_augment=self.flip_augment,
-                                          blur_augment=self.blur_augment)
+                                          flip_augment=False,
+                                          blur_augment=False)
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
