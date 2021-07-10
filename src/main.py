@@ -131,7 +131,7 @@ parser.add_argument('--focal-gamma', type=float, default=2,
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
-parser.add_argument('--optimizer-weight-decay', type=float, default=0.001,
+parser.add_argument('--optimizer-weight-decay', type=float, default=1e-3,
                     help='Weight decay of optimizer.')
 parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='Learning rate for training.')

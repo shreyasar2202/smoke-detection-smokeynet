@@ -195,6 +195,7 @@ class DynamicDataModule(pl.LightningDataModule):
             
             # Shorten fire_to_images to relevant time frame
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], self.time_range, train_fires)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], self.time_range, val_fires)
 
             # Save arrays representing series of images
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
@@ -258,7 +259,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
-                                          num_tile_samples=0,
+                                          num_tile_samples=self.num_tile_samples,
                                           flip_augment=False,
                                           blur_augment=False)
         val_loader = DataLoader(val_dataset, 

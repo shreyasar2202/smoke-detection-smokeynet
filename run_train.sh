@@ -6,20 +6,35 @@
 #############################################
 
 python3 src/main.py \
-    --experiment-name "RawToTile_EfficientNetB6" \
-    --model-type-list "RawToTile_EfficientNetB6" \
+    --experiment-name "RawToTile_MobileNetV3LargeRUS" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
     --max-epochs 10 \
-    --batch-size 1 \
+    --batch-size 8 \
     --series-length 1 \
-    --accumulate-grad-batches 32 \
+    --accumulate-grad-batches 4 \
     --no-freeze-backbone \
+    --no-pretrain-backbone \
     --flip-augment \
     --blur-augment \
-    --no-lr-schedule \
-    --no-early-stopping \
-    --learning-rate 1e-3 \
-    --optimizer-weight-decay 0.1 \
+    --bce-pos-weight 1 \
+    --num-tile-samples 30 \
+    --time-range-min 0 \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images'
+    
+python3 src/main.py \
+    --experiment-name "RawToTile_MobileNetV3LargeNoRUS" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 10 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --blur-augment \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images'
 
