@@ -32,7 +32,11 @@ RUN pip3 install torchmetrics
 RUN pip3 install sklearn
 RUN pip3 install opencv-python
 RUN pip3 install transformers
-RUN pip3 install einops
+RUN pip3 install efficientnet-pytorch
+
+# Fix ipynb bug with progress bar
+RUN pip3 install ipywidgets
+RUN jupyter nbextension enable --py widgetsnbextension
 
 ENV PYTHONPATH='/src/:$PYTHONPATH'
 

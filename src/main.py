@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = False
+IS_DEBUG = True
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False

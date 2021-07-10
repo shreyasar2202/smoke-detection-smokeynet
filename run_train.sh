@@ -6,21 +6,18 @@
 #############################################
 
 python3 src/main.py \
-    --experiment-name "MnasNet05_Embeddings" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
+    --experiment-name "RawToTile_EfficientNetB6" \
+    --model-type-list "RawToTile_EfficientNetB6" \
     --min-epochs 3 \
     --max-epochs 10 \
-    --batch-size 8 \
+    --batch-size 1 \
     --series-length 1 \
-    --accumulate-grad-batches 4 \
+    --accumulate-grad-batches 32 \
     --no-freeze-backbone \
     --flip-augment \
     --blur-augment \
     --no-lr-schedule \
     --no-early-stopping \
-    --bce-pos-weight 1 \
-    --num-tile-samples 30 \
-    --time-range-min 0 \
     --learning-rate 1e-3 \
     --optimizer-weight-decay 0.1 \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \

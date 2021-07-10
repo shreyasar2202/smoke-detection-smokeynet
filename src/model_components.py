@@ -20,6 +20,7 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 import transformers
+from efficientnet_pytorch import EfficientNet
 
 # Other imports 
 import numpy as np
@@ -131,7 +132,7 @@ class RawToTile_MobileNetV3Large(nn.Module):
             for param in self.conv.parameters():
                 param.requires_grad = False
 
-        # Initialize additional hidden layers
+        # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
         
     def forward(self, x, *args):
@@ -150,28 +151,32 @@ class RawToTile_MobileNetV3Large(nn.Module):
         tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
-
-class RawToTile_MnasNet05(nn.Module):
+    
+class RawToTile_EfficientNetB6(nn.Module):
     """
-    Description: MNAS Net 0.5 backbone with a few linear layers.
+    Description: MobileNetV3Large backbone with a few linear layers.
     Args:
         - series_length (int)
         - freeze_backbone (bool): Freezes layers of pretrained backbone
         - pretrain_backbone (bool): Pretrains backbone
     """
     def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
-        print('- RawToTile_MnasNet05')
+        print('- RawToTile_EfficientNetB6')
         super().__init__()
-
-        self.conv = torchvision.models.mnasnet0_5(pretrained=pretrain_backbone)
-        self.conv.classifier = nn.Identity()
+        
+        if pretrain_backbone:
+            self.conv = EfficientNet.from_pretrained("efficientnet-b6")
+        else:
+            self.conv = EfficientNet.from_name("efficientnet-b6")
+            
+        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
 
         if pretrain_backbone and freeze_backbone:
             for param in self.conv.parameters():
                 param.requires_grad = False
 
-        # Initialize additional hidden layers
-        self.fc = nn.Linear(in_features=1280, out_features=960)
+        # Initialize additional linear layers
+        self.fc = nn.Linear(in_features=2304, out_features=960)
         self.embeddings_to_output = TileEmbeddingsToOutput()
         
     def forward(self, x, *args):
@@ -180,11 +185,12 @@ class RawToTile_MnasNet05(nn.Module):
 
         # Run through conv model
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, 1280]
-        tile_outputs = self.fc(tile_outputs) # [batch_size * num_tiles * series_length, 960]
-
+        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 2304, 7, 7]
+        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 2304, 1, 1]
+        
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 960)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 2304)
+        tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
         embeddings = tile_outputs
         
         # Use linear layers to get dim=1
