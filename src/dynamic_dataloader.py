@@ -342,6 +342,8 @@ class DynamicDataloader(Dataset):
             if self.embeddings_path is not None:
                 if self.flip_augment and should_flip:
                     img = np.load(self.embeddings_path+'/cnn_embeddings_flip/'+file_name+'.npy').squeeze()
+                elif self.blur_augment and should_blur:
+                    img = np.load(self.embeddings_path+'/cnn_embeddings_blur/'+file_name+'.npy').squeeze()
                 else:
                     img = np.load(self.embeddings_path+'/cnn_embeddings/'+file_name+'.npy').squeeze()
             else:
@@ -351,10 +353,10 @@ class DynamicDataloader(Dataset):
                 img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
 
                 # Add data augmentations
-                if self.flip_augment and should_flip:
-                    img = cv2.flip(img, 1)
-                if self.blur_augment and should_blur:
-                    img = cv2.blur(img, (blur_size,blur_size))
+#                 if self.flip_augment and should_flip:
+#                     img = cv2.flip(img, 1)
+#                 if self.blur_augment and should_blur:
+#                     img = cv2.blur(img, (blur_size,blur_size))
             
             x.append(img)
         

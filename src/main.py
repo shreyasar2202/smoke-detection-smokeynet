@@ -133,7 +133,7 @@ parser.add_argument('--optimizer-type', type=str, default='SGD',
                     help='Type of optimizer to use for training. Options: [AdamW] [SGD]')
 parser.add_argument('--optimizer-weight-decay', type=float, default=0.001,
                     help='Weight decay of optimizer.')
-parser.add_argument('--learning-rate', type=float, default=5e-3,
+parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='Learning rate for training.')
 parser.add_argument('--no-lr-schedule', action='store_true',
                     help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')

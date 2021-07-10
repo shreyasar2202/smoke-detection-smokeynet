@@ -156,10 +156,11 @@ class LightningModule(pl.LightningModule):
         outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
         
         # DEBUG: uncomment to save embeddings to file
-#         if split == self.metrics['split'][2]:
-#             for image_name, embedding in zip(image_names, embeddings):
-#                 os.makedirs('./data/embeddings_flip/'+util_fns.get_fire_name(image_name), exist_ok=True)
-#                 np.save('./data/embeddings_flip/'+image_name+'.npy', embedding.cpu())
+        if split == self.metrics['split'][2]:
+            for image_name, embedding in zip(image_names, embeddings):
+                embeddings_path = '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings/cnn_embeddings/'
+                os.makedirs(embeddings_path+util_fns.get_fire_name(image_name), exist_ok=True)
+                np.save(embeddings_path+image_name+'.npy', embedding.cpu())
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):

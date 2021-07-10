@@ -151,7 +151,47 @@ class RawToTile_MobileNetV3Large(nn.Module):
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
 
+class RawToTile_MnasNet05(nn.Module):
+    """
+    Description: MNAS Net 0.5 backbone with a few linear layers.
+    Args:
+        - series_length (int)
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone
+    """
+    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
+        print('- RawToTile_MnasNet05')
+        super().__init__()
 
+        self.conv = torchvision.models.mnasnet0_5(pretrained=pretrain_backbone)
+        self.conv.classifier = nn.Identity()
+
+        if pretrain_backbone and freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
+
+        # Initialize additional hidden layers
+        self.fc = nn.Linear(in_features=1280, out_features=960)
+        self.embeddings_to_output = TileEmbeddingsToOutput()
+        
+    def forward(self, x, *args):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, 1280]
+        tile_outputs = self.fc(tile_outputs) # [batch_size * num_tiles * series_length, 960]
+
+        # Save embeddings of dim=960
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 960)
+        embeddings = tile_outputs
+        
+        # Use linear layers to get dim=1
+        tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
+
+        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
+    
 class RawToTile_DeiT(nn.Module):
     """
     Description: Vision Transformer operating on raw inputs to produce tile predictions
@@ -323,7 +363,7 @@ class TileToTile_DeiT(nn.Module):
         tile_outputs = self.deit_model(tile_embeddings).last_hidden_state[:,1:-1] # [batch_size * series_length, num_tiles, embedding_size]
         
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, embedding_size)
+        tile_outputs = tile_outputs.contiguous().view(batch_size, num_tiles, series_length, embedding_size)
         embeddings = tile_outputs
         
         # Use linear layers to get dim=1
