@@ -252,7 +252,7 @@ def get_filled_labels(raw_data_path, raw_labels_path, image_name):
     
     return labels
 
-def randomly_sample_tiles(x, labels, num_samples=20):
+def randomly_sample_tiles(x, labels, num_samples=40):
     """
     Description: Randomly samples tiles to evenly balance positives and negatives
     Args:
@@ -264,12 +264,10 @@ def randomly_sample_tiles(x, labels, num_samples=20):
     pos_indices = np.where(labels == 1)[0]
     neg_indices = np.where(labels == 0)[0]
     
-    # Randomly sample num_tiles of each, with 2/3 positive examples
-    neg_size = num_samples//3
-    pos_size = num_samples - neg_size
-    
-    sampled_pos_indices = np.random.choice(pos_indices, size=pos_size, replace=len(pos_indices)<pos_size)
-    sampled_neg_indices = np.random.choice(neg_indices, size=neg_size, replace=len(neg_indices)<neg_size)
+    # Randomly sample num_tiles of each
+    size = num_samples//2
+    sampled_pos_indices = np.random.choice(pos_indices, size=size, replace=len(pos_indices)<size)
+    sampled_neg_indices = np.random.choice(neg_indices, size=size, replace=len(neg_indices)<size)
 
     # Update x and labels
     x = x[np.concatenate((sampled_pos_indices, sampled_neg_indices))]

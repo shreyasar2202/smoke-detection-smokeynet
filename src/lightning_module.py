@@ -40,7 +40,8 @@ class LightningModule(pl.LightningModule):
                  
                  series_length=1,
                  parsed_args=None,
-                 is_embeddings=False):
+                 is_embeddings=False,
+                 embeddings_save_path=None):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
@@ -53,6 +54,7 @@ class LightningModule(pl.LightningModule):
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
             - is_embeddings (bool): if the input of the model are embeddings instead of raw data
+            - embeddings_save_path (str): if not None, where to save embeddings
 
         Other Attributes:
             - example_input_array (tensor): example of input to log computational graph in tensorboard
@@ -81,6 +83,8 @@ class LightningModule(pl.LightningModule):
         # Save hyperparameters
         self.save_hyperparameters(parsed_args)
         self.save_hyperparameters('learning_rate')
+        
+        self.embeddings_save_path = embeddings_save_path
         
         if is_embeddings:
             self.example_input_array = torch.randn((1,45,series_length, 960)).float()
@@ -155,12 +159,13 @@ class LightningModule(pl.LightningModule):
         # Compute outputs, loss, and predictions
         outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
         
-        # DEBUG: uncomment to save embeddings to file
-        if split == self.metrics['split'][2]:
-            for image_name, embedding in zip(image_names, embeddings):
-                embeddings_path = '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings/cnn_embeddings/'
-                os.makedirs(embeddings_path+util_fns.get_fire_name(image_name), exist_ok=True)
-                np.save(embeddings_path+image_name+'.npy', embedding.cpu())
+        # Save test embeddings
+        if self.embeddings_save_path is not None and split == self.metrics['split'][2]:
+            embedding = embeddings.permute(2, 1, 0, 3)
+            for i, augment in enumerate(embedding):
+                folder_prefix = self.embeddings_save_path+['raw/', 'flip/', 'blur/'][i % 3]
+                os.makedirs(folder_prefix+util_fns.get_fire_name(image_names[0]), exist_ok=True)
+                np.save(folder_prefix+image_names[0]+'.npy', augment.cpu())
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):

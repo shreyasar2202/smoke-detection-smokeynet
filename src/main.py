@@ -28,7 +28,7 @@ import util_fns
 #####################
 
 # Turns off logging and checkpointing
-IS_DEBUG = True
+IS_DEBUG = False
 
 # Skips training for testing only - useful when checkpoint loading
 TEST_ONLY = False
@@ -38,6 +38,9 @@ AUTO_LR_FIND = False
 
 # Whether to log the computational graph
 LOG_GRAPH = False
+
+# Whether or not to save test embeddings. Use with TEST_ONLY=True
+EMBEDDINGS_SAVE_PATH = None # './data/embeddings/'
 
 
 #####################
@@ -95,10 +98,10 @@ parser.add_argument('--crop-height', type=int, default=1120,
                     help='Desired height after cropping.')
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
-parser.add_argument('--smoke-threshold', type=int, default=10,
+parser.add_argument('--smoke-threshold', type=int, default=250,
                     help='Number of pixels of smoke to consider tile positive.')
 parser.add_argument('--num-tile-samples', type=int, default=0,
-                    help='Number of random tile samples per batch. If < 1, then turned off. Recommended: 20. To avoid errors, use with --time-range-min 0')
+                    help='Number of random tile samples per batch. If < 1, then turned off. Recommended: 40. To avoid errors, use with --time-range-min 0')
 
 parser.add_argument('--flip-augment', action='store_true',
                     help='Enables data augmentation with horizontal flip.')
@@ -121,7 +124,7 @@ parser.add_argument('--no-freeze-backbone', action='store_true',
 
 parser.add_argument('--tile-loss-type', type=str, default='bce',
                     help='Type of loss to use for training. Options: [bce], [focal]')
-parser.add_argument('--bce-pos-weight', type=float, default=25,
+parser.add_argument('--bce-pos-weight', type=float, default=36,
                     help='Weight for positive class for BCE loss for tiles.')
 parser.add_argument('--focal-alpha', type=float, default=0.25,
                     help='Alpha for focal loss.')
@@ -189,7 +192,7 @@ def main(# Path args
         image_dimensions=(1536, 2016),
         crop_height=1120,
         tile_dimensions=(224,224),
-        smoke_threshold=10,
+        smoke_threshold=250,
         num_tile_samples=0,
     
         flip_augment=False,
@@ -242,6 +245,7 @@ def main(# Path args
             labels_path=labels_path,
             raw_labels_path=raw_labels_path,
             metadata_path=metadata_path,
+            embeddings_save_path=EMBEDDINGS_SAVE_PATH,
             train_split_path=train_split_path,
             val_split_path=val_split_path,
             test_split_path=test_split_path,
@@ -303,7 +307,8 @@ def main(# Path args
                 
                                    series_length=series_length,
                                    parsed_args=parsed_args,
-                                   is_embeddings=embeddings_path is not None)
+                                   is_embeddings=embeddings_path is not None,
+                                   embeddings_save_path=EMBEDDINGS_SAVE_PATH)
         else:
             lightning_module = LightningModule(
                                    model=main_model,
@@ -315,7 +320,8 @@ def main(# Path args
                 
                                    series_length=series_length,
                                    parsed_args=parsed_args,
-                                   is_embeddings=embeddings_path is not None)
+                                   is_embeddings=embeddings_path is not None,
+                                   embeddings_save_path=EMBEDDINGS_SAVE_PATH)
             
         ### Implement EarlyStopping & Other Callbacks ###
         callbacks = []

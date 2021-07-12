@@ -151,10 +151,102 @@ class RawToTile_MobileNetV3Large(nn.Module):
         tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
+
+class RawToTile_EfficientNetB0(nn.Module):
+    """
+    Description: EfficientNetB0 backbone with a few linear layers.
+    Args:
+        - series_length (int)
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone
+    """
+    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
+        print('- RawToTile_EfficientNetB0')
+        super().__init__()
+        
+        if pretrain_backbone:
+            self.conv = EfficientNet.from_pretrained("efficientnet-b0")
+        else:
+            self.conv = EfficientNet.from_name("efficientnet-b0")
+            
+        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
+
+        if pretrain_backbone and freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
+
+        # Initialize additional linear layers
+        self.fc = nn.Linear(in_features=1280, out_features=960)
+        self.embeddings_to_output = TileEmbeddingsToOutput()
+        
+    def forward(self, x, *args):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 1280, 7, 7]
+        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 1280, 1, 1]
+        
+        # Save embeddings of dim=960
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 1280)
+        tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
+        embeddings = tile_outputs
+        
+        # Use linear layers to get dim=1
+        tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
+
+        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
+    
+class RawToTile_EfficientNetB3(nn.Module):
+    """
+    Description: EfficientNetB3 backbone with a few linear layers.
+    Args:
+        - series_length (int)
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone
+    """
+    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
+        print('- RawToTile_EfficientNetB3')
+        super().__init__()
+        
+        if pretrain_backbone:
+            self.conv = EfficientNet.from_pretrained("efficientnet-b3")
+        else:
+            self.conv = EfficientNet.from_name("efficientnet-b3")
+            
+        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
+
+        if pretrain_backbone and freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
+
+        # Initialize additional linear layers
+        self.fc = nn.Linear(in_features=1536, out_features=960)
+        self.embeddings_to_output = TileEmbeddingsToOutput()
+        
+    def forward(self, x, *args):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 1536, 7, 7]
+        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 1536, 1, 1]
+        
+        # Save embeddings of dim=960
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 1536)
+        tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
+        embeddings = tile_outputs
+        
+        # Use linear layers to get dim=1
+        tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
+
+        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
     
 class RawToTile_EfficientNetB6(nn.Module):
     """
-    Description: MobileNetV3Large backbone with a few linear layers.
+    Description: EfficientNetB6 backbone with a few linear layers.
     Args:
         - series_length (int)
         - freeze_backbone (bool): Freezes layers of pretrained backbone

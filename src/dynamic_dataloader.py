@@ -32,6 +32,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  labels_path=None, 
                  raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
+                 embeddings_save_path=None,
                  train_split_path=None,
                  val_split_path=None,
                  test_split_path=None,
@@ -44,7 +45,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
-                 smoke_threshold = 10,
+                 smoke_threshold = 250,
                  num_tile_samples = 0,
                  flip_augment = False,
                  blur_augment = False,
@@ -64,6 +65,7 @@ class DynamicDataModule(pl.LightningDataModule):
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
                 - omit_no_bbox (list of str): list of images that erroneously do not have loaded bboxes for labels
                 - omit_images_list (list of str): union of omit_no_xml and omit_no_bbox
+            - embeddings_save_path (str): if not None, saves embeddings to this path
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -101,6 +103,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
+        self.embeddings_save_path = embeddings_save_path
         
         self.train_split_path = train_split_path
         self.val_split_path = val_split_path
@@ -147,23 +150,27 @@ class DynamicDataModule(pl.LightningDataModule):
             
             output_path = '/userdata/kerasData/data/new_data/drive_clone_new'
 
+            # Loop through all fires
             for fire in self.metadata['fire_to_images']:
                 self.metadata['num_fires'] += 1
                 
                 print('Preparing Folder ', self.metadata['num_fires'])
                 
+                # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
                     self.metadata['num_images'] += 1
                     
                     self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
                     self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
                     
+                    # If a positive image does not have an XML file associated with it, add it to omit_images_list
                     if self.metadata['ground_truth_label'][image] != self.metadata['has_xml_label'][image]:
                         self.metadata['omit_no_xml'].append(image)
                     
                     if self.metadata['has_xml_label'][image]:
                         labels = util_fns.get_filled_labels(self.raw_data_path, self.raw_labels_path, image)
                         
+                        # If a positive image has an XML file with no segmentation mask in it, add it to omit_images_list
                         if labels.sum() == 0:
                             self.metadata['omit_no_bbox'].append(image)
 
@@ -200,10 +207,10 @@ class DynamicDataModule(pl.LightningDataModule):
             # Save arrays representing series of images
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
 
-            # Create train/val/test split of Images
+            # Create train/val/test split of Images, removing images from omit_images_list
             self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, self.metadata['omit_images_list'])
             self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, self.metadata['omit_images_list'])
-            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, self.metadata['omit_images_list'], is_test=True)
+            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, self.metadata['omit_images_list']) #is_test=True
 
             # If logdir is provided, then save train/val/test splits
             if log_dir:
@@ -233,7 +240,8 @@ class DynamicDataModule(pl.LightningDataModule):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
-                                          metadata=self.metadata,
+                                          metadata=self.metadata, 
+                                          embeddings_save_path=self.embeddings_save_path,
                                           data_split=self.train_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -254,6 +262,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
+                                          embeddings_save_path=self.embeddings_save_path,
                                           data_split=self.val_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -273,6 +282,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
+                                          embeddings_save_path=self.embeddings_save_path,
                                           data_split=self.test_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -282,8 +292,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                           flip_augment=False,
                                           blur_augment=False)
         test_loader = DataLoader(test_dataset, 
-                                 batch_size=self.batch_size, 
-                                 num_workers=self.num_workers,
+                                 batch_size=self.batch_size if self.embeddings_save_path is None else 1, 
+                                 num_workers=self.num_workers if self.embeddings_save_path is None else 0,
                                  pin_memory=True)
         return test_loader
     
@@ -298,11 +308,12 @@ class DynamicDataloader(Dataset):
                  embeddings_path=None,
                  labels_path=None, 
                  metadata=None,
+                 embeddings_save_path=None,
                  data_split=None, 
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
-                 smoke_threshold = 10,
+                 smoke_threshold = 250,
                  num_tile_samples = 0,
                  flip_augment = False,
                  blur_augment = False):
@@ -311,6 +322,7 @@ class DynamicDataloader(Dataset):
         self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         self.metadata = metadata
+        self.embeddings_save_path = embeddings_save_path
         self.data_split = data_split
         
         self.image_dimensions = image_dimensions
@@ -324,51 +336,83 @@ class DynamicDataloader(Dataset):
 
     def __len__(self):
         return len(self.data_split)
+    
+    def get_images(self, image_name, should_flip, should_blur, blur_size):
+        """Description: Loads series_length of raw images. Crops, resizes, and adds data augmentations"""
+        x = []
+        
+        for file_name in self.metadata['image_series'][image_name]:
+            # img.shape = [height, width, num_channels]
+            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+            # Resize and crop
+            img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+
+            # Add data augmentations
+            if should_flip:
+                img = cv2.flip(img, 1)
+            if should_blur:
+                img = cv2.blur(img, (blur_size,blur_size))
+
+            x.append(img)
+            
+        # x.shape = [series_length, num_channels, height, width]
+        # e.g. [5, 3, 1344, 2016]
+        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
+        
+        return x
+        
+    def get_embeddings(self, image_name, should_flip, should_blur, blur_size):
+        """Description: Loads pre-saved embeddings"""
+        x = []
+        
+        for file_name in self.metadata['image_series'][image_name]:
+            if should_flip:
+                img = np.load(self.embeddings_path+'/flip/'+file_name+'.npy').squeeze()
+            elif should_blur:
+                img = np.load(self.embeddings_path+'/blur/'+file_name+'.npy').squeeze()
+            else:
+                img = np.load(self.embeddings_path+'/raw/'+file_name+'.npy').squeeze()
+                
+        # x.shape = [num_tiles, series_length, embedding_size]
+        # e.g. [45, 4, 960]
+        x = np.transpose(np.stack(x), (1, 0, 2))
+        
+        return x
+    
+    def prep_save_embeddings(self, image_name, blur_size):
+        """Description: Loads data augmented raw images to be saved as embeddings"""
+        x = []
+        
+        img = cv2.imread(self.raw_data_path+'/'+image_name+'.jpg')
+        img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+
+        x.append(img)
+        x.append(cv2.flip(img, 1))
+        x.append(cv2.blur(img, (blur_size,blur_size)))
+        
+        # x.shape = [series_length, num_channels, height, width]
+        # e.g. [5, 3, 1344, 2016]
+        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255
+        
+        return x
 
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
+        series_length = len(self.metadata['image_series'][image_name]) if self.embeddings_save_path is None else 3
         
         ### Load Images ###
-        x = []
-        series_length = len(self.metadata['image_series'][image_name])
-        
-        if self.flip_augment:
-            should_flip = np.random.rand() > 0.5
-        if self.blur_augment:
-            should_blur = np.random.rand() > 0.5
-            blur_size = np.maximum(int(np.random.randn()*3+10), 1)
-        
-        # Load all images in the series
-        for file_name in self.metadata['image_series'][image_name]:
-            if self.embeddings_path is not None:
-                if self.flip_augment and should_flip:
-                    img = np.load(self.embeddings_path+'/cnn_embeddings_flip/'+file_name+'.npy').squeeze()
-                elif self.blur_augment and should_blur:
-                    img = np.load(self.embeddings_path+'/cnn_embeddings_blur/'+file_name+'.npy').squeeze()
-                else:
-                    img = np.load(self.embeddings_path+'/cnn_embeddings/'+file_name+'.npy').squeeze()
-            else:
-                # img.shape = [height, width, num_channels]
-                img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-                # Resize and crop
-                img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
-
-                # Add data augmentations
-#                 if self.flip_augment and should_flip:
-#                     img = cv2.flip(img, 1)
-#                 if self.blur_augment and should_blur:
-#                     img = cv2.blur(img, (blur_size,blur_size))
+        # Determine if data augmentation should occur
+        should_flip = np.random.rand() > 0.5 if self.flip_augment else False
+        should_blur = np.random.rand() > 0.5 if self.blur_augment else False
+        blur_size = np.maximum(int(np.random.randn()*3+10), 1)
             
-            x.append(img)
-        
+        # Load images or embeddings
         if self.embeddings_path is not None:
-            # x.shape = [num_tiles, series_length, embedding_size]
-            # e.g. [45, 4, 960]
-            x = np.transpose(np.stack(x), (1, 0, 2))
+            x = self.get_embeddings(image_name, should_flip, should_blur, blur_size)
+        elif self.embeddings_save_path is not None:
+            x = self.prep_save_embeddings(image_name, blur_size)
         else:
-            # x.shape = [series_length, num_channels, height, width]
-            # e.g. [5, 3, 1344, 2016]
-            x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
+            x = self.get_images(image_name, should_flip, should_blur, blur_size)
            
         ### Load XML labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
@@ -379,7 +423,7 @@ class DynamicDataloader(Dataset):
         
         # labels.shape = [height, width]
         labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
-        if self.flip_augment and should_flip:
+        if should_flip:
             labels = cv2.flip(labels, 1)
         
         ### Tile Image ###
@@ -388,15 +432,28 @@ class DynamicDataloader(Dataset):
             # x.shape = [45, 5, 3, 224, 224]
             # labels.shape = [45, 224, 224]
             if self.embeddings_path is None:
-                x = np.reshape(x, (-1, series_length, 3, self.tile_dimensions[0], self.tile_dimensions[1]))
-            labels = np.reshape(labels,(-1, self.tile_dimensions[0], self.tile_dimensions[1]))
-
+                # Take special care to make sure tiles are in the right order
+                # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
+                x = np.transpose(x, (2, 3, 0, 1))
+                x = np.reshape(x, (self.crop_height // self.tile_dimensions[0], 
+                                   self.tile_dimensions[0], 
+                                   self.image_dimensions[1] // self.tile_dimensions[1],
+                                   self.tile_dimensions[1],
+                                   series_length, 3))
+                x = x.swapaxes(3,4).reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1], series_length, 3)
+                x = np.transpose(x, (0, 3, 4, 1, 2))
+           
+            labels = np.reshape(labels,(self.crop_height // self.tile_dimensions[0], 
+                                        self.tile_dimensions[0], 
+                                        self.image_dimensions[1] // self.tile_dimensions[1],
+                                        self.tile_dimensions[1]))
+            labels = labels.swapaxes(1,2).reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
+            
             # tile_labels.shape = [45,]
             labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
             
-            if self.num_tile_samples > 0:
-                # WARNING: Assumes that there are no labels with all 0s
-                # Tip: Use --time-range-min 0
+            if self.embeddings_save_path is None and self.num_tile_samples > 0:
+                # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
                 x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
         else:
             # Pretend as if tile size = image size

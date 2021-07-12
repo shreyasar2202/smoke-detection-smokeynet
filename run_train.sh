@@ -4,12 +4,12 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-
+    
 python3 src/main.py \
-    --experiment-name "RawToTile_MobileNetV3LargeRUS" \
+    --experiment-name "Fixed_MobileNet" \
     --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
-    --max-epochs 10 \
+    --max-epochs 50 \
     --batch-size 8 \
     --series-length 1 \
     --accumulate-grad-batches 4 \
@@ -17,34 +17,9 @@ python3 src/main.py \
     --no-pretrain-backbone \
     --flip-augment \
     --blur-augment \
-    --bce-pos-weight 1 \
-    --num-tile-samples 30 \
-    --time-range-min 0 \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images'
     
-python3 src/main.py \
-    --experiment-name "RawToTile_MobileNetV3LargeNoRUS" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 10 \
-    --batch-size 8 \
-    --series-length 1 \
-    --accumulate-grad-batches 4 \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
-    --flip-augment \
-    --blur-augment \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images'
-
-# python3 src/main.py \
-#     --test-split-path './data/all_fires.txt' \
-#     --train-split-path './data/all_fires.txt' \
-#     --val-split-path './data/all_fires.txt' \
-#     --checkpoint-path './saved_logs/version_49/checkpoints/epoch=1-step=449.ckpt' \
-#     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels'
 
 
 # python3 src/main.py \
