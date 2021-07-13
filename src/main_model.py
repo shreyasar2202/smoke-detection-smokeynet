@@ -37,7 +37,7 @@ class MainModel(nn.Module):
                  intermediate_supervision=True,
                  
                  tile_loss_type='bce',
-                 bce_pos_weight=25,
+                 bce_pos_weight=36,
                  focal_alpha=0.25, 
                  focal_gamma=2,
                  

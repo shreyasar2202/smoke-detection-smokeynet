@@ -434,14 +434,13 @@ class DynamicDataloader(Dataset):
             if self.embeddings_path is None:
                 # Take special care to make sure tiles are in the right order
                 # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
-                x = np.transpose(x, (2, 3, 0, 1))
-                x = np.reshape(x, (self.crop_height // self.tile_dimensions[0], 
+                x = np.reshape(x, (series_length, 3,
+                                   self.crop_height // self.tile_dimensions[0], 
                                    self.tile_dimensions[0], 
                                    self.image_dimensions[1] // self.tile_dimensions[1],
-                                   self.tile_dimensions[1],
-                                   series_length, 3))
-                x = x.swapaxes(3,4).reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1], series_length, 3)
-                x = np.transpose(x, (0, 3, 4, 1, 2))
+                                   self.tile_dimensions[1]))
+                x = x.swapaxes(3,4).reshape(series_length, 3, -1, self.tile_dimensions[0], self.tile_dimensions[1])
+                x = np.transpose(x, (2, 0, 1, 3, 4))
            
             labels = np.reshape(labels,(self.crop_height // self.tile_dimensions[0], 
                                         self.tile_dimensions[0], 

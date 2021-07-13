@@ -9,7 +9,7 @@ python3 src/main.py \
     --experiment-name "Fixed_MobileNet" \
     --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
-    --max-epochs 50 \
+    --max-epochs 5 \
     --batch-size 8 \
     --series-length 1 \
     --accumulate-grad-batches 4 \
@@ -18,7 +18,60 @@ python3 src/main.py \
     --flip-augment \
     --blur-augment \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images'
+    --raw-data-path '/root/raw_images' \
+    
+python3 src/main.py \
+    --experiment-name "Fixed_MobileNet_RUS" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 10 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --blur-augment \
+    --time-range-min 0 \
+    --num-tile-samples 30 \
+    --bce-pos-weight 1 \
+    --smoke-threshold 1 \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    
+python3 src/main.py \
+    --experiment-name "Fixed_MobileNet_Focal" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --blur-augment \
+    --tile-loss-type 'focal' \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    
+python3 src/main.py \
+    --experiment-name "Fixed_MobileNet_Focal" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-freeze-backbone \
+    --no-pretrain-backbone \
+    --flip-augment \
+    --blur-augment \
+    --tile-loss-type 'focal' \
+    --focal-alpha 0.9 \
+    --focal-gamma 0.5 \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
     
 
 
@@ -156,6 +209,16 @@ python3 src/main.py \
 #     --checkpoint-path './saved_logs/version_45/checkpoints/epoch=1-step=449.ckpt' \
 #     --raw-data-path '/root/raw_images' \
 #     --labels-path '/root/drive_clone_labels'
+
+
+#####################
+## RUS
+#####################
+
+#     --time-range-min 0 \
+#     --num-tile-samples 30 \
+#     --bce-pos-weight 1 \
+#     --smoke-threshold 1 \
 
     
 #########################
