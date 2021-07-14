@@ -40,7 +40,7 @@ AUTO_LR_FIND = False
 LOG_GRAPH = False
 
 # Whether or not to save test embeddings. Use with TEST_ONLY=True
-EMBEDDINGS_SAVE_PATH = None # './data/embeddings/'
+EMBEDDINGS_SAVE_PATH = None # '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings/'
 
 
 #####################

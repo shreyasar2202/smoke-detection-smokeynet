@@ -95,6 +95,7 @@ class MainModel(nn.Module):
         """
         
         outputs = None
+        embeddings = None
         tile_outputs = None
         image_outputs = None
         
@@ -116,6 +117,7 @@ class MainModel(nn.Module):
             # If model predicts tiles...
             if len(outputs.shape) > 2:
                 tile_outputs = outputs
+                embeddings = x
                 loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
             
             # Else if model predicts images...
@@ -142,4 +144,4 @@ class MainModel(nn.Module):
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
-        return outputs, x, losses, total_loss, tile_preds, image_preds
+        return outputs, embeddings, losses, total_loss, tile_preds, image_preds

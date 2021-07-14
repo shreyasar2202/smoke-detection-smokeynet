@@ -293,7 +293,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           blur_augment=False)
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size if self.embeddings_save_path is None else 1, 
-                                 num_workers=self.num_workers if self.embeddings_save_path is None else 0,
+                                 num_workers=self.num_workers,
                                  pin_memory=True)
         return test_loader
     

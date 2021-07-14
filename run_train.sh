@@ -4,95 +4,43 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-    
+
+# Check flags in main.py before starting!
+
 python3 src/main.py \
-    --experiment-name "Fixed_MobileNet" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 5 \
-    --batch-size 8 \
-    --series-length 1 \
-    --accumulate-grad-batches 4 \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
-    --flip-augment \
-    --blur-augment \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3 src/main.py \
-    --experiment-name "Fixed_MobileNet_RUS" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
+    --experiment-name "MobileNet_Linear" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_Linear" \
     --min-epochs 3 \
     --max-epochs 10 \
     --batch-size 8 \
     --series-length 1 \
     --accumulate-grad-batches 4 \
     --no-freeze-backbone \
-    --no-pretrain-backbone \
     --flip-augment \
     --blur-augment \
-    --time-range-min 0 \
-    --num-tile-samples 30 \
-    --bce-pos-weight 1 \
-    --smoke-threshold 1 \
+    --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
     
-python3 src/main.py \
-    --experiment-name "Fixed_MobileNet_Focal" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 8 \
-    --series-length 1 \
-    --accumulate-grad-batches 4 \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
-    --flip-augment \
-    --blur-augment \
-    --tile-loss-type 'focal' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3 src/main.py \
-    --experiment-name "Fixed_MobileNet_Focal" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 8 \
-    --series-length 1 \
-    --accumulate-grad-batches 4 \
-    --no-freeze-backbone \
-    --no-pretrain-backbone \
-    --flip-augment \
-    --blur-augment \
-    --tile-loss-type 'focal' \
-    --focal-alpha 0.9 \
-    --focal-gamma 0.5 \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
+
+
 
 
 # python3 src/main.py \
-#     --experiment-name "MobileToDeiT_PretrainedNoSupervision" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+#     --experiment-name "MobileEmbeddings_DeiTLinear" \
+#     --model-type-list "TileToTile_DeiT" "TileToImage_Linear" \
 #     --min-epochs 3 \
 #     --max-epochs 5 \
-#     --batch-size 2 \
+#     --batch-size 1 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 16 \
+#     --accumulate-grad-batches 32 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
 #     --no-early-stopping \
 #     --no-lr-schedule \
-#     --no-intermediate-supervision \
-#     --model-pretrain-epochs 3 0 \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images'
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
 
 
 # python3 src/main.py \
@@ -104,7 +52,6 @@ python3 src/main.py \
 #     --series-length 1 \
 #     --accumulate-grad-batches 32 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
 #     --no-early-stopping \
@@ -121,7 +68,6 @@ python3 src/main.py \
 #     --series-length 1 \
 #     --accumulate-grad-batches 32 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
 #     --no-early-stopping \
@@ -138,7 +84,6 @@ python3 src/main.py \
 #     --series-length 1 \
 #     --accumulate-grad-batches 32 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
 #     --no-early-stopping \
@@ -155,7 +100,6 @@ python3 src/main.py \
 #     --series-length 1 \
 #     --accumulate-grad-batches 32 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
 #     --no-early-stopping \
@@ -163,23 +107,25 @@ python3 src/main.py \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --embeddings-path '/root/pytorch_lightning_data/embeddings'
 
+
+#####################
+## Normal Run
+#####################
+
 # python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_DeiTLinear" \
-#     --model-type-list "TileToTile_DeiT" "TileToImage_Linear" \
+#     --experiment-name "MobileNet" \
+#     --model-type-list "RawToTile_MobileNetV3Large" \
 #     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
+#     --max-epochs 10 \
+#     --batch-size 8 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 32 \
+#     --accumulate-grad-batches 4 \
 #     --no-freeze-backbone \
-#     --no-pretrain-backbone \
 #     --flip-augment \
 #     --blur-augment \
-#     --no-early-stopping \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
-    
+#     --raw-data-path '/root/raw_images' \
 
 
 #####################
@@ -212,7 +158,7 @@ python3 src/main.py \
 
 
 #####################
-## RUS
+## Random Upsampling
 #####################
 
 #     --time-range-min 0 \
