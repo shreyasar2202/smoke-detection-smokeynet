@@ -8,104 +8,101 @@
 # Check flags in main.py before starting!
 
 python3 src/main.py \
-    --experiment-name "MobileNet_Linear" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_Linear" \
+    --experiment-name "MobileEmbeddings_LSTM_DeiT_Rerun" \
+    --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" \
     --min-epochs 3 \
-    --max-epochs 10 \
-    --batch-size 8 \
-    --series-length 1 \
-    --accumulate-grad-batches 4 \
+    --max-epochs 50 \
+    --batch-size 32 \
+    --series-length 4 \
+    --accumulate-grad-batches 1 \
     --no-freeze-backbone \
     --flip-augment \
     --blur-augment \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
+    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+
+# python3 src/main.py \
+#     --experiment-name "RawToTile_EfficientNetB3" \
+#     --model-type-list "RawToTile_EfficientNetB3" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 2 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 16 \
+#     --no-freeze-backbone \
+#     --flip-augment \
+#     --blur-augment \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
     
-
-
-
-
 # python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_DeiTLinear" \
-#     --model-type-list "TileToTile_DeiT" "TileToImage_Linear" \
+#     --experiment-name "MobileEmbeddings_LSTM_DeiT_LinearEmbeddings" \
+#     --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
 #     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 32 \
+#     --max-epochs 50 \
+#     --batch-size 32 \
+#     --series-length 4 \
+#     --accumulate-grad-batches 1 \
 #     --no-freeze-backbone \
 #     --flip-augment \
 #     --blur-augment \
-#     --no-early-stopping \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
-
-
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+    
 # python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_DeiT" \
-#     --model-type-list "TileToTile_DeiT" \
+#     --experiment-name "MobileEmbeddings_LSTM_DeiT_LinearEmbeddings_TilePreds" \
+#     --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
 #     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 32 \
+#     --max-epochs 50 \
+#     --batch-size 32 \
+#     --series-length 4 \
+#     --add-base-flow \
+#     --accumulate-grad-batches 1 \
 #     --no-freeze-backbone \
 #     --flip-augment \
 #     --blur-augment \
-#     --no-early-stopping \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
-
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+    
 # python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_LSTM" \
-#     --model-type-list "TileToTile_LSTM" \
-#     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 32 \
-#     --no-freeze-backbone \
-#     --flip-augment \
-#     --blur-augment \
-#     --no-early-stopping \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
-
-# python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_DeiTLSTM" \
-#     --model-type-list "TileToTile_DeiT" "TileToTile_LSTM" \
-#     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 32 \
-#     --no-freeze-backbone \
-#     --flip-augment \
-#     --blur-augment \
-#     --no-early-stopping \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
-
-# python3 src/main.py \
-#     --experiment-name "MobileEmbeddings_LSTMDeiT" \
+#     --experiment-name "MobileEmbeddings_LSTM_DeiT" \
 #     --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" \
 #     --min-epochs 3 \
-#     --max-epochs 5 \
-#     --batch-size 1 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 32 \
+#     --max-epochs 50 \
+#     --batch-size 32 \
+#     --series-length 5 \
+#     --add-base-flow \
+#     --accumulate-grad-batches 1 \
 #     --no-freeze-backbone \
 #     --flip-augment \
 #     --blur-augment \
-#     --no-early-stopping \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings'
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+    
+# python3 src/main.py \
+#     --experiment-name "MobileNet_LSTM_DeiT" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 1 \
+#     --series-length 4 \
+#     --add-base-flow \
+#     --accumulate-grad-batches 32 \
+#     --no-freeze-backbone \
+#     --model-pretrain-epochs 5 0 0 \
+#     --flip-augment \
+#     --blur-augment \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
+
+
+
 
 
 #####################
@@ -168,32 +165,54 @@ python3 src/main.py \
 
     
 #########################
-## Command Line Options
+## Load from Checkpoint
 #########################
-
-#     --experiment-name "resnet50" \
-#     --experiment-description "ResNet50 vanilla run" \
-
-#     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels'
-
-#     --train-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/train_list.txt' \
-#     --val-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/val_list.txt' \
-#     --test-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/test_list.txt' \
 
 #     --checkpoint-path './lightning_logs/resnet50/version_9/checkpoints/last.ckpt' \
 #     --train-split-path './lightning_logs/resnet50/version_9/train_images.txt' \
 #     --val-split-path './lightning_logs/resnet50/version_9/val_images.txt' \
 #     --test-split-path './lightning_logs/resnet50/version_9/test_images.txt' \
 
-#     --no-lr-schedule \
-#     --no-early-stopping \
-#     --no-sixteen-bit \
-#     --no-stochastic-weight-avg \
-#     --gradient-clip-val 0 \
-#     --accumulate-grad-batches 1 \
 
-#     --min-epochs 4 \
-#     --max-epochs 8 \
+#########################
+## Load MaskRCNN train/test split
+#########################
+
+#     --train-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/train_list.txt' \
+#     --val-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/val_list.txt' \
+#     --test-split-path '/userdata/kerasData/data/new_data/mask_rcnn_preprocessed/20210420/test_list.txt' \
+
+
+#########################
+## Best Model
+#########################
+
+# python3 src/main.py \
+#     --experiment-name "MobileNet" \
+#     --model-type-list "RawToTile_MobileNetV3Large" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
 #     --batch-size 8 \
-#     --learning-rate 0.01 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 4 \
+#     --no-freeze-backbone \
+#     --flip-augment \
+#     --blur-augment \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
+
+# python3 src/main.py \
+#     --experiment-name "MobileEmbeddings_LSTM_DeiT" \
+#     --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 32 \
+#     --series-length 4 \
+#     --accumulate-grad-batches 1 \
+#     --no-freeze-backbone \
+#     --flip-augment \
+#     --blur-augment \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \

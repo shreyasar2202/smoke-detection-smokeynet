@@ -47,8 +47,20 @@ EMBEDDINGS_SAVE_PATH = None # '/userdata/kerasData/data/new_data/pytorch_lightni
 ## Argument Parser
 #####################
 
-# All args recorded as hyperparams. Recommended not to use unnecessary args
+# All args recorded as hyperparams
 parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
+
+# Debug args = 5
+parser.add_argument('--is-debug', action='store_true',
+                    help='Turns off logging and checkpointing.')
+parser.add_argument('--test-only', action='store_true',
+                    help='Skips training for testing only. Useful when checkpoint loading.')
+parser.add_argument('--auto-lr-find', action='store_true',
+                    help='Uses learning rate tuner to find LR only.')
+parser.add_argument('--log-graph', action='store_true',
+                    help='Saves computational graph in Tensorflow. Not recommended for very large models.')
+parser.add_argument('--embeddings-save-path', type=str, default=None,
+                    help='If not None, where to save test embeddings. Use with --test-only.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -74,7 +86,7 @@ parser.add_argument('--val-split-path', type=str, default=None,
 parser.add_argument('--test-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are provided.')
 
-# Dataloader args = 7 + 6 + 2
+# Dataloader args = 8 + 6 + 2
 parser.add_argument('--train-split-size', type=int, default=0.7,
                     help='% of data to split for train.')
 parser.add_argument('--test-split-size', type=int, default=0.15,
@@ -85,6 +97,8 @@ parser.add_argument('--num-workers', type=int, default=4,
                     help='Number of workers for dataloader.')
 parser.add_argument('--series-length', type=int, default=4,
                     help='Number of sequential video frames to process during training.')
+parser.add_argument('--add-base-flow', action='store_true',
+                    help='Enables data augmentation with horizontal flip.')
 parser.add_argument('--time-range-min', type=int, default=-2400,
                     help='Start time of fire images to consider during training. ')
 parser.add_argument('--time-range-max', type=int, default=2400,
@@ -187,6 +201,7 @@ def main(# Path args
         batch_size=1, 
         num_workers=0, 
         series_length=1, 
+        add_base_flow=False, 
         time_range=(-2400,2400), 
     
         image_dimensions=(1536, 2016),
@@ -256,6 +271,7 @@ def main(# Path args
             batch_size=batch_size,
             num_workers=num_workers,
             series_length=series_length,
+            add_base_flow=add_base_flow,
             time_range=time_range,
         
             image_dimensions=image_dimensions,
@@ -427,6 +443,7 @@ if __name__ == '__main__':
         batch_size=parsed_args.batch_size, 
         num_workers=parsed_args.num_workers, 
         series_length=parsed_args.series_length, 
+        add_base_flow=parsed_args.add_base_flow, 
         time_range=(parsed_args.time_range_min,args.time_range_max), 
 
         image_dimensions=(parsed_args.image_height, args.image_width),

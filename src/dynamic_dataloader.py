@@ -41,6 +41,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  batch_size=1, 
                  num_workers=0, 
                  series_length=1, 
+                 add_base_flow=False,
                  time_range=(-2400, 2400), 
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
@@ -76,6 +77,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - batch_size (int): batch_size for training
             - num_workers (int): number of workers for dataloader
             - series_length (int): how many sequential images should be used for training
+            - add_base_flow (bool): if True, adds image from t=0 for fire
             - time_range (int, int): The time range of images to consider for training by time stamp
             
             - image_dimensions (int, int): desired dimensions of image before cropping
@@ -114,6 +116,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.series_length = series_length
+        self.add_base_flow = add_base_flow
         self.time_range = time_range
         
         self.image_dimensions = image_dimensions
@@ -205,7 +208,7 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], self.time_range, val_fires)
 
             # Save arrays representing series of images
-            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
+            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow) 
 
             # Create train/val/test split of Images, removing images from omit_images_list
             self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, self.metadata['omit_images_list'])
@@ -372,6 +375,8 @@ class DynamicDataloader(Dataset):
                 img = np.load(self.embeddings_path+'/blur/'+file_name+'.npy').squeeze()
             else:
                 img = np.load(self.embeddings_path+'/raw/'+file_name+'.npy').squeeze()
+                
+            x.append(img)
                 
         # x.shape = [num_tiles, series_length, embedding_size]
         # e.g. [45, 4, 960]

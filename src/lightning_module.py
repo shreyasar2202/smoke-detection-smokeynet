@@ -287,7 +287,10 @@ class LightningModule(pl.LightningModule):
             self.logger.experiment.add_scalar(self.metrics['split'][2]+'positive_cumulative_accuracy',
                                              positive_cumulative_accuracy[i], global_step=i)
         
-        self.log(self.metrics['split'][2]+'average_time_to_detection',
-                 util_fns.calculate_average_time_to_detection(positive_preds))
+        
+        average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds)
+        self.log(self.metrics['split'][2]+'average_time_to_detection', average_time_to_detection)
+        self.log(self.metrics['split'][2]+'median_time_to_detection', median_time_to_detection)
+        self.log(self.metrics['split'][2]+'std_time_to_detection', std_time_to_detection)
         
         print("Computing Test Evaluation Metrics Complete.")

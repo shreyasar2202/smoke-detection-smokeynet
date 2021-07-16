@@ -495,4 +495,28 @@ class TileToImage_Linear(nn.Module):
 
         return image_outputs, None # [batch_size, 1]
     
+class TileToImage_LinearEmbeddings(nn.Module):
+    """
+    Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1
+    Args:
+        - num_tiles (int): number of tiles in image
+    """
+    def __init__(self, num_tiles=45, **kwargs):
+        print('- TileToImage_Linear')
+        super().__init__()
+        
+        self.embeddings_to_output = TileEmbeddingsToOutput()
+        self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
+        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
+        
+    def forward(self, tile_embeddings, tile_outputs):
+        batch_size, num_tiles, series_length, embedding_size = tile_embeddings.size()
+        
+        tile_outputs = self.embeddings_to_output(tile_embeddings, batch_size, num_tiles) # [batch_size, num_tiles, 1]
+        tile_outputs = tile_outputs.view(batch_size, num_tiles)
+        
+        image_outputs = self.fc1(tile_outputs) # [batch_size, 1]
+
+        return image_outputs, None # [batch_size, 1]
+    
     

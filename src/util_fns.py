@@ -183,12 +183,13 @@ def shorten_time_range(fire_to_images, time_range, train_fires):
             
     return fire_to_images
 
-def generate_series(fire_to_images, series_length):
+def generate_series(fire_to_images, series_length, add_base_flow=False):
     """
     Description: Creates a dict with image names as keys and lists of past <series_length> images as values
     Args:
         - fire_to_images (dict): maps fire to a list of images for that fire
         - series_length (int): how many sequential images should be used for training
+        - add_base_flow (bool): if True, adds image from t=0 for fire
     Returns:
         - image_series (dict): maps image names to lists of past <series_length> images in chronological order
     """
@@ -198,13 +199,14 @@ def generate_series(fire_to_images, series_length):
         for i, img in enumerate(fire_to_images[fire]):
             image_series[img] = []
             idx = i
+            
+            if series_length != 1 and add_base_flow:
+                image_series[img].append(fire_to_images[fire][0])
 
             while (len(image_series[img]) < series_length):
-                image_series[img].append(fire_to_images[fire][idx])
+                image_series[img].insert(int(add_base_flow), fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
-                    
-            image_series[img].reverse()
-        
+                                
     return image_series
 
 def xml_to_record(xml_file):
@@ -384,7 +386,7 @@ def calculate_positive_cumulative_accuracy(positive_preds):
     
     return positive_cumulative_accuracy
 
-def calculate_average_time_to_detection(positive_preds):
+def calculate_time_to_detection_stats(positive_preds):
     """
     Description: Calculates average time to detection across all fires
     Args:
@@ -394,10 +396,13 @@ def calculate_average_time_to_detection(positive_preds):
     """
     cumulative_preds = (positive_preds.cumsum(dim=1) > 0).int()
     indices = cumulative_preds * torch.arange(cumulative_preds.shape[1], 0, -1)
-    indices = torch.argmax(indices, 1, keepdim=True)
-    average_time_to_detection = indices.float().mean()
+    indices = torch.argmax(indices, 1, keepdim=True).float()
     
-    return average_time_to_detection
+    average_time_to_detection = indices.mean()
+    median_time_to_detection = indices.median()
+    std_time_to_detection = indices.std()
+    
+    return average_time_to_detection, median_time_to_detection, std_time_to_detection
 
 
 ####################################
