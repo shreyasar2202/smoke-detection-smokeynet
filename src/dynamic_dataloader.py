@@ -32,7 +32,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  labels_path=None, 
                  raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
-                 embeddings_save_path=None,
+                 save_embeddings_path=None,
                  train_split_path=None,
                  val_split_path=None,
                  test_split_path=None,
@@ -66,7 +66,7 @@ class DynamicDataModule(pl.LightningDataModule):
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
                 - omit_no_bbox (list of str): list of images that erroneously do not have loaded bboxes for labels
                 - omit_images_list (list of str): union of omit_no_xml and omit_no_bbox
-            - embeddings_save_path (str): if not None, saves embeddings to this path
+            - save_embeddings_path (str): if not None, saves embeddings to this path
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -105,7 +105,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
-        self.embeddings_save_path = embeddings_save_path
+        self.save_embeddings_path = save_embeddings_path
         
         self.train_split_path = train_split_path
         self.val_split_path = val_split_path
@@ -244,7 +244,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata, 
-                                          embeddings_save_path=self.embeddings_save_path,
+                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.train_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -265,7 +265,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
-                                          embeddings_save_path=self.embeddings_save_path,
+                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.val_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -285,7 +285,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           metadata=self.metadata,
-                                          embeddings_save_path=self.embeddings_save_path,
+                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.test_split,
                                           image_dimensions=self.image_dimensions,
                                           crop_height=self.crop_height,
@@ -295,7 +295,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           flip_augment=False,
                                           blur_augment=False)
         test_loader = DataLoader(test_dataset, 
-                                 batch_size=self.batch_size if self.embeddings_save_path is None else 1, 
+                                 batch_size=self.batch_size if self.save_embeddings_path is None else 1, 
                                  num_workers=self.num_workers,
                                  pin_memory=True)
         return test_loader
@@ -311,7 +311,7 @@ class DynamicDataloader(Dataset):
                  embeddings_path=None,
                  labels_path=None, 
                  metadata=None,
-                 embeddings_save_path=None,
+                 save_embeddings_path=None,
                  data_split=None, 
                  image_dimensions = (1536, 2016),
                  crop_height = 1120,
@@ -325,7 +325,7 @@ class DynamicDataloader(Dataset):
         self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         self.metadata = metadata
-        self.embeddings_save_path = embeddings_save_path
+        self.save_embeddings_path = save_embeddings_path
         self.data_split = data_split
         
         self.image_dimensions = image_dimensions
@@ -403,7 +403,7 @@ class DynamicDataloader(Dataset):
 
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
-        series_length = len(self.metadata['image_series'][image_name]) if self.embeddings_save_path is None else 3
+        series_length = len(self.metadata['image_series'][image_name]) if self.save_embeddings_path is None else 3
         
         ### Load Images ###
         # Determine if data augmentation should occur
@@ -414,7 +414,7 @@ class DynamicDataloader(Dataset):
         # Load images or embeddings
         if self.embeddings_path is not None:
             x = self.get_embeddings(image_name, should_flip, should_blur, blur_size)
-        elif self.embeddings_save_path is not None:
+        elif self.save_embeddings_path is not None:
             x = self.prep_save_embeddings(image_name, blur_size)
         else:
             x = self.get_images(image_name, should_flip, should_blur, blur_size)
@@ -456,7 +456,7 @@ class DynamicDataloader(Dataset):
             # tile_labels.shape = [45,]
             labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
             
-            if self.embeddings_save_path is None and self.num_tile_samples > 0:
+            if self.save_embeddings_path is None and self.num_tile_samples > 0:
                 # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
                 x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
         else:

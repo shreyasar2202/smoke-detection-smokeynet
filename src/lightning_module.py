@@ -41,7 +41,7 @@ class LightningModule(pl.LightningModule):
                  series_length=1,
                  parsed_args=None,
                  is_embeddings=False,
-                 embeddings_save_path=None):
+                 save_embeddings_path=None):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
@@ -54,7 +54,7 @@ class LightningModule(pl.LightningModule):
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
             - is_embeddings (bool): if the input of the model are embeddings instead of raw data
-            - embeddings_save_path (str): if not None, where to save embeddings
+            - save_embeddings_path (str): if not None, where to save embeddings
 
         Other Attributes:
             - example_input_array (tensor): example of input to log computational graph in tensorboard
@@ -84,7 +84,7 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters(parsed_args)
         self.save_hyperparameters('learning_rate')
         
-        self.embeddings_save_path = embeddings_save_path
+        self.save_embeddings_path = save_embeddings_path
         
         if is_embeddings:
             self.example_input_array = torch.randn((1,45,series_length, 960)).float()
@@ -160,10 +160,10 @@ class LightningModule(pl.LightningModule):
         outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
         
         # Save test embeddings
-        if self.embeddings_save_path is not None and split == self.metrics['split'][2]:
+        if self.save_embeddings_path is not None and split == self.metrics['split'][2]:
             embedding = embeddings.permute(2, 1, 0, 3)
             for i, augment in enumerate(embedding):
-                folder_prefix = self.embeddings_save_path+['raw/', 'flip/', 'blur/'][i % 3]
+                folder_prefix = self.save_embeddings_path+['raw/', 'flip/', 'blur/'][i % 3]
                 os.makedirs(folder_prefix+util_fns.get_fire_name(image_names[0]), exist_ok=True)
                 np.save(folder_prefix+image_names[0]+'.npy', augment.cpu())
         

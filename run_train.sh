@@ -15,12 +15,10 @@ python3 src/main.py \
     --batch-size 32 \
     --series-length 4 \
     --accumulate-grad-batches 1 \
-    --no-freeze-backbone \
-    --flip-augment \
-    --blur-augment \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+    --is-debug
 
 # python3 src/main.py \
 #     --experiment-name "RawToTile_EfficientNetB3" \
