@@ -252,28 +252,29 @@ def get_filled_labels(raw_data_path, raw_labels_path, image_name):
 ## Dataloader
 #########################    
 
-def jitter_image(img, resize_dimensions, crop_height, tile_dimensions, jitter_dimensions):
+def crop_image(img, resize_dimensions=(1536,2016), crop_height=1120, tile_dimensions=(224,224), jitter_amount=0):
     """
-    Description: Randomly shifts image by at most 1 tile
+    Description: Resizes, crops, and randomly shifts image
     Args:
         - img (np array): raw image loaded from npy file
         - resize_dimensions (int, int): dimensions to resize raw image
         - crop_height (int): height after cropping image
         - tile_dimensions (int, int): dimensions of tile
-        - jitter_dimensions (int, int): amount to jitter height and width
+        - jitter_amount (int): amount to jitter height
     Returns:
         - img (np array): after crop, resize, and jittering
     """
-    # Resize image. Use full width, but increase crop_height by tile_height
+    # Resize image. Crop a little extra to account for jitter
     img = cv2.resize(img, (resize_dimensions[1], resize_dimensions[0]))[-(crop_height+tile_dimensions[0]):]
 
-    # Crop image with jitter. Will result in 1 less width tile
-    img = img[jitter_dimensions[0]:crop_height+jitter_dimensions[0], jitter_dimensions[1]:(resize_dimensions[1]-tile_dimensions[1])+jitter_dimensions[1]]
+    # Crop image further with jitter
+    jitter_amount = tile_dimensions[0] - jitter_amount # Normalize jitter such that 0 is the bottom of the image
+    img = img[jitter_amount:crop_height+jitter_amount]
     
     return img
     
 
-def randomly_sample_tiles(x, labels, num_samples=40):
+def randomly_sample_tiles(x, labels, num_samples=30):
     """
     Description: Randomly samples tiles to evenly balance positives and negatives
     Args:
@@ -326,7 +327,6 @@ def get_has_positive_tile(tile_labels):
     """
     has_positive_tile = 1 if tile_labels.sum() > 0 else 0
     return has_positive_tile
-
 
 
 ####################################

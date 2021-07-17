@@ -478,14 +478,14 @@ class TileToTile_DeiT(nn.Module):
 ## TileToImage Models
 ########################### 
 
-class TileToImage_Linear(nn.Module):
+class TileToImage_LinearOutputs(nn.Module):
     """
     Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1
     Args:
         - num_tiles (int): number of tiles in image
     """
     def __init__(self, num_tiles=45, **kwargs):
-        print('- TileToImage_Linear')
+        print('- TileToImage_LinearOutputs')
         super().__init__()
         
         self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
@@ -501,12 +501,12 @@ class TileToImage_Linear(nn.Module):
     
 class TileToImage_LinearEmbeddings(nn.Module):
     """
-    Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1
+    Description: Single linear layer to go from tile embeddings to image predictions. Requires that series_length=1
     Args:
         - num_tiles (int): number of tiles in image
     """
     def __init__(self, num_tiles=45, **kwargs):
-        print('- TileToImage_Linear')
+        print('- TileToImage_LinearEmbeddings')
         super().__init__()
         
         self.embeddings_to_output = TileEmbeddingsToOutput()

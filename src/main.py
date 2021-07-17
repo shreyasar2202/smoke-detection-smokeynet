@@ -279,7 +279,7 @@ def main(# Debug args
 
     ### Initialize MainModel ###
     num_tiles_height = int(crop_height / tile_dimensions[0])
-    num_tiles_width  = int(resize_dimensions[1] / tile_dimensions[1])
+    num_tiles_width  = int(resize_dimensions[1] / tile_dimensions[1]) - int(jitter_augment)
 
     main_model = MainModel(
                      # Model args

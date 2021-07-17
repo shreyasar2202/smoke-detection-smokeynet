@@ -205,6 +205,7 @@ class LightningModule(pl.LightningModule):
 
         # Loop through batch
         for image_names, tile_preds, image_preds in test_step_outputs:
+            # Account for if we predicted images directly
             if tile_preds is None:
                 tile_preds = [None] * len(image_names)
             

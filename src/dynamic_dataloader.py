@@ -380,7 +380,7 @@ class DynamicDataloader(Dataset):
     def __len__(self):
         return len(self.data_split)
     
-    def get_images(self, image_name, should_flip, should_blur, blur_size, jitter_dimensions):
+    def get_images(self, image_name, should_flip, should_blur, blur_size, jitter_amount):
         """Description: Loads series_length of raw images. Crops, resizes, and adds data augmentations"""
         x = []
         
@@ -388,12 +388,9 @@ class DynamicDataloader(Dataset):
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
             
-            if self.jitter_augment:
-                img = util_fns.jitter_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_dimensions)                
-            else:
-                # Resize and crop
-                img = cv2.resize(img, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
-
+            # Resize and crop
+            img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
+            
             # Add data augmentations
             if should_flip:
                 img = cv2.flip(img, 1)
@@ -433,8 +430,8 @@ class DynamicDataloader(Dataset):
         x = []
         
         img = cv2.imread(self.raw_data_path+'/'+image_name+'.jpg')
-        img = cv2.resize(img, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
-
+        img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions)
+        
         x.append(img)
         x.append(cv2.flip(img, 1))
         x.append(cv2.blur(img, (blur_size,blur_size)))
@@ -456,7 +453,7 @@ class DynamicDataloader(Dataset):
         blur_size = np.maximum(int(np.random.randn()*3+10), 1)
         
         # Always jitter if jitter_augment=True
-        jitter_dimensions = (np.random.randint(self.tile_dimensions[0]), np.random.randint(self.tile_dimensions[1]))
+        jitter_amount = np.random.randint(self.tile_dimensions[0]) if self.jitter_augment else 0
         
         ### Load Images or Embeddings ###
         if self.embeddings_path is not None:
@@ -464,7 +461,7 @@ class DynamicDataloader(Dataset):
         elif self.save_embeddings_path is not None:
             x = self.prep_save_embeddings(image_name, blur_size)
         else:
-            x = self.get_images(image_name, should_flip, should_blur, blur_size, jitter_dimensions)
+            x = self.get_images(image_name, should_flip, should_blur, blur_size, jitter_amount)
            
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
@@ -474,10 +471,7 @@ class DynamicDataloader(Dataset):
             labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
         
         # labels.shape = [height, width]
-        if self.jitter_augment:
-            labels = util_fns.jitter_image(labels, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_dimensions)
-        else:
-            labels = cv2.resize(labels, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
+        labels = util_fns.crop_image(labels, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
         if should_flip:
             labels = cv2.flip(labels, 1)
         if should_blur:
