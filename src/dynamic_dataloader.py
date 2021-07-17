@@ -493,7 +493,6 @@ class DynamicDataloader(Dataset):
 
         # Load Image-level Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
-        has_xml_label = self.metadata['has_xml_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(labels)
                         
-        return image_name, x, labels, ground_truth_label, has_xml_label, has_positive_tile
+        return image_name, x, labels, ground_truth_label, has_positive_tile

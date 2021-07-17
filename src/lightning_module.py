@@ -61,7 +61,6 @@ class LightningModule(pl.LightningModule):
                 - category (list of str): metric subcategories
                     - 'tile_': metrics on per-tile basis
                     - 'image-gt': labels based on if image name has '+' in it)
-                    - 'image_xml': labels based on if image has XML file associated
                     - 'image-pos-tile': labels based on if image has at least one positive tile 
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
         """
@@ -87,7 +86,7 @@ class LightningModule(pl.LightningModule):
         self.metrics = {}
         self.metrics['torchmetric'] = {}
         self.metrics['split']       = ['train/', 'val/', 'test/']
-        self.metrics['category']    = ['tile_', 'image-gt_', 'image-xml_', 'image-pos-tile_']
+        self.metrics['category']    = ['tile_', 'image-gt_', 'image-pos-tile_']
         self.metrics['name']        = ['accuracy', 'precision', 'recall', 'f1']
         
         for split in self.metrics['split']:
@@ -139,7 +138,7 @@ class LightningModule(pl.LightningModule):
 
     def step(self, batch, split):
         """Description: Takes a batch, calculates forward pass, losses, and predictions, and logs metrics"""
-        image_names, x, tile_labels, ground_truth_labels, has_xml_labels, has_positive_tiles = batch
+        image_names, x, tile_labels, ground_truth_labels, has_positive_tiles = batch
 
         # Compute outputs, loss, and predictions
         outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
@@ -163,7 +162,6 @@ class LightningModule(pl.LightningModule):
         for category, args in zip(self.metrics['category'], 
                                   ((tile_preds, tile_labels.int()), 
                                    (image_preds, ground_truth_labels), 
-                                   (image_preds, has_xml_labels), 
                                    (image_preds, has_positive_tiles))
                                  ):
             for name in self.metrics['name']:
