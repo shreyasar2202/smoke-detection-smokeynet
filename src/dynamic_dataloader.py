@@ -47,14 +47,15 @@ class DynamicDataModule(pl.LightningDataModule):
                  add_base_flow=False,
                  time_range=(-2400, 2400), 
                  
-                 image_dimensions = (1536, 2016),
+                 resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
-                 flip_augment = False,
-                 blur_augment = False,
+                 flip_augment = True,
+                 blur_augment = True,
+                 jitter_augment = True,
                  
                  create_data = False):
         """
@@ -87,7 +88,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - add_base_flow (bool): if True, adds image from t=0 for fire
             - time_range (int, int): The time range of images to consider for training by time stamp
             
-            - image_dimensions (int, int): desired dimensions of image before cropping
+            - resize_dimensions (int, int): desired dimensions of image before cropping
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
@@ -95,6 +96,7 @@ class DynamicDataModule(pl.LightningDataModule):
 
             - flip_augment (bool): enables data augmentation with horizontal flip
             - blur_augment (bool): enables data augmentation with Gaussian blur
+            - jitter_augment (bool): enables data augmentation with slightly displaced cropping
             
             - create_data (bool): should prepare_data be run?
         
@@ -126,7 +128,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.add_base_flow = add_base_flow
         self.time_range = time_range
         
-        self.image_dimensions = image_dimensions
+        self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
@@ -134,6 +136,7 @@ class DynamicDataModule(pl.LightningDataModule):
         
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
+        self.jitter_augment = jitter_augment
         
         self.create_data = create_data
         self.has_setup = False
@@ -267,14 +270,15 @@ class DynamicDataModule(pl.LightningDataModule):
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.train_split,
                                           
-                                          image_dimensions=self.image_dimensions,
+                                          resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                           
                                           flip_augment=self.flip_augment,
-                                          blur_augment=self.blur_augment)
+                                          blur_augment=self.blur_augment,
+                                          jitter_augment=self.jitter_augment)
         train_loader = DataLoader(train_dataset, 
                                   batch_size=self.batch_size, 
                                   num_workers=self.num_workers,
@@ -291,14 +295,15 @@ class DynamicDataModule(pl.LightningDataModule):
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.val_split,
                                         
-                                          image_dimensions=self.image_dimensions,
+                                          resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                         
                                           flip_augment=False,
-                                          blur_augment=False)
+                                          blur_augment=False,
+                                          jitter_augment=False)
         val_loader = DataLoader(val_dataset, 
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
@@ -314,14 +319,15 @@ class DynamicDataModule(pl.LightningDataModule):
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.test_split,
                                          
-                                          image_dimensions=self.image_dimensions,
+                                          resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=0,
                                          
                                           flip_augment=False,
-                                          blur_augment=False)
+                                          blur_augment=False,
+                                          jitter_augment=False)
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size if self.save_embeddings_path is None else 1, 
                                  num_workers=self.num_workers,
@@ -343,14 +349,15 @@ class DynamicDataloader(Dataset):
                  save_embeddings_path=None,
                  data_split=None, 
                  
-                 image_dimensions = (1536, 2016),
+                 resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
-                 flip_augment = False,
-                 blur_augment = False):
+                 flip_augment = True,
+                 blur_augment = True,
+                 jitter_augment = True):
         
         self.raw_data_path = raw_data_path
         self.embeddings_path = embeddings_path
@@ -360,7 +367,7 @@ class DynamicDataloader(Dataset):
         self.save_embeddings_path = save_embeddings_path
         self.data_split = data_split
         
-        self.image_dimensions = image_dimensions
+        self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.smoke_threshold = smoke_threshold
@@ -368,19 +375,24 @@ class DynamicDataloader(Dataset):
         
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
+        self.jitter_augment = jitter_augment
 
     def __len__(self):
         return len(self.data_split)
     
-    def get_images(self, image_name, should_flip, should_blur, blur_size):
+    def get_images(self, image_name, should_flip, should_blur, blur_size, jitter_dimensions):
         """Description: Loads series_length of raw images. Crops, resizes, and adds data augmentations"""
         x = []
         
         for file_name in self.metadata['image_series'][image_name]:
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-            # Resize and crop
-            img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+            
+            if self.jitter_augment:
+                img = util_fns.jitter_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_dimensions)                
+            else:
+                # Resize and crop
+                img = cv2.resize(img, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
 
             # Add data augmentations
             if should_flip:
@@ -421,7 +433,7 @@ class DynamicDataloader(Dataset):
         x = []
         
         img = cv2.imread(self.raw_data_path+'/'+image_name+'.jpg')
-        img = cv2.resize(img, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+        img = cv2.resize(img, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
 
         x.append(img)
         x.append(cv2.flip(img, 1))
@@ -437,21 +449,24 @@ class DynamicDataloader(Dataset):
         image_name = self.data_split[idx]
         series_length = len(self.metadata['image_series'][image_name]) if self.save_embeddings_path is None else 3
         
-        ### Load Images ###
-        # Determine if data augmentation should occur
+        ### Initialize Data Augmentation ###
         should_flip = np.random.rand() > 0.5 if self.flip_augment else False
+        
         should_blur = np.random.rand() > 0.5 if self.blur_augment else False
         blur_size = np.maximum(int(np.random.randn()*3+10), 1)
-            
-        # Load images or embeddings
+        
+        # Always jitter if jitter_augment=True
+        jitter_dimensions = (np.random.randint(self.tile_dimensions[0]), np.random.randint(self.tile_dimensions[1]))
+        
+        ### Load Images or Embeddings ###
         if self.embeddings_path is not None:
             x = self.get_embeddings(image_name, should_flip, should_blur, blur_size)
         elif self.save_embeddings_path is not None:
             x = self.prep_save_embeddings(image_name, blur_size)
         else:
-            x = self.get_images(image_name, should_flip, should_blur, blur_size)
+            x = self.get_images(image_name, should_flip, should_blur, blur_size, jitter_dimensions)
            
-        ### Load XML labels ###
+        ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
         if Path(label_path).exists():
             labels = np.load(label_path)
@@ -459,32 +474,37 @@ class DynamicDataloader(Dataset):
             labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
         
         # labels.shape = [height, width]
-        labels = cv2.resize(labels, (self.image_dimensions[1], self.image_dimensions[0]))[-self.crop_height:]
+        if self.jitter_augment:
+            labels = util_fns.jitter_image(labels, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_dimensions)
+        else:
+            labels = cv2.resize(labels, (self.resize_dimensions[1], self.resize_dimensions[0]))[-self.crop_height:]
         if should_flip:
             labels = cv2.flip(labels, 1)
+        if should_blur:
+            labels = cv2.blur(labels, (blur_size, blur_size))
         
         ### Tile Image ###
         # WARNING: Tile size must divide perfectly into image height and width
         # x.shape = [45, 5, 3, 224, 224]
-        # labels.shape = [45, 224, 224]
         if self.embeddings_path is None:
             # Take special care to make sure tiles are in the right order
             # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
             x = np.reshape(x, (series_length, 3,
-                               self.crop_height // self.tile_dimensions[0], 
+                               x.shape[2] // self.tile_dimensions[0], 
                                self.tile_dimensions[0], 
-                               self.image_dimensions[1] // self.tile_dimensions[1],
+                               x.shape[3] // self.tile_dimensions[1],
                                self.tile_dimensions[1]))
             x = x.swapaxes(3,4).reshape(series_length, 3, -1, self.tile_dimensions[0], self.tile_dimensions[1])
             x = np.transpose(x, (2, 0, 1, 3, 4))
 
-        labels = np.reshape(labels,(self.crop_height // self.tile_dimensions[0], 
+        # labels.shape = [45, 224, 224]
+        labels = np.reshape(labels,(labels.shape[0] // self.tile_dimensions[0], 
                                     self.tile_dimensions[0], 
-                                    self.image_dimensions[1] // self.tile_dimensions[1],
+                                    labels.shape[1] // self.tile_dimensions[1],
                                     self.tile_dimensions[1]))
         labels = labels.swapaxes(1,2).reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
 
-        # tile_labels.shape = [45,]
+        # labels.shape = [45,]
         labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
         if self.save_embeddings_path is None and self.num_tile_samples > 0:

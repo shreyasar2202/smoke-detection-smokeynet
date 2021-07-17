@@ -80,9 +80,9 @@ def image_name_to_time_int(image_name):
     return time_int
 
 
-###########################
-## DataModule & Dataloader
-###########################
+###############
+## DataModule
+###############
 
 def generate_fire_to_images(raw_data_path, labels_path):
     """
@@ -247,6 +247,32 @@ def get_filled_labels(raw_data_path, raw_labels_path, image_name):
     
     return labels
 
+
+#########################
+## Dataloader
+#########################    
+
+def jitter_image(img, resize_dimensions, crop_height, tile_dimensions, jitter_dimensions):
+    """
+    Description: Randomly shifts image by at most 1 tile
+    Args:
+        - img (np array): raw image loaded from npy file
+        - resize_dimensions (int, int): dimensions to resize raw image
+        - crop_height (int): height after cropping image
+        - tile_dimensions (int, int): dimensions of tile
+        - jitter_dimensions (int, int): amount to jitter height and width
+    Returns:
+        - img (np array): after crop, resize, and jittering
+    """
+    # Resize image. Use full width, but increase crop_height by tile_height
+    img = cv2.resize(img, (resize_dimensions[1], resize_dimensions[0]))[-(crop_height+tile_dimensions[0]):]
+
+    # Crop image with jitter. Will result in 1 less width tile
+    img = img[jitter_dimensions[0]:crop_height+jitter_dimensions[0], jitter_dimensions[1]:(resize_dimensions[1]-tile_dimensions[1])+jitter_dimensions[1]]
+    
+    return img
+    
+
 def randomly_sample_tiles(x, labels, num_samples=40):
     """
     Description: Randomly samples tiles to evenly balance positives and negatives
@@ -274,6 +300,7 @@ def randomly_sample_tiles(x, labels, num_samples=40):
     labels = labels[shuffle_idx]
     
     return x, labels
+
 
 #########################
 ## Labels & Predictions

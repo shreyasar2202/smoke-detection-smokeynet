@@ -7,36 +7,34 @@
 
 # Check flags in main.py before starting!
 
-python3 src/main.py \
-    --experiment-name "MobileEmbeddings_Transformer" \
-    --model-type-list "TileToTile_Transformer" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 32 \
-    --series-length 4 \
-    --accumulate-grad-batches 1 \
-    --no-lr-schedule \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-    --train-split-path './saved_logs/version_80/train_images.txt' \
-    --val-split-path './saved_logs/version_80/val_images.txt' \
-    --test-split-path './saved_logs/version_80/test_images.txt' \
-    --is-debug
-
 # python3 src/main.py \
-#     --experiment-name "RawToTile_EfficientNetB3" \
-#     --model-type-list "RawToTile_EfficientNetB3" \
+#     --experiment-name "MobileEmbeddings_Transformer" \
+#     --model-type-list "TileToTile_Transformer" \
 #     --min-epochs 3 \
 #     --max-epochs 50 \
-#     --batch-size 2 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 16 \
-#     --no-freeze-backbone \
-#     --flip-augment \
-#     --blur-augment \
+#     --batch-size 32 \
+#     --series-length 4 \
+#     --accumulate-grad-batches 1 \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+#     --train-split-path './saved_logs/version_80/train_images.txt' \
+#     --val-split-path './saved_logs/version_80/val_images.txt' \
+#     --test-split-path './saved_logs/version_80/test_images.txt' \
+#     --is-debug
+
+python3 src/main.py \
+    --experiment-name "RawToTile_MobileNetV3Large" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 2 \
+    --series-length 1 \
+    --accumulate-grad-batches 16 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --is-debug
     
 # python3 src/main.py \
 #     --experiment-name "MobileEmbeddings_LSTM_DeiT_LinearEmbeddings" \

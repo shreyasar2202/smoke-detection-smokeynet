@@ -85,9 +85,9 @@ parser.add_argument('--time-range-min', type=int, default=-2400,
 parser.add_argument('--time-range-max', type=int, default=2400,
                     help='End time of fire images to consider during training (inclusive).')
 
-parser.add_argument('--image-height', type=int, default=1536,
+parser.add_argument('--resize-height', type=int, default=1536,
                     help='Desired resize height of image.')
-parser.add_argument('--image-width', type=int, default=2016,
+parser.add_argument('--resize-width', type=int, default=2016,
                     help='Desired resize width of image.')
 parser.add_argument('--crop-height', type=int, default=1120,
                     help='Desired height after cropping.')
@@ -99,9 +99,11 @@ parser.add_argument('--num-tile-samples', type=int, default=0,
                     help='Number of random tile samples per batch for upsampling positives and downsampling negatives. If < 1, then turned off. Recommended: 30.')
 
 parser.add_argument('--no-flip-augment', action='store_false',
-                    help='Enables data augmentation with horizontal flip.')
+                    help='Disables data augmentation with horizontal flip.')
 parser.add_argument('--no-blur-augment', action='store_false',
-                    help='Enables data augmentation with Gaussian blur.')
+                    help='Disables data augmentation with Gaussian blur.')
+parser.add_argument('--no-jitter-augment', action='store_false',
+                    help='Disables data augmentation with slightly displaced cropping.')
 
 
 # Model args = 3 + 2 + 4
@@ -194,7 +196,7 @@ def main(# Debug args
         add_base_flow=False, 
         time_range=(-2400,2400), 
     
-        image_dimensions=(1536, 2016),
+        resize_dimensions=(1536, 2016),
         crop_height=1120,
         tile_dimensions=(224,224),
         smoke_threshold=250,
@@ -202,6 +204,7 @@ def main(# Debug args
     
         flip_augment=True,
         blur_augment=True,
+        jitter_augment=True,
 
         # Model args
         model_type_list=['RawToTile_MobileNetV3Large'],
@@ -264,18 +267,19 @@ def main(# Debug args
         add_base_flow=add_base_flow,
         time_range=time_range,
 
-        image_dimensions=image_dimensions,
+        resize_dimensions=resize_dimensions,
         crop_height=crop_height,
         tile_dimensions=tile_dimensions,
         smoke_threshold=smoke_threshold,
         num_tile_samples=num_tile_samples,
 
         flip_augment=flip_augment,
-        blur_augment=blur_augment)
+        blur_augment=blur_augment,
+        jitter_augment=jitter_augment)
 
     ### Initialize MainModel ###
     num_tiles_height = int(crop_height / tile_dimensions[0])
-    num_tiles_width  = int(image_dimensions[1] / tile_dimensions[1])
+    num_tiles_width  = int(resize_dimensions[1] / tile_dimensions[1])
 
     main_model = MainModel(
                      # Model args
@@ -295,7 +299,7 @@ def main(# Debug args
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,
 
-                     image_size=(crop_height, image_dimensions[1]),
+                     image_size=(crop_height, resize_dimensions[1]),
                      tile_size=tile_dimensions[0],
                      series_length=series_length)
 
@@ -434,7 +438,7 @@ if __name__ == '__main__':
         add_base_flow=parsed_args.add_base_flow, 
         time_range=(parsed_args.time_range_min,args.time_range_max), 
 
-        image_dimensions=(parsed_args.image_height, args.image_width),
+        resize_dimensions=(parsed_args.resize_height, args.resize_width),
         crop_height=parsed_args.crop_height,
         tile_dimensions=(parsed_args.tile_size, args.tile_size),
         smoke_threshold=parsed_args.smoke_threshold,
@@ -442,6 +446,7 @@ if __name__ == '__main__':
 
         flip_augment=parsed_args.no_flip_augment,
         blur_augment=parsed_args.no_blur_augment,
+        jitter_augment=parsed_args.no_jitter_augment,
 
         # Model args
         model_type_list=parsed_args.model_type_list,
