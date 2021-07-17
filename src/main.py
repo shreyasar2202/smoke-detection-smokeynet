@@ -93,6 +93,8 @@ parser.add_argument('--crop-height', type=int, default=1120,
                     help='Desired height after cropping.')
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
+parser.add_argument('--tile-overlap', type=int, default=0,
+                    help='Amount to overlap each tile.')
 parser.add_argument('--smoke-threshold', type=int, default=250,
                     help='Number of pixels of smoke to consider tile positive.')
 parser.add_argument('--num-tile-samples', type=int, default=0,
@@ -201,6 +203,7 @@ def main(# Debug args
         resize_dimensions=(1536, 2016),
         crop_height=1120,
         tile_dimensions=(224,224),
+        tile_overlap=0,
         smoke_threshold=250,
         num_tile_samples=0,
     
@@ -273,6 +276,7 @@ def main(# Debug args
         resize_dimensions=resize_dimensions,
         crop_height=crop_height,
         tile_dimensions=tile_dimensions,
+        tile_overlap=tile_overlap,
         smoke_threshold=smoke_threshold,
         num_tile_samples=num_tile_samples,
 
@@ -281,8 +285,7 @@ def main(# Debug args
         jitter_augment=jitter_augment)
 
     ### Initialize MainModel ###
-    num_tiles_height = int(crop_height / tile_dimensions[0])
-    num_tiles_width  = int(resize_dimensions[1] / tile_dimensions[1]) - int(jitter_augment)
+    num_tiles_height, num_tiles_width = util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
 
     main_model = MainModel(
                      # Model args
@@ -445,6 +448,7 @@ if __name__ == '__main__':
         resize_dimensions=(parsed_args.resize_height, args.resize_width),
         crop_height=parsed_args.crop_height,
         tile_dimensions=(parsed_args.tile_size, args.tile_size),
+        tile_overlap=parsed_args.tile_overlap,
         smoke_threshold=parsed_args.smoke_threshold,
         num_tile_samples=parsed_args.num_tile_samples,
 

@@ -3,7 +3,10 @@ ARG cuda_version=10.2
 ARG cudnn_version=7
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
+# Sets initial working directory
 WORKDIR /userdata/kerasData
+
+# Prevents asking for user input when installing packages
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install system packages. Put on separate lines to use caching.
@@ -48,10 +51,7 @@ RUN pip3.9 install efficientnet-pytorch
 RUN pip3.9 install ipywidgets
 RUN jupyter nbextension enable --py widgetsnbextension
 
-# Alias python and pip
 ENV PYTHONPATH='/src/:$PYTHONPATH'
-RUN echo "alias python=python3.9" >> ~/.bashrc
-RUN echo "alias pip=pip3.9" >> ~/.bashrc
 
 # Set up Jupyter Lab server
 EXPOSE 8888

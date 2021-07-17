@@ -79,6 +79,13 @@ def image_name_to_time_int(image_name):
     
     return time_int
 
+def calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap):
+    """Description: Give image size, calculates the number of tiles along the height and width"""
+    num_tiles_height = 1 + (crop_height - tile_dimensions[0]) // (tile_dimensions[0] - tile_overlap)
+    num_tiles_width = 1 + (resize_dimensions[1] - tile_dimensions[1]) // (tile_dimensions[1] - tile_overlap)
+    
+    return num_tiles_height, num_tiles_width
+
 
 ###############
 ## DataModule

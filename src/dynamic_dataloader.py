@@ -50,6 +50,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
+                 tile_overlap = 0,
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
@@ -91,6 +92,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - resize_dimensions (int, int): desired dimensions of image before cropping
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
+            - tile_overlap (int): amount to overlap each tile
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
             - num_tile_samples (int): number of random tile samples per batch. If < 1, then turned off
 
@@ -131,6 +133,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
+        self.tile_overlap = tile_overlap
         self.smoke_threshold = smoke_threshold
         self.num_tile_samples = num_tile_samples
         
@@ -273,6 +276,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
+                                          tile_overlap=self.tile_overlap,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                           
@@ -298,6 +302,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
+                                          tile_overlap=self.tile_overlap,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                         
@@ -322,6 +327,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
+                                          tile_overlap=self.tile_overlap,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=0,
                                          
@@ -352,6 +358,7 @@ class DynamicDataloader(Dataset):
                  resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
+                 tile_overlap = 0,
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
@@ -370,12 +377,15 @@ class DynamicDataloader(Dataset):
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
+        self.tile_overlap = tile_overlap
         self.smoke_threshold = smoke_threshold
         self.num_tile_samples = num_tile_samples
         
         self.flip_augment = flip_augment
         self.blur_augment = blur_augment
         self.jitter_augment = jitter_augment
+        
+        self.num_tiles_height, self.num_tiles_width = util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
 
     def __len__(self):
         return len(self.data_split)
@@ -481,22 +491,37 @@ class DynamicDataloader(Dataset):
         # WARNING: Tile size must divide perfectly into image height and width
         # x.shape = [45, 5, 3, 224, 224]
         if self.embeddings_path is None:
-            # Take special care to make sure tiles are in the right order
-            # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
-            x = np.reshape(x, (series_length, 3,
-                               x.shape[2] // self.tile_dimensions[0], 
-                               self.tile_dimensions[0], 
-                               x.shape[3] // self.tile_dimensions[1],
-                               self.tile_dimensions[1]))
-            x = x.swapaxes(3,4).reshape(series_length, 3, -1, self.tile_dimensions[0], self.tile_dimensions[1])
-            x = np.transpose(x, (2, 0, 1, 3, 4))
+            bytelength = x.nbytes // x.size
+
+            x = np.lib.stride_tricks.as_strided(x, 
+                shape=(series_length,
+                       3, 
+                       self.num_tiles_height, 
+                       self.num_tiles_width, 
+                       self.tile_dimensions[0], 
+                       self.tile_dimensions[1]), 
+                strides=(3*self.crop_height*self.resize_dimensions[1]*bytelength,
+                         self.crop_height*self.resize_dimensions[1]*bytelength,
+                         (self.tile_dimensions[0]-self.tile_overlap)*self.resize_dimensions[1]*bytelength, 
+                         (self.tile_dimensions[1]-self.tile_overlap)*bytelength, 
+                         self.resize_dimensions[1]*bytelength, 
+                         bytelength)) 
+            x = x.reshape((series_length, 3, -1, self.tile_dimensions[0], self.tile_dimensions[1]))
+            x = np.transpose(x, (2,0,1,3,4))
 
         # labels.shape = [45, 224, 224]
-        labels = np.reshape(labels,(labels.shape[0] // self.tile_dimensions[0], 
-                                    self.tile_dimensions[0], 
-                                    labels.shape[1] // self.tile_dimensions[1],
-                                    self.tile_dimensions[1]))
-        labels = labels.swapaxes(1,2).reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
+        bytelength = labels.nbytes // labels.size
+
+        labels = np.lib.stride_tricks.as_strided(labels, 
+            shape=(self.num_tiles_height, 
+                   self.num_tiles_width, 
+                   self.tile_dimensions[0], 
+                   self.tile_dimensions[1]), 
+            strides=(self.resize_dimensions[0]*(self.tile_dimensions[1]-self.tile_overlap)*bytelength,
+                     (self.tile_dimensions[1]-self.tile_overlap)*bytelength,
+                     self.resize_dimensions[1]*bytelength,
+                     bytelength))
+        labels = labels.reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
 
         # labels.shape = [45,]
         labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
