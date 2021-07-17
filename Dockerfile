@@ -4,6 +4,7 @@ ARG cudnn_version=7
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
 WORKDIR /userdata/kerasData
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Install system packages. Put on separate lines to use caching.
 RUN apt-get update -y && apt-get upgrade -y
@@ -19,7 +20,7 @@ RUN apt-get install -y libsm6
 RUN apt-get install -y libxext6
 
 # Install python3.9
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common
+RUN apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa -y
 RUN apt-get install -y python3.9
 
