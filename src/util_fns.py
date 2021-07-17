@@ -248,9 +248,9 @@ def get_filled_labels(raw_data_path, raw_labels_path, image_name):
     return labels
 
 
-#########################
+###############
 ## Dataloader
-#########################    
+###############
 
 def crop_image(img, resize_dimensions=(1536,2016), crop_height=1120, tile_dimensions=(224,224), jitter_amount=0):
     """
@@ -329,9 +329,9 @@ def get_has_positive_tile(tile_labels):
     return has_positive_tile
 
 
-####################################
-## LightningModule - Test Metrics
-####################################
+#####################
+## LightningModule
+#####################
 
 def calculate_negative_accuracy(negative_preds):
     """
@@ -425,9 +425,9 @@ def calculate_time_to_detection_stats(positive_preds):
     return average_time_to_detection, median_time_to_detection, std_time_to_detection
 
 
-####################################
+######################
 ## Model Components
-####################################
+######################
 
 def init_weights_RetinaNet(*layers):
     """

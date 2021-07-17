@@ -184,9 +184,9 @@ class LightningModule(pl.LightningModule):
         return image_names, tile_preds, image_preds
 
     
-    ########################
+    #########################
     ## Test Metric Logging
-    ########################
+    #########################
 
     def test_epoch_end(self, test_step_outputs):
         """

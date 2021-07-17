@@ -304,13 +304,14 @@ class RawToTile_DeiT(nn.Module):
         - image_size (int, int): size of raw image
         - tile_size (int): size of square tile
     """
-    def __init__(self, image_size=(1120,2016), tile_size=224, **kwargs):
+    def __init__(self, image_size=(1120,2016), tile_size=224, series_length=1, collapse_series=True, **kwargs):
         print('- RawToTile_DeiT')
         super().__init__()
 
-        self.image_size = image_size
+        self.collapse_series = collapse_series
+        self.image_size = (image_size[0] * series_length, image_size[1]) if collapse_series else image_size
 
-        deit_config = transformers.DeiTConfig(image_size=image_size, 
+        deit_config = transformers.DeiTConfig(image_size=self.image_size, 
                                             patch_size=tile_size, 
                                             num_channels=3, 
                                             num_labels=1,
@@ -329,9 +330,14 @@ class RawToTile_DeiT(nn.Module):
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
         # Run through DeiT
-        x = x.view(batch_size * series_length, num_channels, self.image_size[0], self.image_size[1])
+        if self.collapse_series:
+            x = x.view(batch_size, num_channels, self.image_size[0], self.image_size[1])
+            series_length = 1
+        else:
+            x = x.view(batch_size * series_length, num_channels, self.image_size[0], self.image_size[1])
+        
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(x).last_hidden_state[:,1:-1] # [batch_size * series_length, num_tiles, embedding_size]
+        tile_outputs = self.deit_model(x).last_hidden_state[:,-num_tiles-1:-1] # [batch_size * series_length, num_tiles, embedding_size]
                 
         # Save embeddings of dim=960
         tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 960)
