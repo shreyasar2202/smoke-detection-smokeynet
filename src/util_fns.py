@@ -461,3 +461,15 @@ def init_weights_Xavier(*layers):
         torch.nn.init.xavier_uniform_(layer.bias.reshape((-1,1)))
     
     return layers
+
+def get_state_dict(backbone_checkpoint_path):
+    """Description: Returns state dict of backbone_checkpoint_path after cleaning keys"""
+    
+    state_dict = torch.load(backbone_checkpoint_path)['state_dict']
+    new_state_dict = {}
+    
+    for key in state_dict:
+        # ASSUMPTION: First 19 characters of key need to be removed
+        new_state_dict[str(key)[19:]] = state_dict[key]
+
+    return new_state_dict

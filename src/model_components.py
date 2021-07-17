@@ -121,19 +121,26 @@ class RawToTile_MobileNetV3Large(nn.Module):
         - freeze_backbone (bool): Freezes layers of pretrained backbone
         - pretrain_backbone (bool): Pretrains backbone
     """
-    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None, 
+                 **kwargs):
         print('- RawToTile_MobileNetV3Large')
         super().__init__()
 
         self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
         self.conv.classifier = nn.Identity()
 
-        if pretrain_backbone and freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput()
+        
+        if backbone_checkpoint_path is not None:
+            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
+        
+        if freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
         
     def forward(self, x, *args):
         x = x.float()

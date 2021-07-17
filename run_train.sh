@@ -34,6 +34,7 @@ python3 src/main.py \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
+    --backbone-checkpoint-path '/userdata/kerasData/src/pytorch-lightning-smoke-detection/saved_logs/version_80/checkpoints/last.ckpt' \
     --is-debug
     
 # python3 src/main.py \

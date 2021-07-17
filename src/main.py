@@ -118,6 +118,8 @@ parser.add_argument('--no-pretrain-backbone', action='store_false',
                     help='Disables pretraining of backbone.')
 parser.add_argument('--freeze-backbone', action='store_true',
                     help='Freezes layers on pre-trained backbone.')
+parser.add_argument('--backbone-checkpoint-path', type=str, default=None,
+                    help='Loads pretrained weights for the backbone from a checkpoint.')
 
 parser.add_argument('--tile-loss-type', type=str, default='bce',
                     help='Type of loss to use for training. Options: [bce], [focal]')
@@ -213,6 +215,7 @@ def main(# Debug args
 
         pretrain_backbone=True,
         freeze_backbone=False,
+        backbone_checkpoint_path=None,
     
         tile_loss_type='bce',
         bce_pos_weight=36,
@@ -294,6 +297,7 @@ def main(# Debug args
 
                      freeze_backbone=freeze_backbone, 
                      pretrain_backbone=pretrain_backbone,
+                     backbone_checkpoint_path=backbone_checkpoint_path,
 
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
@@ -455,6 +459,7 @@ if __name__ == '__main__':
         
         pretrain_backbone=parsed_args.no_pretrain_backbone,
         freeze_backbone=parsed_args.freeze_backbone,
+        backbone_checkpoint_path=parsed_args.backbone_checkpoint_path,
         
         tile_loss_type=parsed_args.tile_loss_type,
         bce_pos_weight=parsed_args.bce_pos_weight,
