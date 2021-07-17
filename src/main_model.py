@@ -28,12 +28,13 @@ class MainModel(nn.Module):
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
         - model_type_list: a sequential list of model_components to use to make up full model
-        - model_pretrain_epochs: a sequential list of epochs to pretrain each model part for
+        - pretrain_epochs: a sequential list of epochs to pretrain each model part for
+        - intermediate_supervision: whether or not to provide intermediate supervision between model components
         - kwargs: any other args used in the models
     """
     def __init__(self, 
                  model_type_list=['RawToTile_MobileNetV3Large'], 
-                 model_pretrain_epochs=None,
+                 pretrain_epochs=None,
                  intermediate_supervision=True,
                  
                  tile_loss_type='bce',
@@ -54,10 +55,10 @@ class MainModel(nn.Module):
             self.model_list.append(globals()[model_type](**kwargs))
         
         # Saves the number of epochs to pretrain each part of the model
-        if model_pretrain_epochs is not None:
-            self.model_pretrain_epochs = np.array(model_pretrain_epochs).astype(int)
+        if pretrain_epochs is not None:
+            self.pretrain_epochs = np.array(pretrain_epochs).astype(int)
         else:
-            self.model_pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
+            self.pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
             
         self.intermediate_supervision = intermediate_supervision
 
@@ -72,6 +73,7 @@ class MainModel(nn.Module):
     def forward(self, x):
         """Description: Maps raw inputs to outputs"""
         outputs = None
+        
         for model in self.model_list:
             outputs, x = model(x, outputs)
             
@@ -84,7 +86,7 @@ class MainModel(nn.Module):
             - x (tensor): raw image input
             - tile_labels (tensor): labels for tiles for tile_loss
             - ground_truth_labels (tensor): labels for images for image_loss
-            - num_epoch (int): current epoch number
+            - num_epoch (int): current epoch number (for pretrain_epochs)
         Outputs:
             - x (tensor): final outputs of model
             - tile_losses (list of tensor): all tile-level losses (for logging purposes)
@@ -108,7 +110,7 @@ class MainModel(nn.Module):
         # Compute forward pass and loss for each model in model_list
         for i, model in enumerate(self.model_list):
             # Skip iteration if pretraining model
-            if i != 0 and self.model_pretrain_epochs[:i].sum() > num_epoch:
+            if i != 0 and self.pretrain_epochs[:i].sum() > num_epoch:
                 break
             
             # Compute forward pass

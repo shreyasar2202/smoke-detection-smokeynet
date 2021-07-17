@@ -8,8 +8,8 @@
 # Check flags in main.py before starting!
 
 python3 src/main.py \
-    --experiment-name "MobileEmbeddings_LSTM_DeiT_Rerun" \
-    --model-type-list "TileToTile_LSTM" "TileToTile_DeiT" \
+    --experiment-name "MobileEmbeddings_Transformer" \
+    --model-type-list "TileToTile_Transformer" \
     --min-epochs 3 \
     --max-epochs 50 \
     --batch-size 32 \
@@ -18,6 +18,9 @@ python3 src/main.py \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
+    --train-split-path './saved_logs/version_80/train_images.txt' \
+    --val-split-path './saved_logs/version_80/val_images.txt' \
+    --test-split-path './saved_logs/version_80/test_images.txt' \
     --is-debug
 
 # python3 src/main.py \

@@ -35,12 +35,11 @@ class LightningModule(pl.LightningModule):
                  
                  optimizer_type='SGD',
                  optimizer_weight_decay=0.0001,
-                 learning_rate=0.005,
+                 learning_rate=0.0001,
                  lr_schedule=True,
                  
                  series_length=1,
                  parsed_args=None,
-                 is_embeddings=False,
                  save_embeddings_path=None):
         """
         Args:
@@ -53,11 +52,9 @@ class LightningModule(pl.LightningModule):
             
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
-            - is_embeddings (bool): if the input of the model are embeddings instead of raw data
             - save_embeddings_path (str): if not None, where to save embeddings
 
         Other Attributes:
-            - example_input_array (tensor): example of input to log computational graph in tensorboard
             - self.metrics (dict): contains many properties related to logging metrics, including:
                 - torchmetrics (torchmetrics module): keeps track of metrics per step and per epoch
                 - split (list of str): name of splits e.g. ['train/', 'val/', 'test/']
@@ -85,12 +82,6 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters('learning_rate')
         
         self.save_embeddings_path = save_embeddings_path
-        
-        if is_embeddings:
-            self.example_input_array = torch.randn((1,45,series_length, 960)).float()
-        else:
-            # ASSUMPTION: num_tiles=45, num_channels=3, image_height=224, image_width=224 
-            self.example_input_array = torch.randn((1,45,series_length, 3, 224, 224)).float()
 
         # Initialize evaluation metrics
         self.metrics = {}
@@ -99,19 +90,13 @@ class LightningModule(pl.LightningModule):
         self.metrics['category']    = ['tile_', 'image-gt_', 'image-xml_', 'image-pos-tile_']
         self.metrics['name']        = ['accuracy', 'precision', 'recall', 'f1']
         
-        # WARNING: torchmetrics has a very weird way of calculating metrics! 
         for split in self.metrics['split']:
             # Use mdmc_average='global' for tile_preds only
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average='global')
-            self.metrics['torchmetric'][split+self.metrics['category'][0]+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average='global')
-            
-            for category in self.metrics['category'][1:]:
-                self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy()
-                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False)
+            for i, category in enumerate(self.metrics['category']):
+                self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average='global' if i == 0 else None)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average='global' if i == 0 else None)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average='global' if i == 0 else None)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average='global' if i == 0 else None)
             
         print("Initializing LightningModule Complete.")
 
@@ -159,11 +144,12 @@ class LightningModule(pl.LightningModule):
         # Compute outputs, loss, and predictions
         outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, self.current_epoch)
         
-        # Save test embeddings
+        # Save test embeddings if save_embeddings_path is not None
         if self.save_embeddings_path is not None and split == self.metrics['split'][2]:
             embedding = embeddings.permute(2, 1, 0, 3)
             for i, augment in enumerate(embedding):
-                folder_prefix = self.save_embeddings_path+['raw/', 'flip/', 'blur/'][i % 3]
+                # Embeddings are stacked with raw, flip, blur data augmentations in that order
+                folder_prefix = self.save_embeddings_path+['raw/', 'flip/', 'blur/'][i]
                 os.makedirs(folder_prefix+util_fns.get_fire_name(image_names[0]), exist_ok=True)
                 np.save(folder_prefix+image_names[0]+'.npy', augment.cpu())
         

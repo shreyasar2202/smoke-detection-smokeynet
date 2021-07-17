@@ -61,6 +61,8 @@ parser.add_argument('--val-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with val image paths. Only works if train, val, and test paths are provided.')
 parser.add_argument('--test-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are provided.')
+parser.add_argument('--load-images-from-split', action='store_true',
+                    help='If images should be loaded exactly from split (as opposed to fires)')
 parser.add_argument('--save-embeddings-path', type=str, default=None,
                     help='If not None, where to save test embeddings. Use with --is-test-only.')
 
@@ -141,7 +143,7 @@ parser.add_argument('--max-epochs', type=int, default=25,
                     help='Max number of epochs to train for.')
 parser.add_argument('--no-early-stopping', action='store_false',
                     help='Disables early stopping based on validation loss. See PyTorch Lightning docs for more details.')
-parser.add_argument('--early-stopping-patience', type=int, default=4,
+parser.add_argument('--early-stopping-patience', type=int, default=3,
                     help='Number of epochs to wait for val loss to increase before early stopping.')
 parser.add_argument('--no-sixteen-bit', action='store_false',
                     help='Disables use of 16-bit training to reduce memory. See PyTorch Lightning docs for more details.')
@@ -175,6 +177,7 @@ def main(# Debug args
         train_split_path=None, 
         val_split_path=None, 
         test_split_path=None,
+        load_images_from_split=False,
         save_embeddings_path=None,
     
         # Experiment args
@@ -248,6 +251,7 @@ def main(# Debug args
         train_split_path=train_split_path,
         val_split_path=val_split_path,
         test_split_path=test_split_path,
+        load_images_from_split=load_images_from_split,
         save_embeddings_path=save_embeddings_path,
 
         # Dataloader args
@@ -309,7 +313,6 @@ def main(# Debug args
 
                                series_length=series_length,
                                parsed_args=parsed_args,
-                               is_embeddings=embeddings_path is not None,
                                save_embeddings_path=save_embeddings_path)
     else:
         lightning_module = LightningModule(
@@ -322,7 +325,6 @@ def main(# Debug args
 
                                series_length=series_length,
                                parsed_args=parsed_args,
-                               is_embeddings=embeddings_path is not None,
                                save_embeddings_path=save_embeddings_path)
 
     ### Implement EarlyStopping & Other Callbacks ###
@@ -414,6 +416,7 @@ if __name__ == '__main__':
         train_split_path=args.train_split_path, 
         val_split_path=args.val_split_path, 
         test_split_path=args.test_split_path,
+        load_images_from_split=args.load_images_from_split,
         save_embeddings_path=args.save_embeddings_path,
 
         # Experiment args

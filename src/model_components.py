@@ -9,7 +9,7 @@ Description: Different torch models to use with main_model.py. Models can be one
     4. TileToImage: Tile predictins -> image predictions
     5. ImageToImage: Image predictions -> image predictions
 Sizes:
-    1. Raw inputs: [batch_size, num_tiles, series_length, num_channels, tile_height, tile_width]
+    1. Raw inputs: [batch_size, num_tiles, series_length, num_channels, tile_height, tile_width]. Example: [8, 45, 4, 3, 224, 224]
     2. ToTile: tile_outputs=[batch_size, num_tiles, series_length or 1], embeddings=[batch_size, num_tiles, series_length or 1, 960]
     3. ToImage: image_outputs=[batch_size, series_length or 1], embeddings=None
 """
@@ -89,7 +89,7 @@ class TileLoss():
 
 class TileEmbeddingsToOutput(nn.Module):
     """
-    Description: Takes embeddings of dim=960 and converts them to outputs of dim=1
+    Description: Takes embeddings of dim=960 and converts them to outputs of dim=1 using linear layers
     """
     def __init__(self):
         super().__init__()
@@ -105,9 +105,9 @@ class TileEmbeddingsToOutput(nn.Module):
         tile_outputs = F.relu(self.fc2(tile_outputs)) # [batch_size, num_tiles, series_length, 64]
         tile_outputs = self.fc3(tile_outputs) # [batch_size, num_tiles, series_length, 1]
         
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, -1)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, -1) 
         
-        return tile_outputs
+        return tile_outputs # [batch_size, num_tiles, series_length]
         
 #####################
 ## RawToTile Models
@@ -440,7 +440,11 @@ class TileToTile_DeiT(nn.Module):
                                             patch_size=16, 
                                             num_channels=1, 
                                             num_labels=1,
-                                            hidden_size=960)
+                                            hidden_size=960,
+                                            num_hidden_layers=6, 
+                                            num_attention_heads=8, 
+                                            intermediate_size=2048,
+                                            hidden_dropout_prob=0.1,)
         
         self.deit_model = transformers.DeiTModel(deit_config)
         

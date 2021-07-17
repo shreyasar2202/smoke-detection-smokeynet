@@ -79,17 +79,6 @@ def image_name_to_time_int(image_name):
     
     return time_int
 
-def send_fb_message(message="Done"):
-    """
-    Source: https://www.nimrod-messenger.io/
-    Description: Programmatically sends a Facebook message! Can be used when a job is finished or error has occurred. Make sure to set up $FB_API_KEY as an evnironment variable for it to work.
-    Args:
-        - message (str): Message to send
-    """
-    os.system(
-        "curl -X POST -H \"Content-Type: application/json\" -d '{\"api_key\": \""+os.environ["FB_API_KEY"]+"\",\"message\":\""+message+"\"}' \"https://www.nimrod-messenger.io/api/v1/message\""
-    )
-
 
 ###########################
 ## DataModule & Dataloader
@@ -141,12 +130,13 @@ def generate_fire_to_images_from_splits(splits):
         
     return fire_to_images
 
-def unpack_fire_images(fire_to_images, fires_list, omit_images_list, is_test=False):
+def unpack_fire_images(fire_to_images, fires_list, omit_images_list=None):
     """
     Description: Returns images from a list of fires. If train or val, do not include images that are in 'omit_images_list'.
     Args:
         - fire_to_images (dict): maps fire to a list of images for that fire
         - fires_list (list of str): list of fire names to unpack
+        - omit_images_list (list of str): list of images to not include (because of erroneous labeling)
     Returns:
         - unpacked_images (list of str): list of images from the fires
     """
@@ -154,29 +144,32 @@ def unpack_fire_images(fire_to_images, fires_list, omit_images_list, is_test=Fal
     
     for fire in fires_list:
         for image in fire_to_images[fire]:
-            # ASSUMPTION: We want to keep all images for test set
-            if is_test or image not in omit_images_list:
+            if omit_images_list is not None and image not in omit_images_list:
                 unpacked_images.append(image)
                 
     return unpacked_images
 
-def shorten_time_range(fire_to_images, time_range, train_fires):
+def shorten_time_range(fire_to_images, time_range, series_length, train_fires):
     """
     Description: From lists of images per fire, returns list of images within specified time range
     Args:
         - fire_to_images (dict): maps fire to a list of images for that fire
         - time_range (int, int): the time range of images to consider for training by time stamp
+        - series_length (int): length of series to cut off starting of fires
         - train_fires (list of str): list of fires in train split
     Returns:
         - fire_to_images (dict): list of images for each fire
     """
-    if time_range[0] > -2400 or time_range[1] < 2400:
+    # Calculate effective time start
+    effective_start = np.maximum(time_range[0], -2400 + (series_length - 1) * 60)
+        
+    if effective_start > -2400 or time_range[1] < 2400:
         for fire in train_fires:
             images_to_keep = []
 
             for image in fire_to_images[fire]:
                 image_time_index = image_name_to_time_int(image)
-                if image_time_index >= time_range[0] and image_time_index <= time_range[1]:
+                if image_time_index >= effective_start and image_time_index <= time_range[1]:
                     images_to_keep.append(image)
 
             fire_to_images[fire] = images_to_keep
