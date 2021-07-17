@@ -5,6 +5,9 @@ FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel
 
 WORKDIR /userdata/kerasData
 
+# Prevents asking for user input when installing packages
+ARG DEBIAN_FRONTEND=noninteractive
+
 # Install system packages. Put on separate lines to use caching.
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y git
@@ -20,7 +23,7 @@ RUN apt-get install -y libxext6
 
 # Install python3.9
 RUN apt-get install -y software-properties-common
-RUN add-apt-repository ppa:deadsnakes/ppa
+RUN add-apt-repository ppa:deadsnakes/ppa -y
 RUN apt-get install -y python3.9
 
 # Install pip3.9
