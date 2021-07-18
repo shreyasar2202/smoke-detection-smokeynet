@@ -297,54 +297,35 @@ class RawToTile_EfficientNetB6(nn.Module):
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
     
-class RawToTile_DeiT(nn.Module):
-    """
-    Description: Vision Transformer operating on raw inputs to produce tile predictions
-    Args:
-        - image_size (int, int): size of raw image
-        - tile_size (int): size of square tile
-    """
-    def __init__(self, image_size=(1120,2016), tile_size=224, series_length=1, collapse_series=True, **kwargs):
+class RawToTile_DeiT_Tiny(nn.Module):
+    """Description: Vision Transformer operating on raw inputs to produce tile predictions"""
+    def __init__(self, image_size=(1120,2016), tile_size=224, series_length=1, **kwargs):
         print('- RawToTile_DeiT')
         super().__init__()
 
-        self.collapse_series = collapse_series
-        self.image_size = (image_size[0] * series_length, image_size[1]) if collapse_series else image_size
-
-        deit_config = transformers.DeiTConfig(image_size=self.image_size, 
-                                            patch_size=tile_size, 
-                                            num_channels=3, 
-                                            num_labels=1,
-                                            hidden_size=960,
-                                            num_hidden_layers=4,
-                                            num_attention_heads=3,
-                                            intermediate_size=1024)
-
-        self.deit_model = transformers.DeiTModel(deit_config)
-
-        # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput()
+        self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-tiny-distilled-patch16-224')
+        self.fc2 = nn.Linear(in_features=192, out_features=64)
+        self.fc3 = nn.Linear(in_features=64, out_features=1)
 
     def forward(self, x, *args):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
         # Run through DeiT
-        if self.collapse_series:
-            x = x.view(batch_size, num_channels, self.image_size[0], self.image_size[1])
-            series_length = 1
-        else:
-            x = x.view(batch_size * series_length, num_channels, self.image_size[0], self.image_size[1])
+        x = x.view(batch_size * series_length * num_tiles, num_channels, height, width)
         
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(x).last_hidden_state[:,-num_tiles-1:-1] # [batch_size * series_length, num_tiles, embedding_size]
+        tile_outputs = self.deit_model(x).pooler_output # [batch_size * series_length * num_tiles, 192]
                 
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 960)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 192)
         embeddings = tile_outputs
 
         # Use linear layers to get dim=1
-        tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
+        tile_outputs = F.relu(self.fc2(tile_outputs))
+        tile_outputs = F.relu(self.fc3(tile_outputs))
+        
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length)
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
     

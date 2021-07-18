@@ -7,6 +7,22 @@
 
 
 python3.9 src/main.py \
+    --experiment-name "RawToTile_DeiT_Tiny" \
+    --model-type-list "RawToTile_DeiT_Tiny" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --resize-height 1536 \
+    --resize-width 2060 \
+    --crop-height 1244 \
+    --tile-overlap 20 \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+
+python3.9 src/main.py \
     --experiment-name "MobileNet_Overlap" \
     --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
@@ -21,20 +37,9 @@ python3.9 src/main.py \
     --tile-overlap 20 \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --is-debug
     
 
-# python3.9 src/main.py \
-#     --experiment-name "RawToTile_DeiT" \
-#     --model-type-list "RawToTile_DeiT" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 8 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 4 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+
 
 # python3.9 src/main.py \
 #     --experiment-name "RawToTile_ViDeiT" \
