@@ -7,7 +7,7 @@
 
 
 python3.9 src/main.py \
-    --experiment-name "MobileNet" \
+    --experiment-name "MobileNet_Overlap" \
     --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
     --max-epochs 50 \
@@ -15,9 +15,14 @@ python3.9 src/main.py \
     --series-length 1 \
     --accumulate-grad-batches 8 \
     --no-lr-schedule \
+    --resize-height 1536 \
+    --resize-width 2060 \
+    --crop-height 1244 \
+    --tile-overlap 20 \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
     --is-debug
+    
 
 # python3.9 src/main.py \
 #     --experiment-name "RawToTile_DeiT" \

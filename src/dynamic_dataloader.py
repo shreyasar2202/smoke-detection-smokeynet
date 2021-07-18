@@ -406,12 +406,31 @@ class DynamicDataloader(Dataset):
                 img = cv2.flip(img, 1)
             if should_blur:
                 img = cv2.blur(img, (blur_size,blur_size))
+                
+            # Tile image
+            # WARNING: Tile size must divide perfectly into image height and width
+            bytelength = img.nbytes // img.size
+            # img.shape = [num_tiles_height, num_tiles_width, tile_height, tile_width, 3]
+            img = np.lib.stride_tricks.as_strided(img, 
+                shape=(self.num_tiles_height, 
+                       self.num_tiles_width, 
+                       self.tile_dimensions[0], 
+                       self.tile_dimensions[1],
+                       3), 
+                strides=(self.resize_dimensions[1]*(self.tile_dimensions[0]-self.tile_overlap)*bytelength*3,
+                         (self.tile_dimensions[1]-self.tile_overlap)*bytelength*3, 
+                         self.resize_dimensions[1]*bytelength*3, 
+                         bytelength*3, 
+                         bytelength))
+            
+            # img.shape = [num_tiles, tile_height, tile_width, 3]
+            img = img.reshape((-1, self.tile_dimensions[0], self.tile_dimensions[1], 3))
 
             x.append(img)
             
-        # x.shape = [series_length, num_channels, height, width]
-        # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255 # Normalize by /255 (good enough normalization)
+        # x.shape = [num_tiles, series_length, num_channels, height, width]
+        # e.g. [45, 5, 3, 224, 224]
+        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3)) / 255 # Normalize by /255 (good enough normalization)
         
         return x
         
@@ -486,32 +505,8 @@ class DynamicDataloader(Dataset):
             labels = cv2.flip(labels, 1)
         if should_blur:
             labels = cv2.blur(labels, (blur_size, blur_size))
-        
-        ### Tile Image ###
-        # WARNING: Tile size must divide perfectly into image height and width
-        # x.shape = [45, 5, 3, 224, 224]
-        if self.embeddings_path is None:
-            bytelength = x.nbytes // x.size
-
-            x = np.lib.stride_tricks.as_strided(x, 
-                shape=(series_length,
-                       3, 
-                       self.num_tiles_height, 
-                       self.num_tiles_width, 
-                       self.tile_dimensions[0], 
-                       self.tile_dimensions[1]), 
-                strides=(3*self.crop_height*self.resize_dimensions[1]*bytelength,
-                         self.crop_height*self.resize_dimensions[1]*bytelength,
-                         (self.tile_dimensions[0]-self.tile_overlap)*self.resize_dimensions[1]*bytelength, 
-                         (self.tile_dimensions[1]-self.tile_overlap)*bytelength, 
-                         self.resize_dimensions[1]*bytelength, 
-                         bytelength)) 
-            x = x.reshape((series_length, 3, -1, self.tile_dimensions[0], self.tile_dimensions[1]))
-            x = np.transpose(x, (2,0,1,3,4))
-
-        # labels.shape = [45, 224, 224]
+            
         bytelength = labels.nbytes // labels.size
-
         labels = np.lib.stride_tricks.as_strided(labels, 
             shape=(self.num_tiles_height, 
                    self.num_tiles_width, 
