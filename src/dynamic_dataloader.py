@@ -397,6 +397,7 @@ class DynamicDataloader(Dataset):
         for file_name in self.metadata['image_series'][image_name]:
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+#             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             
             # Resize and crop
             img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
@@ -408,6 +409,7 @@ class DynamicDataloader(Dataset):
                 img = cv2.blur(img, (blur_size,blur_size))
                 
             # Tile image
+            # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
             # WARNING: Tile size must divide perfectly into image height and width
             bytelength = img.nbytes // img.size
             # img.shape = [num_tiles_height, num_tiles_width, tile_height, tile_width, 3]
@@ -421,7 +423,7 @@ class DynamicDataloader(Dataset):
                          (self.tile_dimensions[1]-self.tile_overlap)*bytelength*3, 
                          self.resize_dimensions[1]*bytelength*3, 
                          bytelength*3, 
-                         bytelength))
+                         bytelength), writeable=False)
             
             # img.shape = [num_tiles, tile_height, tile_width, 3]
             img = img.reshape((-1, self.tile_dimensions[0], self.tile_dimensions[1], 3))
@@ -505,17 +507,17 @@ class DynamicDataloader(Dataset):
             labels = cv2.flip(labels, 1)
         if should_blur:
             labels = cv2.blur(labels, (blur_size, blur_size))
-            
+
         bytelength = labels.nbytes // labels.size
         labels = np.lib.stride_tricks.as_strided(labels, 
             shape=(self.num_tiles_height, 
                    self.num_tiles_width, 
                    self.tile_dimensions[0], 
                    self.tile_dimensions[1]), 
-            strides=(self.resize_dimensions[0]*(self.tile_dimensions[1]-self.tile_overlap)*bytelength,
-                     (self.tile_dimensions[1]-self.tile_overlap)*bytelength,
-                     self.resize_dimensions[1]*bytelength,
-                     bytelength))
+            strides=(self.resize_dimensions[1]*(self.tile_dimensions[0]-self.tile_overlap)*bytelength,
+                     (self.tile_dimensions[1]-self.tile_overlap)*bytelength, 
+                     self.resize_dimensions[1]*bytelength, 
+                     bytelength), writeable=False)
         labels = labels.reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
 
         # labels.shape = [45,]

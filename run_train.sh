@@ -7,36 +7,39 @@
 
 
 python3.9 src/main.py \
-    --experiment-name "RawToTile_DeiT_Tiny" \
-    --model-type-list "RawToTile_DeiT_Tiny" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --resize-height 1536 \
-    --resize-width 2060 \
-    --crop-height 1244 \
-    --tile-overlap 20 \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-
-python3.9 src/main.py \
-    --experiment-name "MobileNet_Overlap" \
+    --experiment-name "FIX_BUG" \
     --model-type-list "RawToTile_MobileNetV3Large" \
     --min-epochs 3 \
     --max-epochs 50 \
-    --batch-size 4 \
+    --batch-size 8 \
     --series-length 1 \
-    --accumulate-grad-batches 8 \
+    --accumulate-grad-batches 4 \
+    --no-jitter-augment \
     --no-lr-schedule \
-    --resize-height 1536 \
-    --resize-width 2060 \
-    --crop-height 1244 \
-    --tile-overlap 20 \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
+    --train-split-path './saved_logs/version_80/train_images.txt' \
+    --val-split-path './saved_logs/version_80/val_images.txt' \
+    --test-split-path './saved_logs/version_80/test_images.txt' \
+    
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_Transformer_Freeze" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_Transformer" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-jitter-augment \
+#     --no-lr-schedule \
+#     --freeze-backbone \
+#     --no-intermediate-supervision \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
+#     --backbone-checkpoint-path './saved_logs/version_2/checkpoints/epoch=3-step=895.ckpt' \
+#     --train-split-path './saved_logs/version_2/train_images.txt' \
+#     --val-split-path './saved_logs/version_2/val_images.txt' \
+#     --test-split-path './saved_logs/version_2/test_images.txt' \
     
 
 
