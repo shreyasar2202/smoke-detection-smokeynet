@@ -27,15 +27,17 @@ class MainModel(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
     Args:
-        - model_type_list: a sequential list of model_components to use to make up full model
-        - pretrain_epochs: a sequential list of epochs to pretrain each model part for
-        - intermediate_supervision: whether or not to provide intermediate supervision between model components
+        - model_type_list (list of str): a sequential list of model_components to use to make up full model
+        - pretrain_epochs (list of int): a sequential list of epochs to pretrain each model part for
+        - intermediate_supervision (bool): whether or not to provide intermediate supervision between model components
+        - use_image_preds (bool): uses image predictions from linear layers instead of tile preds.
         - kwargs: any other args used in the models
     """
     def __init__(self, 
                  model_type_list=['RawToTile_MobileNetV3Large'], 
                  pretrain_epochs=None,
                  intermediate_supervision=True,
+                 use_image_preds=False,
                  
                  tile_loss_type='bce',
                  bce_pos_weight=36,
@@ -61,6 +63,7 @@ class MainModel(nn.Module):
             self.pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
             
         self.intermediate_supervision = intermediate_supervision
+        self.use_image_preds = use_image_preds
 
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
@@ -139,9 +142,8 @@ class MainModel(nn.Module):
             tile_preds = (torch.sigmoid(tile_outputs[:,:,-1]) > 0.5).int()
         
         # If created image_outputs, predict directly
-        if image_outputs is not None:
+        if self.use_image_preds and image_outputs is not None:
             image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
-        
         # Else, use tile_preds to determine image_preds
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()

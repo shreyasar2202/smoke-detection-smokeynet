@@ -108,13 +108,15 @@ parser.add_argument('--no-jitter-augment', action='store_false',
                     help='Disables data augmentation with slightly displaced cropping.')
 
 
-# Model args = 3 + 4 + 4
+# Model args = 4 + 4 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--pretrain-epochs', nargs='*',
                     help='Specify the number of epochs to pretrain each model component.')
 parser.add_argument('--no-intermediate-supervision', action='store_false',
                     help='Disables intermediate supervision for chained models.')
+parser.add_argument('--use-image-preds', action='store_true',
+                    help='Uses image predictions from linear layers instead of tile preds.')
 
 parser.add_argument('--no-pretrain-backbone', action='store_false',
                     help='Disables pretraining of backbone.')
@@ -127,7 +129,7 @@ parser.add_argument('--backbone-checkpoint-path', type=str, default=None,
 
 parser.add_argument('--tile-loss-type', type=str, default='bce',
                     help='Type of loss to use for training. Options: [bce], [focal]')
-parser.add_argument('--bce-pos-weight', type=float, default=36,
+parser.add_argument('--bce-pos-weight', type=float, default=40,
                     help='Weight for positive class for BCE loss for tiles.')
 parser.add_argument('--focal-alpha', type=float, default=0.25,
                     help='Alpha for focal loss.')
@@ -217,6 +219,7 @@ def main(# Debug args
         model_type_list=['RawToTile_MobileNetV3Large'],
         pretrain_epochs=None,
         intermediate_supervision=True,
+        use_image_preds=False,
 
         pretrain_backbone=True,
         freeze_backbone=False,
@@ -295,6 +298,7 @@ def main(# Debug args
                      model_type_list=model_type_list,
                      pretrain_epochs=pretrain_epochs,
                      intermediate_supervision=intermediate_supervision,
+                     use_image_preds=use_image_preds,
 
                      tile_loss_type=tile_loss_type,
                      bce_pos_weight=bce_pos_weight,
@@ -464,6 +468,7 @@ if __name__ == '__main__':
         model_type_list=parsed_args.model_type_list,
         pretrain_epochs=parsed_args.pretrain_epochs,
         intermediate_supervision=parsed_args.no_intermediate_supervision,
+        use_image_preds=parsed_args.use_image_preds,
         
         pretrain_backbone=parsed_args.no_pretrain_backbone,
         freeze_backbone=parsed_args.freeze_backbone,

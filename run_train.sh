@@ -7,44 +7,39 @@
 
 
 python3.9 src/main.py \
-    --experiment-name "RawToTile_ResNet" \
-    --model-type-list "RawToTile_ResNet" \
-    --min-epochs 0 \
-    --max-epochs 1 \
-    --batch-size 1 \
+    --experiment-name "EfficientNet" \
+    --model-type-list "RawToTile_EfficientNet" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
     --series-length 1 \
-    --accumulate-grad-batches 32 \
+    --accumulate-grad-batches 8 \
     --no-jitter-augment \
     --no-lr-schedule \
-    --no-pretrain-backbone \
-    --backbone-size 'large' \
+    --backbone-size 'small' \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --is-debug
-
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_Transformer_NoFreeze" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_Transformer" \
-#     --min-epochs 0 \
-#     --max-epochs 1 \
-#     --batch-size 8 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 4 \
-#     --no-jitter-augment \
-#     --no-lr-schedule \
-#     --no-intermediate-supervision \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
-#     --backbone-checkpoint-path './saved_logs/version_2/checkpoints/epoch=3-step=895.ckpt' \
-#     --train-split-path './saved_logs/version_2/train_images.txt' \
-#     --val-split-path './saved_logs/version_2/val_images.txt' \
-#     --test-split-path './saved_logs/version_2/test_images.txt' \
+    
+python3.9 src/main.py \
+    --experiment-name "MobileNet_OverlapJitter" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --resize-width 2060 \
+    --crop-height 1244 \
+    --tile-overlap 20 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
     
 # python3.9 src/main.py \
 #     --experiment-name "MobileNet_OverlapJitter" \
-#     --model-type-list "RawToTile_MobileNetV3Large" \
-#     --min-epochs 0 \
-#     --max-epochs 1 \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
 #     --batch-size 4 \
 #     --series-length 1 \
 #     --accumulate-grad-batches 8 \
@@ -55,6 +50,8 @@ python3.9 src/main.py \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
+    
+
     
 
     
@@ -79,7 +76,6 @@ python3.9 src/main.py \
 ## With Overlapping Tiles
 #########################
 
-#     --resize-height 1536 \
 #     --resize-width 2060 \
 #     --crop-height 1244 \
 #     --tile-overlap 20 \
