@@ -6,45 +6,62 @@
 #############################################
 
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_OverlapJitter" \
-#     --model-type-list "RawToTile_MobileNetV3Large" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --resize-width 2060 \
-#     --crop-height 1244 \
-#     --tile-overlap 20 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_OverlapJitter" \
+    --model-type-list "RawToTile_MobileNetV3Large" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --resize-width 2060 \
+    --crop-height 1244 \
+    --tile-overlap 20 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --checkpoint-path './lightning_logs/MobileNet_OverlapJitter/version_1/checkpoints/epoch=8-step=2015.ckpt' \
+    --train-split-path './lightning_logs/MobileNet_OverlapJitter/version_1/train_images.txt' \
+    --val-split-path './lightning_logs/MobileNet_OverlapJitter/version_1/val_images.txt' \
+    --test-split-path './lightning_logs/MobileNet_OverlapJitter/version_1/test_images.txt' \
+    --is-test-only \
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_LinearOutputs_TilePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LinearOutputs_TilePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --no-jitter-augment \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --checkpoint-path './lightning_logs/MobileNet_LinearOutputs_TilePreds/version_0/checkpoints/epoch=6-step=1581.ckpt' \
+    --train-split-path './lightning_logs/MobileNet_LinearOutputs_TilePreds/version_0/train_images.txt' \
+    --val-split-path './lightning_logs/MobileNet_LinearOutputs_TilePreds/version_0/val_images.txt' \
+    --test-split-path './lightning_logs/MobileNet_LinearOutputs_TilePreds/version_0/test_images.txt' \
+    --is-test-only \
 
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_LinearOutputs_ImagePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --use-image-preds \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LinearOutputs_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --no-jitter-augment \
+    --use-image-preds \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --checkpoint-path './lightning_logs/MobileNet_LinearOutputs_ImagePreds/version_0/checkpoints/epoch=6-step=1595.ckpt' \
+    --train-split-path './lightning_logs/MobileNet_LinearOutputs_ImagePreds/version_0/train_images.txt' \
+    --val-split-path './lightning_logs/MobileNet_LinearOutputs_ImagePreds/version_0/val_images.txt' \
+    --test-split-path './lightning_logs/MobileNet_LinearOutputs_ImagePreds/version_0/test_images.txt' \
+    --is-test-only \
     
 python3.9 src/main.py \
     --experiment-name "MobileNet_LinearEmbeddings_TilePreds" \
@@ -55,22 +72,33 @@ python3.9 src/main.py \
     --series-length 1 \
     --accumulate-grad-batches 8 \
     --no-lr-schedule \
+    --no-jitter-augment \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --is-debug
+    --checkpoint-path './lightning_logs/MobileNet_LinearEmbeddings_TilePreds/version_0/checkpoints/epoch=6-step=1567.ckpt' \
+    --train-split-path './lightning_logs/MobileNet_LinearEmbeddings_TilePreds/version_0/train_images.txt' \
+    --val-split-path './lightning_logs/MobileNet_LinearEmbeddings_TilePreds/version_0/val_images.txt' \
+    --test-split-path './lightning_logs/MobileNet_LinearEmbeddings_TilePreds/version_0/test_images.txt' \
+    --is-test-only \
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_LinearEmbeddings_ImagePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --use-image-preds \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LinearEmbeddings_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --no-jitter-augment \
+    --use-image-preds \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --checkpoint-path './lightning_logs/MobileNet_LinearEmbeddings_ImagePreds/version_0/checkpoints/epoch=5-step=1367.ckpt' \
+    --train-split-path './lightning_logs/MobileNet_LinearEmbeddings_ImagePreds/version_0/train_images.txt' \
+    --val-split-path './lightning_logs/MobileNet_LinearEmbeddings_ImagePreds/version_0/val_images.txt' \
+    --test-split-path './lightning_logs/MobileNet_LinearEmbeddings_ImagePreds/version_0/test_images.txt' \
+    --is-test-only \
     
     
 
