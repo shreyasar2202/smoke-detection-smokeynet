@@ -111,7 +111,6 @@ class MainModel(nn.Module):
         
         tile_preds = None
         image_preds = None
-        corrected_image_preds = None
         
         # Compute forward pass and loss for each model in model_list
         for i, model in enumerate(self.model_list):
@@ -151,6 +150,4 @@ class MainModel(nn.Module):
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
-        corrected_image_preds = ((tile_preds * tile_labels).sum(dim=1) > 0).int()
-            
-        return outputs, embeddings, losses, total_loss, tile_preds, image_preds, corrected_image_preds
+        return outputs, embeddings, losses, total_loss, tile_preds, image_preds

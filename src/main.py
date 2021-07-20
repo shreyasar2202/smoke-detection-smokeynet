@@ -87,13 +87,13 @@ parser.add_argument('--time-range-max', type=int, default=2400,
 
 parser.add_argument('--resize-height', type=int, default=1536,
                     help='Desired resize height of image.')
-parser.add_argument('--resize-width', type=int, default=2016,
+parser.add_argument('--resize-width', type=int, default=2060,
                     help='Desired resize width of image.')
-parser.add_argument('--crop-height', type=int, default=1120,
+parser.add_argument('--crop-height', type=int, default=1244,
                     help='Desired height after cropping.')
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
-parser.add_argument('--tile-overlap', type=int, default=0,
+parser.add_argument('--tile-overlap', type=int, default=20,
                     help='Amount to overlap each tile.')
 parser.add_argument('--smoke-threshold', type=int, default=250,
                     help='Number of pixels of smoke to consider tile positive.')
