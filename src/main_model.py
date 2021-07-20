@@ -31,6 +31,7 @@ class MainModel(nn.Module):
         - pretrain_epochs (list of int): a sequential list of epochs to pretrain each model part for
         - intermediate_supervision (bool): whether or not to provide intermediate supervision between model components
         - use_image_preds (bool): uses image predictions from linear layers instead of tile preds.
+        - tile_embedding_size (int): target embedding size to use for tile predictions.
         - kwargs: any other args used in the models
     """
     def __init__(self, 
@@ -38,6 +39,7 @@ class MainModel(nn.Module):
                  pretrain_epochs=None,
                  intermediate_supervision=True,
                  use_image_preds=False,
+                 tile_embedding_size=960,
                  
                  tile_loss_type='bce',
                  bce_pos_weight=36,

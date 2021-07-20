@@ -108,7 +108,7 @@ parser.add_argument('--no-jitter-augment', action='store_false',
                     help='Disables data augmentation with slightly displaced cropping.')
 
 
-# Model args = 4 + 4 + 4
+# Model args = 5 + 4 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--pretrain-epochs', nargs='*',
@@ -117,6 +117,8 @@ parser.add_argument('--no-intermediate-supervision', action='store_false',
                     help='Disables intermediate supervision for chained models.')
 parser.add_argument('--use-image-preds', action='store_true',
                     help='Uses image predictions from linear layers instead of tile preds.')
+parser.add_argument('--tile-embedding-size', type=int, default=960,
+                    help='Target embedding size to use for tile predictions.')
 
 parser.add_argument('--no-pretrain-backbone', action='store_false',
                     help='Disables pretraining of backbone.')
@@ -220,6 +222,7 @@ def main(# Debug args
         pretrain_epochs=None,
         intermediate_supervision=True,
         use_image_preds=False,
+        tile_embedding_size=960,
 
         pretrain_backbone=True,
         freeze_backbone=False,
@@ -250,9 +253,10 @@ def main(# Debug args
         # Checkpoint args
         checkpoint_path=None,
         checkpoint=None):
-        
-    print("IS_DEBUG: ",  is_debug)
-    print("IS_TEST_ONLY: ", is_test_only)
+    
+    print("Experiment: ", experiment_name)
+    print("- IS_DEBUG: ",  is_debug)
+    print("- IS_TEST_ONLY: ", is_test_only)
 
     ### Initialize data_module ###
     data_module = DynamicDataModule(
@@ -299,6 +303,7 @@ def main(# Debug args
                      pretrain_epochs=pretrain_epochs,
                      intermediate_supervision=intermediate_supervision,
                      use_image_preds=use_image_preds,
+                     tile_embedding_size=tile_embedding_size,
 
                      tile_loss_type=tile_loss_type,
                      bce_pos_weight=bce_pos_weight,
@@ -313,9 +318,6 @@ def main(# Debug args
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,
-
-                     image_size=(crop_height, resize_dimensions[1]),
-                     tile_size=tile_dimensions[0],
                      series_length=series_length)
 
     ### Initialize LightningModule ###
@@ -469,6 +471,7 @@ if __name__ == '__main__':
         pretrain_epochs=parsed_args.pretrain_epochs,
         intermediate_supervision=parsed_args.no_intermediate_supervision,
         use_image_preds=parsed_args.use_image_preds,
+        tile_embedding_size=parsed_args.tile_embedding_size,
         
         pretrain_backbone=parsed_args.no_pretrain_backbone,
         freeze_backbone=parsed_args.freeze_backbone,

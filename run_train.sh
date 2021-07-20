@@ -5,45 +5,15 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
-
-python3.9 src/main.py \
-    --experiment-name "EfficientNet" \
-    --model-type-list "RawToTile_EfficientNet" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-jitter-augment \
-    --no-lr-schedule \
-    --backbone-size 'small' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_OverlapJitter" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --resize-width 2060 \
-    --crop-height 1244 \
-    --tile-overlap 20 \
-    --no-lr-schedule \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
     
 # python3.9 src/main.py \
 #     --experiment-name "MobileNet_OverlapJitter" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
+#     --model-type-list "RawToTile_MobileNetV3Large" \
 #     --min-epochs 3 \
 #     --max-epochs 50 \
 #     --batch-size 4 \
 #     --series-length 1 \
 #     --accumulate-grad-batches 8 \
-#     --resize-height 1536 \
 #     --resize-width 2060 \
 #     --crop-height 1244 \
 #     --tile-overlap 20 \
@@ -51,9 +21,57 @@ python3.9 src/main.py \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
     
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_LinearOutputs_TilePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
 
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_LinearOutputs_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearOutputs" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --use-image-preds \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
     
-
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LinearEmbeddings_TilePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
+    --min-epochs 3 \
+    --max-epochs 50 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --is-debug
+    
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_LinearEmbeddings_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToImage_LinearEmbeddings" \
+#     --min-epochs 3 \
+#     --max-epochs 50 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --use-image-preds \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
+    
     
 
 #####################
