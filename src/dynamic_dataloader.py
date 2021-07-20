@@ -397,7 +397,7 @@ class DynamicDataloader(Dataset):
         for file_name in self.metadata['image_series'][image_name]:
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-#             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             
             # Resize and crop
             img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
@@ -427,12 +427,17 @@ class DynamicDataloader(Dataset):
             
             # img.shape = [num_tiles, tile_height, tile_width, 3]
             img = img.reshape((-1, self.tile_dimensions[0], self.tile_dimensions[1], 3))
+            
+            # Rescale to [0,1]
+            img = img / 255
+            # Normalize to 0.5 mean & std
+            img = (img - 0.5) / 0.5
 
             x.append(img)
             
         # x.shape = [num_tiles, series_length, num_channels, height, width]
         # e.g. [45, 5, 3, 224, 224]
-        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3)) / 255 # Normalize by /255 (good enough normalization)
+        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         
         return x
         

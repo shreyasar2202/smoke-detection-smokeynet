@@ -119,7 +119,8 @@ class RawToTile_MobileNetV3Large(nn.Module):
     Args:
         - series_length (int)
         - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
     """
     def __init__(self, 
                  freeze_backbone=True, 
@@ -159,32 +160,48 @@ class RawToTile_MobileNetV3Large(nn.Module):
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
 
-class RawToTile_EfficientNetB0(nn.Module):
+class RawToTile_ResNet(nn.Module):
     """
-    Description: EfficientNetB0 backbone with a few linear layers.
+    Description: ResNet backbone with a few linear layers.
     Args:
         - series_length (int)
         - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
     """
-    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
-        print('- RawToTile_EfficientNetB0')
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None,  
+                 backbone_size='small', 
+                 **kwargs):
+        print('- RawToTile_ResNet_'+backbone_size)
         super().__init__()
         
-        if pretrain_backbone:
-            self.conv = EfficientNet.from_pretrained("efficientnet-b0")
-        else:
-            self.conv = EfficientNet.from_name("efficientnet-b0")
-            
-        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
+        self.backbone_size = backbone_size
+        self.size_to_embeddings = {'small': 1000, 'medium': 1000, 'large': 1000}
 
-        if pretrain_backbone and freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
+        if backbone_size == 'small':
+            self.conv = torchvision.models.resnet34(pretrained=pretrain_backbone)
+        elif backbone_size == 'medium':
+            self.conv = torchvision.models.resnet50(pretrained=pretrain_backbone)
+        elif backbone_size == 'large':
+            self.conv = torchvision.models.resnet152(pretrained=pretrain_backbone)
+        else:
+            print('RawToTile_ResNet: backbone_size not recognized')
+        
+        self.conv.classifier = nn.Identity()
 
         # Initialize additional linear layers
-        self.fc = nn.Linear(in_features=1280, out_features=960)
+        self.fc = nn.Linear(in_features=self.size_to_embeddings[self.backbone_size], out_features=960)
         self.embeddings_to_output = TileEmbeddingsToOutput()
+        
+        if backbone_checkpoint_path is not None:
+            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
+        
+        if freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
         
     def forward(self, x, *args):
         x = x.float()
@@ -192,11 +209,10 @@ class RawToTile_EfficientNetB0(nn.Module):
 
         # Run through conv model
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 1280, 7, 7]
-        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 1280, 1, 1]
-        
+        tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size]
+
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 1280)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, self.size_to_embeddings[self.backbone_size])
         tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
         embeddings = tile_outputs
         
@@ -205,22 +221,32 @@ class RawToTile_EfficientNetB0(nn.Module):
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
     
-class RawToTile_EfficientNetB3(nn.Module):
+class RawToTile_EfficientNet(nn.Module):
     """
-    Description: EfficientNetB3 backbone with a few linear layers.
+    Description: EfficientNet backbone with a few linear layers.
     Args:
-        - series_length (int)
         - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone
+        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
+        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
+        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
     """
-    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
-        print('- RawToTile_EfficientNetB3')
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None, 
+                 backbone_size='small', 
+                 **kwargs):
+        print('- RawToTile_EfficientNet_'+backbone_size)
         super().__init__()
         
+        self.backbone_size = backbone_size
+        self.size_to_embeddings = {'small': 1280, 'medium': 1536, 'large': 2048}
+        size_to_name = {'small': 'b0', 'medium': 'b3', 'large': 'b5'}
+        
         if pretrain_backbone:
-            self.conv = EfficientNet.from_pretrained("efficientnet-b3")
+            self.conv = EfficientNet.from_pretrained("efficientnet-"+size_to_name[backbone_size])
         else:
-            self.conv = EfficientNet.from_name("efficientnet-b3")
+            self.conv = EfficientNet.from_name("efficientnet-"+size_to_name[backbone_size])
             
         self.avg_pooling = nn.AdaptiveAvgPool2d(1)
 
@@ -229,7 +255,7 @@ class RawToTile_EfficientNetB3(nn.Module):
                 param.requires_grad = False
 
         # Initialize additional linear layers
-        self.fc = nn.Linear(in_features=1536, out_features=960)
+        self.fc = nn.Linear(in_features=self.size_to_embeddings[self.backbone_size], out_features=960)
         self.embeddings_to_output = TileEmbeddingsToOutput()
         
     def forward(self, x, *args):
@@ -238,11 +264,11 @@ class RawToTile_EfficientNetB3(nn.Module):
 
         # Run through conv model
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 1536, 7, 7]
-        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 1536, 1, 1]
+        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 7, 7]
+        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 1, 1]
         
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 1536)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, self.size_to_embeddings[self.backbone_size])
         tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
         embeddings = tile_outputs
         
@@ -251,61 +277,29 @@ class RawToTile_EfficientNetB3(nn.Module):
 
         return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
     
-class RawToTile_EfficientNetB6(nn.Module):
-    """
-    Description: EfficientNetB6 backbone with a few linear layers.
-    Args:
-        - series_length (int)
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone
-    """
-    def __init__(self, freeze_backbone=True, pretrain_backbone=True, **kwargs):
-        print('- RawToTile_EfficientNetB6')
-        super().__init__()
-        
-        if pretrain_backbone:
-            self.conv = EfficientNet.from_pretrained("efficientnet-b6")
-        else:
-            self.conv = EfficientNet.from_name("efficientnet-b6")
-            
-        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
-
-        if pretrain_backbone and freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-
-        # Initialize additional linear layers
-        self.fc = nn.Linear(in_features=2304, out_features=960)
-        self.embeddings_to_output = TileEmbeddingsToOutput()
-        
-    def forward(self, x, *args):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through conv model
-        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, 2304, 7, 7]
-        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, 2304, 1, 1]
-        
-        # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 2304)
-        tile_outputs = self.fc(tile_outputs) # [batch_size, num_tiles, series_length, 960]
-        embeddings = tile_outputs
-        
-        # Use linear layers to get dim=1
-        tile_outputs = self.embeddings_to_output(tile_outputs, batch_size, num_tiles) # [batch_size, num_tiles, series_length]
-
-        return tile_outputs, embeddings # [batch_size, num_tiles, series_length], [batch_size, num_tiles, series_length, 960]
-    
-class RawToTile_DeiT_Tiny(nn.Module):
+class RawToTile_DeiT(nn.Module):
     """Description: Vision Transformer operating on raw inputs to produce tile predictions"""
-    def __init__(self, image_size=(1120,2016), tile_size=224, series_length=1, **kwargs):
-        print('- RawToTile_DeiT')
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None, 
+                 backbone_size='small', 
+                 **kwargs):
+        print('- RawToTile_DeiT_'+backbone_size)
         super().__init__()
+        
+        self.backbone_size = backbone_size
+        self.size_to_embeddings = {'small': 192, 'medium': 384, 'large': 768}
+        size_to_name = {'small': 'tiny', 'medium': 'small', 'large': 'base'}
 
-        self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-tiny-distilled-patch16-224')
-        self.fc2 = nn.Linear(in_features=192, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=1)
+        if pretrain_backbone:
+            self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+        else:
+            deit_config = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.deit_model = transformers.DeiTModel(deit_config)
+        
+        self.fc1 = nn.Linear(in_features=self.size_to_embeddings[self.backbone_size], out_features=64)
+        self.fc2 = nn.Linear(in_features=64, out_features=1)
 
     def forward(self, x, *args):
         x = x.float()
@@ -315,15 +309,15 @@ class RawToTile_DeiT_Tiny(nn.Module):
         x = x.view(batch_size * series_length * num_tiles, num_channels, height, width)
         
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(x).pooler_output # [batch_size * series_length * num_tiles, 192]
+        tile_outputs = self.deit_model(x).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
                 
         # Save embeddings of dim=960
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, 192)
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length, self.size_to_embeddings[self.backbone_size])
         embeddings = tile_outputs
 
         # Use linear layers to get dim=1
+        tile_outputs = F.relu(self.fc1(tile_outputs))
         tile_outputs = F.relu(self.fc2(tile_outputs))
-        tile_outputs = F.relu(self.fc3(tile_outputs))
         
         tile_outputs = tile_outputs.view(batch_size, num_tiles, series_length)
 

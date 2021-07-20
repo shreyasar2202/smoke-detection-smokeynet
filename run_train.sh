@@ -7,32 +7,31 @@
 
 
 python3.9 src/main.py \
-    --experiment-name "FIX_BUG" \
-    --model-type-list "RawToTile_MobileNetV3Large" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 8 \
+    --experiment-name "RawToTile_ResNet" \
+    --model-type-list "RawToTile_ResNet" \
+    --min-epochs 0 \
+    --max-epochs 1 \
+    --batch-size 1 \
     --series-length 1 \
-    --accumulate-grad-batches 4 \
+    --accumulate-grad-batches 32 \
     --no-jitter-augment \
     --no-lr-schedule \
+    --no-pretrain-backbone \
+    --backbone-size 'large' \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --train-split-path './saved_logs/version_80/train_images.txt' \
-    --val-split-path './saved_logs/version_80/val_images.txt' \
-    --test-split-path './saved_logs/version_80/test_images.txt' \
-    
+    --is-debug
+
 # python3.9 src/main.py \
-#     --experiment-name "MobileNet_Transformer_Freeze" \
+#     --experiment-name "MobileNet_Transformer_NoFreeze" \
 #     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_Transformer" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 4 \
+#     --min-epochs 0 \
+#     --max-epochs 1 \
+#     --batch-size 8 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 8 \
+#     --accumulate-grad-batches 4 \
 #     --no-jitter-augment \
 #     --no-lr-schedule \
-#     --freeze-backbone \
 #     --no-intermediate-supervision \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
@@ -41,74 +40,24 @@ python3.9 src/main.py \
 #     --val-split-path './saved_logs/version_2/val_images.txt' \
 #     --test-split-path './saved_logs/version_2/test_images.txt' \
     
-
-
-
 # python3.9 src/main.py \
-#     --experiment-name "RawToTile_ViDeiT" \
-#     --model-type-list "RawToTile_DeiT" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 2 \
-#     --series-length 4 \
-#     --accumulate-grad-batches 16 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
-
-# python3.9 src/main.py \
-#     --experiment-name "RawToTile_ViDeiT_BaseFlow" \
-#     --model-type-list "RawToTile_DeiT" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 2 \
-#     --series-length 4 \
-#     --accumulate-grad-batches 16 \
-#     --no-lr-schedule \
-#     --add-base-flow \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
-    
-# python3.9 src/main.py \
-#     --experiment-name "EfficientNetB6" \
-#     --model-type-list "RawToTile_EfficientNetB6" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 1 \
+#     --experiment-name "MobileNet_OverlapJitter" \
+#     --model-type-list "RawToTile_MobileNetV3Large" \
+#     --min-epochs 0 \
+#     --max-epochs 1 \
+#     --batch-size 4 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 32 \
-#     --num-workers 0 \
-#     --no-lr-schedule \
-#     --time-range-min 0 \
-#     --num-tile-samples 30 \
-#     --bce-pos-weight 1 \
-#     --smoke-threshold 0 \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
-    
-# python3.9 src/main.py \
-#     --experiment-name "RawToTile_DeiT_LinearOutputs" \
-#     --model-type-list "RawToTile_DeiT" "TileToImage_LinearOutputs" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 8 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 4 \
+#     --accumulate-grad-batches 8 \
+#     --resize-height 1536 \
+#     --resize-width 2060 \
+#     --crop-height 1244 \
+#     --tile-overlap 20 \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
     
-# python3.9 src/main.py \
-#     --experiment-name "RawToTile_DeiT_LinearEmbeddings" \
-#     --model-type-list "RawToTile_DeiT" "TileToImage_LinearEmbeddings" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 8 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 4 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+
+    
 
 #####################
 ## Normal Run

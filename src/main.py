@@ -108,7 +108,7 @@ parser.add_argument('--no-jitter-augment', action='store_false',
                     help='Disables data augmentation with slightly displaced cropping.')
 
 
-# Model args = 3 + 2 + 4
+# Model args = 3 + 4 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--pretrain-epochs', nargs='*',
@@ -120,6 +120,8 @@ parser.add_argument('--no-pretrain-backbone', action='store_false',
                     help='Disables pretraining of backbone.')
 parser.add_argument('--freeze-backbone', action='store_true',
                     help='Freezes layers on pre-trained backbone.')
+parser.add_argument('--backbone-size',  type=str, default='small',
+                    help='how big a model to train. Options: [small] [medium] [large]')
 parser.add_argument('--backbone-checkpoint-path', type=str, default=None,
                     help='Loads pretrained weights for the backbone from a checkpoint.')
 
@@ -218,6 +220,7 @@ def main(# Debug args
 
         pretrain_backbone=True,
         freeze_backbone=False,
+        backbone_size='small',
         backbone_checkpoint_path=None,
     
         tile_loss_type='bce',
@@ -300,6 +303,7 @@ def main(# Debug args
 
                      freeze_backbone=freeze_backbone, 
                      pretrain_backbone=pretrain_backbone,
+                     backbone_size=backbone_size,
                      backbone_checkpoint_path=backbone_checkpoint_path,
 
                      num_tiles=num_tiles_height * num_tiles_width,
@@ -463,6 +467,7 @@ if __name__ == '__main__':
         
         pretrain_backbone=parsed_args.no_pretrain_backbone,
         freeze_backbone=parsed_args.freeze_backbone,
+        backbone_size=parsed_args.backbone_size,
         backbone_checkpoint_path=parsed_args.backbone_checkpoint_path,
         
         tile_loss_type=parsed_args.tile_loss_type,
