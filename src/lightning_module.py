@@ -93,10 +93,12 @@ class LightningModule(pl.LightningModule):
         for split in self.metrics['split']:
             # Use mdmc_average='global' for tile_preds only
             for i, category in enumerate(self.metrics['category']):
-                self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average='global' if i == 0 else None)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average='global' if i == 0 else None)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average='global' if i == 0 else None)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average='global' if i == 0 else None)
+                mdmc_average='global' if i == 0 else None
+                
+                self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average=mdmc_average)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average=mdmc_average)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average=mdmc_average)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average=mdmc_average)
             
         print("Initializing LightningModule Complete.")
 
@@ -149,7 +151,7 @@ class LightningModule(pl.LightningModule):
             embedding = embeddings.permute(2, 1, 0, 3)
             for i, augment in enumerate(embedding):
                 # Embeddings are stacked with raw, flip, blur data augmentations in that order
-                folder_prefix = self.save_embeddings_path+['raw/', 'flip/', 'blur/'][i]
+                folder_prefix = self.save_embeddings_path+['/raw/', '/flip/', '/blur/'][i]
                 os.makedirs(folder_prefix+util_fns.get_fire_name(image_names[0]), exist_ok=True)
                 np.save(folder_prefix+image_names[0]+'.npy', augment.cpu())
         
@@ -168,8 +170,8 @@ class LightningModule(pl.LightningModule):
             for name in self.metrics['name']:
                 if args[0] is not None:
                     # Have to move the metric to self.device 
-                    metric = self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
-                    self.log(split+category+name, metric, on_step=False, on_epoch=True)
+                    self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
+                    self.log(split+category+name, self.metrics['torchmetric'][split+category+name], on_step=False, on_epoch=True)
         
         return image_names, total_loss, tile_preds, image_preds, tile_labels
 

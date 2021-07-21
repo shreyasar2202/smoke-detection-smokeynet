@@ -413,93 +413,93 @@ def main(# Debug args
     
     
 if __name__ == '__main__':
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
     
     # Load hyperparameters from checkpoint if it exists
-    if args.checkpoint_path is not None:
-        checkpoint = torch.load(args.checkpoint_path)
-        parsed_args = Namespace(**checkpoint['hyper_parameters'])
+    if args['checkpoint_path'] is not None:
+        checkpoint = torch.load(args['checkpoint_path'])
+        parsed_args = checkpoint['hyper_parameters']
     else:
         checkpoint = None
         parsed_args = args
         
     main(# Debug args
-        is_debug=args.is_debug,
-        is_test_only=args.is_test_only,
+        is_debug=args['is_debug'],
+        is_test_only=args['is_test_only'],
         
         # Path args - always used command line args for these
-        raw_data_path=args.raw_data_path,
-        embeddings_path=args.embeddings_path,
-        labels_path=args.labels_path, 
-        raw_labels_path=args.raw_labels_path,
-        metadata_path=args.metadata_path,
+        raw_data_path=args['raw_data_path'],
+        embeddings_path=args['embeddings_path'],
+        labels_path=args['labels_path'], 
+        raw_labels_path=args['raw_labels_path'],
+        metadata_path=args['metadata_path'],
         
-        train_split_path=args.train_split_path, 
-        val_split_path=args.val_split_path, 
-        test_split_path=args.test_split_path,
-        load_images_from_split=args.load_images_from_split,
-        save_embeddings_path=args.save_embeddings_path,
+        train_split_path=args['train_split_path'], 
+        val_split_path=args['val_split_path'], 
+        test_split_path=args['test_split_path'],
+        load_images_from_split=args['load_images_from_split'],
+        save_embeddings_path=args['save_embeddings_path'],
 
         # Experiment args
-        experiment_name=parsed_args.experiment_name,
-        experiment_description=parsed_args.experiment_description,
+        experiment_name=parsed_args['experiment_name'],
+        experiment_description=parsed_args['experiment_description'],
         parsed_args=parsed_args,
 
         # Dataloader args
-        train_split_size=parsed_args.train_split_size,
-        test_split_size=parsed_args.test_split_size,
-        batch_size=parsed_args.batch_size, 
-        num_workers=parsed_args.num_workers, 
+        train_split_size=parsed_args['train_split_size'],
+        test_split_size=parsed_args['test_split_size'],
+        batch_size=parsed_args['batch_size'], 
+        num_workers=parsed_args['num_workers'], 
         
-        series_length=parsed_args.series_length, 
-        add_base_flow=parsed_args.add_base_flow, 
-        time_range=(parsed_args.time_range_min,args.time_range_max), 
+        series_length=parsed_args['series_length'], 
+        add_base_flow=parsed_args['add_base_flow'], 
+        time_range=(parsed_args['time_range_min'],parsed_args['time_range_max']), 
 
-        resize_dimensions=(parsed_args.resize_height, args.resize_width),
-        crop_height=parsed_args.crop_height,
-        tile_dimensions=(parsed_args.tile_size, args.tile_size),
-        tile_overlap=parsed_args.tile_overlap,
-        smoke_threshold=parsed_args.smoke_threshold,
-        num_tile_samples=parsed_args.num_tile_samples,
+        resize_dimensions=(parsed_args['resize_height'], parsed_args['resize_width']),
+        crop_height=parsed_args['crop_height'],
+        tile_dimensions=(parsed_args['tile_size'], parsed_args['tile_size']),
+        tile_overlap=parsed_args['tile_overlap'],
+        smoke_threshold=parsed_args['smoke_threshold'],
+        num_tile_samples=parsed_args['num_tile_samples'],
 
-        flip_augment=parsed_args.no_flip_augment,
-        blur_augment=parsed_args.no_blur_augment,
-        jitter_augment=parsed_args.no_jitter_augment,
+        flip_augment=parsed_args['no_flip_augment'],
+        blur_augment=parsed_args['no_blur_augment'],
+        jitter_augment=parsed_args['no_jitter_augment'],
 
         # Model args
-        model_type_list=parsed_args.model_type_list,
-        pretrain_epochs=parsed_args.pretrain_epochs,
-        intermediate_supervision=parsed_args.no_intermediate_supervision,
-        use_image_preds=parsed_args.use_image_preds,
-        tile_embedding_size=parsed_args.tile_embedding_size,
+        model_type_list=parsed_args['model_type_list'],
+        pretrain_epochs=parsed_args['pretrain_epochs'],
+        intermediate_supervision=parsed_args['no_intermediate_supervision'],
+        use_image_preds=parsed_args['use_image_preds'],
+        tile_embedding_size=parsed_args['tile_embedding_size'],
         
-        pretrain_backbone=parsed_args.no_pretrain_backbone,
-        freeze_backbone=parsed_args.freeze_backbone,
-        backbone_size=parsed_args.backbone_size,
-        backbone_checkpoint_path=parsed_args.backbone_checkpoint_path,
+        pretrain_backbone=parsed_args['no_pretrain_backbone'],
+        freeze_backbone=parsed_args['freeze_backbone'],
+        backbone_size=parsed_args['backbone_size'],
+        backbone_checkpoint_path=parsed_args['backbone_checkpoint_path'],
         
-        tile_loss_type=parsed_args.tile_loss_type,
-        bce_pos_weight=parsed_args.bce_pos_weight,
-        focal_alpha=parsed_args.focal_alpha,
-        focal_gamma=parsed_args.focal_gamma,
+        tile_loss_type=parsed_args['tile_loss_type'],
+        bce_pos_weight=parsed_args['bce_pos_weight'],
+        focal_alpha=parsed_args['focal_alpha'],
+        focal_gamma=parsed_args['focal_gamma'],
         
         # Optimizer args
-        optimizer_type=parsed_args.optimizer_type,
-        optimizer_weight_decay=parsed_args.optimizer_weight_decay,
-        learning_rate=parsed_args.learning_rate,
-        lr_schedule=parsed_args.no_lr_schedule,
+        optimizer_type=parsed_args['optimizer_type'],
+        optimizer_weight_decay=parsed_args['optimizer_weight_decay'],
+        learning_rate=parsed_args['learning_rate'],
+        lr_schedule=parsed_args['no_lr_schedule'],
 
         # Trainer args
-        min_epochs=parsed_args.min_epochs,
-        max_epochs=parsed_args.max_epochs,
-        early_stopping=parsed_args.no_early_stopping,
-        early_stopping_patience=parsed_args.early_stopping_patience,
+        min_epochs=parsed_args['min_epochs'],
+        max_epochs=parsed_args['max_epochs'],
+        early_stopping=parsed_args['no_early_stopping'],
+        early_stopping_patience=parsed_args['early_stopping_patience'],
         
-        sixteen_bit=parsed_args.no_sixteen_bit,
-        stochastic_weight_avg=parsed_args.no_stochastic_weight_avg,
-        gradient_clip_val=parsed_args.gradient_clip_val,
-        accumulate_grad_batches=parsed_args.accumulate_grad_batches,
+        sixteen_bit=parsed_args['no_sixteen_bit'],
+        stochastic_weight_avg=parsed_args['no_stochastic_weight_avg'],
+        gradient_clip_val=parsed_args['gradient_clip_val'],
+        accumulate_grad_batches=parsed_args['accumulate_grad_batches'],
     
         # Checkpoint args
-        checkpoint_path=args.checkpoint_path,
+        checkpoint_path=args['checkpoint_path'],
         checkpoint=checkpoint)

@@ -409,29 +409,10 @@ class DynamicDataloader(Dataset):
                 img = cv2.blur(img, (blur_size,blur_size))
                 
             # Tile image
-            # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
-            # WARNING: Tile size must divide perfectly into image height and width
-            bytelength = img.nbytes // img.size
-            # img.shape = [num_tiles_height, num_tiles_width, tile_height, tile_width, 3]
-            img = np.lib.stride_tricks.as_strided(img, 
-                shape=(self.num_tiles_height, 
-                       self.num_tiles_width, 
-                       self.tile_dimensions[0], 
-                       self.tile_dimensions[1],
-                       3), 
-                strides=(self.resize_dimensions[1]*(self.tile_dimensions[0]-self.tile_overlap)*bytelength*3,
-                         (self.tile_dimensions[1]-self.tile_overlap)*bytelength*3, 
-                         self.resize_dimensions[1]*bytelength*3, 
-                         bytelength*3, 
-                         bytelength), writeable=False)
+            util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
-            # img.shape = [num_tiles, tile_height, tile_width, 3]
-            img = img.reshape((-1, self.tile_dimensions[0], self.tile_dimensions[1], 3))
-            
-            # Rescale to [0,1]
-            img = img / 255
-            # Normalize to 0.5 mean & std
-            img = (img - 0.5) / 0.5
+            # Rescale and normalize
+            img = util_fns.normalize_image(img)
 
             x.append(img)
             
@@ -468,13 +449,13 @@ class DynamicDataloader(Dataset):
         img = cv2.imread(self.raw_data_path+'/'+image_name+'.jpg')
         img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions)
         
-        x.append(img)
-        x.append(cv2.flip(img, 1))
-        x.append(cv2.blur(img, (blur_size,blur_size)))
+        x.append(util_fns.normalize_image(util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
+        x.append(util_fns.normalize_image(util_fns.tile_image(cv2.flip(img, 1), self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
+        x.append(util_fns.normalize_image(util_fns.tile_image(cv2.blur(img, (blur_size,blur_size)), self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
         
-        # x.shape = [series_length, num_channels, height, width]
-        # e.g. [5, 3, 1344, 2016]
-        x = np.transpose(np.stack(x), (0, 3, 1, 2)) / 255
+        # x.shape = [num_tiles, series_length, num_channels, height, width]
+        # e.g. [45, 5, 3, 224, 224]
+        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         
         return x
 

@@ -279,7 +279,38 @@ def crop_image(img, resize_dimensions=(1536,2016), crop_height=1120, tile_dimens
     img = img[jitter_amount:crop_height+jitter_amount]
     
     return img
+
+def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
+    """Description: Tiles image with overlap"""
+    # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
+    # WARNING: Tile size must divide perfectly into image height and width
+    bytelength = img.nbytes // img.size
+    # img.shape = [num_tiles_height, num_tiles_width, tile_height, tile_width, 3]
+    img = np.lib.stride_tricks.as_strided(img, 
+        shape=(num_tiles_height, 
+               num_tiles_width, 
+               tile_dimensions[0], 
+               tile_dimensions[1],
+               3), 
+        strides=(resize_dimensions[1]*(tile_dimensions[0]-tile_overlap)*bytelength*3,
+                 (tile_dimensions[1]-tile_overlap)*bytelength*3, 
+                 resize_dimensions[1]*bytelength*3, 
+                 bytelength*3, 
+                 bytelength), writeable=False)
+
+    # img.shape = [num_tiles, tile_height, tile_width, 3]
+    img = img.reshape((-1, tile_dimensions[0], tile_dimensions[1], 3))
     
+    return img
+
+def normalize_image(img):
+    """Description: Rescales and normalizes an image"""
+    # Rescale to [0,1]
+    img = img / 255
+    # Normalize to 0.5 mean & std
+    img = (img - 0.5) / 0.5
+    
+    return img
 
 def randomly_sample_tiles(x, labels, num_samples=30):
     """
@@ -308,6 +339,7 @@ def randomly_sample_tiles(x, labels, num_samples=30):
     labels = labels[shuffle_idx]
     
     return x, labels
+
 
 
 #########################

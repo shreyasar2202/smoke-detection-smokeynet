@@ -4,20 +4,21 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-
-
+    
 python3.9 src/main.py \
-    --experiment-name "EfficientNetB3" \
-    --model-type-list "RawToTile_EfficientNet" \
-    --min-epochs 3 \
-    --max-epochs 50 \
-    --batch-size 1 \
-    --series-length 1 \
-    --accumulate-grad-batches 32 \
-    --no-lr-schedule \
-    --backbone-size 'medium' \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --test-split-path './data/all_fires.txt' \
+    --train-split-path './data/all_fires.txt' \
+    --val-split-path './data/all_fires.txt' \
+    --checkpoint-path './saved_logs/version_90/checkpoints/epoch=13-step=3177.ckpt' \
     --raw-data-path '/root/raw_images' \
+    --labels-path '/root/drive_clone_labels' \
+    --tile-embedding-size 1792 \
+    --is-debug \
+    --is-test-only \
+    --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
+    
+# tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
+    
     
 
 #####################
@@ -54,7 +55,10 @@ python3.9 src/main.py \
 #     --val-split-path './data/all_fires.txt' \
 #     --checkpoint-path './saved_logs/version_45/checkpoints/epoch=1-step=449.ckpt' \
 #     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels'
+#     --labels-path '/root/drive_clone_labels' \
+#     --is-debug \
+#     --is-test-only \
+#     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
 
 
 #####################

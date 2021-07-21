@@ -235,8 +235,8 @@ class RawToTile_EfficientNet(nn.Module):
         super().__init__()
         
         self.backbone_size = backbone_size
-        self.size_to_embeddings = {'small': 1280, 'medium': 1536, 'large': 2048}
-        size_to_name = {'small': 'b0', 'medium': 'b3', 'large': 'b5'}
+        self.size_to_embeddings = {'small': 1280, 'medium': 1408, 'large': 1792}
+        size_to_name = {'small': 'b0', 'medium': 'b2', 'large': 'b4'}
         
         if pretrain_backbone:
             self.conv = EfficientNet.from_pretrained("efficientnet-"+size_to_name[backbone_size])
