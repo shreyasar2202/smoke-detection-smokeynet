@@ -409,7 +409,7 @@ class DynamicDataloader(Dataset):
                 img = cv2.blur(img, (blur_size,blur_size))
                 
             # Tile image
-            util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+            img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
             img = util_fns.normalize_image(img)
@@ -494,17 +494,7 @@ class DynamicDataloader(Dataset):
         if should_blur:
             labels = cv2.blur(labels, (blur_size, blur_size))
 
-        bytelength = labels.nbytes // labels.size
-        labels = np.lib.stride_tricks.as_strided(labels, 
-            shape=(self.num_tiles_height, 
-                   self.num_tiles_width, 
-                   self.tile_dimensions[0], 
-                   self.tile_dimensions[1]), 
-            strides=(self.resize_dimensions[1]*(self.tile_dimensions[0]-self.tile_overlap)*bytelength,
-                     (self.tile_dimensions[1]-self.tile_overlap)*bytelength, 
-                     self.resize_dimensions[1]*bytelength, 
-                     bytelength), writeable=False)
-        labels = labels.reshape(-1, self.tile_dimensions[0], self.tile_dimensions[1])
+        labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
         # labels.shape = [45,]
         labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)

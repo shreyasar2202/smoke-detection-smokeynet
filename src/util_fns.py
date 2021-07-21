@@ -312,6 +312,23 @@ def normalize_image(img):
     
     return img
 
+def tile_labels(labels, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
+    """Description: Tiles labels with overlap"""
+    
+    bytelength = labels.nbytes // labels.size
+    labels = np.lib.stride_tricks.as_strided(labels, 
+        shape=(num_tiles_height, 
+               num_tiles_width, 
+               tile_dimensions[0], 
+               tile_dimensions[1]), 
+        strides=(resize_dimensions[1]*(tile_dimensions[0]-tile_overlap)*bytelength,
+                 (tile_dimensions[1]-tile_overlap)*bytelength, 
+                 resize_dimensions[1]*bytelength, 
+                 bytelength), writeable=False)
+    labels = labels.reshape(-1, tile_dimensions[0], tile_dimensions[1])
+    
+    return labels
+
 def randomly_sample_tiles(x, labels, num_samples=30):
     """
     Description: Randomly samples tiles to evenly balance positives and negatives

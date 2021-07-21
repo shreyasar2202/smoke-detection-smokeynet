@@ -5,19 +5,19 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
-python3.9 src/main.py \
-    --test-split-path './data/all_fires.txt' \
-    --train-split-path './data/all_fires.txt' \
-    --val-split-path './data/all_fires.txt' \
-    --checkpoint-path './saved_logs/version_90/checkpoints/epoch=13-step=3177.ckpt' \
-    --raw-data-path '/root/raw_images' \
-    --labels-path '/root/drive_clone_labels' \
-    --tile-embedding-size 1792 \
-    --is-debug \
-    --is-test-only \
-    --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
+# python3.9 src/main.py \
+#     --test-split-path './data/all_fires.txt' \
+#     --train-split-path './data/all_fires.txt' \
+#     --val-split-path './data/all_fires.txt' \
+#     --checkpoint-path './saved_logs/version_90/checkpoints/epoch=13-step=3177.ckpt' \
+#     --raw-data-path '/root/raw_images' \
+#     --labels-path '/root/drive_clone_labels' \
+#     --tile-embedding-size 1792 \
+#     --is-debug \
+#     --is-test-only \
+#     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
     
-# tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
+tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
     
     
 
@@ -59,6 +59,8 @@ python3.9 src/main.py \
 #     --is-debug \
 #     --is-test-only \
 #     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
+
+# tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
 
 
 #####################
