@@ -31,7 +31,6 @@ class MainModel(nn.Module):
         - pretrain_epochs (list of int): a sequential list of epochs to pretrain each model part for
         - intermediate_supervision (bool): whether or not to provide intermediate supervision between model components
         - use_image_preds (bool): uses image predictions from linear layers instead of tile preds.
-        - tile_embedding_size (int): target embedding size to use for tile predictions.
         - kwargs: any other args used in the models
     """
     def __init__(self, 
@@ -39,7 +38,6 @@ class MainModel(nn.Module):
                  pretrain_epochs=None,
                  intermediate_supervision=True,
                  use_image_preds=False,
-                 tile_embedding_size=960,
                  
                  tile_loss_type='bce',
                  bce_pos_weight=36,
@@ -126,19 +124,23 @@ class MainModel(nn.Module):
                 tile_outputs = outputs
                 embeddings = x
                 loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
+                
+                # Only add loss if intermediate_supervision
+                if self.intermediate_supervision:
+                    total_loss += loss
+                else:
+                    total_loss = loss
             
             # Else if model predicts images...
             else:
                 image_outputs = outputs
                 loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
+                # Always add image loss, even if no intermediate_supervision
+                total_loss += loss
             
             # Add loss to total loss
             losses.append(loss)
-            if self.intermediate_supervision:
-                total_loss += loss
-            else:
-                total_loss = loss
-
+            
         # Compute predictions for tiles and images 
         if tile_outputs is not None:
             tile_preds = (torch.sigmoid(tile_outputs[:,:,-1]) > 0.5).int()

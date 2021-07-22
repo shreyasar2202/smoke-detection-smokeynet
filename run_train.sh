@@ -4,21 +4,128 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
+ 
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_Checkpoint-Test" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --no-intermediate-supervision \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --train-split-path './saved_logs/version_85/train_images.txt' \
+    --val-split-path './saved_logs/version_85/val_images.txt' \
+    --test-split-path './saved_logs/version_85/test_images.txt' \
+    --backbone-checkpoint-path './saved_logs/version_85/epoch=8-step=2015.ckpt' \
+    --checkpoint-path './lightning_logs/version_106/checkpoints/epoch=6-step=1567.ckpt' \
+    --is-test-only
+    
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_IntSupervision_Checkpoint-Test" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --train-split-path './saved_logs/version_85/train_images.txt' \
+    --val-split-path './saved_logs/version_85/val_images.txt' \
+    --test-split-path './saved_logs/version_85/test_images.txt' \
+    --backbone-checkpoint-path './saved_logs/version_85/epoch=8-step=2015.ckpt' \
+    --checkpoint-path './lightning_logs/MobileNetCheckpoint_DeiT_IntSupervision/version_0/checkpoints/epoch=2-step=671.ckpt' \
+    --is-test-only
+    
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_NoCheckpoint-Test" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --no-intermediate-supervision \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --train-split-path './saved_logs/version_85/train_images.txt' \
+    --val-split-path './saved_logs/version_85/val_images.txt' \
+    --test-split-path './saved_logs/version_85/test_images.txt' \
+    --checkpoint-path './lightning_logs/MobileNet_DeiT_NoCheckpoint/version_1/checkpoints/epoch=16-step=3807.ckpt' \
+    --is-test-only
+    
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_IntSupervision_NoCheckpoint-Test" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
+    --train-split-path './saved_logs/version_85/train_images.txt' \
+    --val-split-path './saved_logs/version_85/val_images.txt' \
+    --test-split-path './saved_logs/version_85/test_images.txt' \
+    --checkpoint-path './saved_logs/version_109/checkpoints/epoch=13-step=3135.ckpt' \
+    --is-test-only
     
 # python3.9 src/main.py \
-#     --test-split-path './data/all_fires.txt' \
-#     --train-split-path './data/all_fires.txt' \
-#     --val-split-path './data/all_fires.txt' \
-#     --checkpoint-path './saved_logs/version_90/checkpoints/epoch=13-step=3177.ckpt' \
+#     --experiment-name "MobileNet_DeiT_LinearOutputs_TilePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+#     --min-epochs 3 \
+#     --max-epochs 25 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
-#     --labels-path '/root/drive_clone_labels' \
-#     --tile-embedding-size 1792 \
-#     --is-debug \
-#     --is-test-only \
-#     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
     
-tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_DeiT_LinearOutputs_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+#     --min-epochs 3 \
+#     --max-epochs 25 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --use-image-preds \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
     
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_DeiT_LinearEmbeddings_TilePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
+#     --min-epochs 3 \
+#     --max-epochs 25 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
+    
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_DeiT_LinearEmbeddings_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
+#     --min-epochs 3 \
+#     --max-epochs 25 \
+#     --batch-size 4 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --use-image-preds \
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
     
 
 #####################
@@ -30,9 +137,9 @@ tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_ver
 #     --model-type-list "RawToTile_MobileNetV3Large" \
 #     --min-epochs 3 \
 #     --max-epochs 50 \
-#     --batch-size 8 \
+#     --batch-size 4 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 4 \
+#     --accumulate-grad-batches 8 \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \
@@ -53,12 +160,13 @@ tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_ver
 #     --test-split-path './data/all_fires.txt' \
 #     --train-split-path './data/all_fires.txt' \
 #     --val-split-path './data/all_fires.txt' \
-#     --checkpoint-path './saved_logs/version_45/checkpoints/epoch=1-step=449.ckpt' \
+#     --load-images-from-split \
+#     --checkpoint-path './saved_logs/version_90/checkpoints/epoch=13-step=3177.ckpt' \
 #     --raw-data-path '/root/raw_images' \
 #     --labels-path '/root/drive_clone_labels' \
 #     --is-debug \
 #     --is-test-only \
-#     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' \
+#     --save-embeddings-path '/userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90' 
 
 # tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90.tar.gz /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_version_90
 
@@ -70,7 +178,7 @@ tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_ver
 #     --time-range-min 0 \
 #     --num-tile-samples 30 \
 #     --bce-pos-weight 1 \
-#     --smoke-threshold 1 \
+#     --smoke-threshold -1 \
 
     
 #########################
@@ -97,33 +205,43 @@ tar -czf /userdata/kerasData/data/new_data/pytorch_lightning_data/embeddings_ver
 #########################
 
 # python3.9 src/main.py \
-#     --experiment-name "MobileEmbeddings_Transformer" \
-#     --model-type-list "TileToTile_Transformer" \
+#     --experiment-name "TileToTile_ViDeiT" \
+#     --model-type-list "TileToTile_ViDeiT" \
 #     --min-epochs 3 \
 #     --max-epochs 50 \
 #     --batch-size 32 \
 #     --series-length 4 \
 #     --accumulate-grad-batches 1 \
 #     --no-lr-schedule \
+#     --tile-embedding-size 1792 \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --embeddings-path '/root/pytorch_lightning_data/embeddings' \
-#     --train-split-path './saved_logs/version_80/train_images.txt' \
-#     --val-split-path './saved_logs/version_80/val_images.txt' \
-#     --test-split-path './saved_logs/version_80/test_images.txt' \
+#     --embeddings-path '/root/pytorch_lightning_data/embeddings_version_90' \
+#     --train-split-path './saved_logs/version_90/train_images.txt' \
+#     --val-split-path './saved_logs/version_90/val_images.txt' \
+#     --test-split-path './saved_logs/version_90/test_images.txt' \
 
+
+#########################
+## Load Backbone Checkpoint
+#########################
+
+#     --backbone-checkpoint-path './saved_logs/version_85/epoch=8-step=2015.ckpt' \
+#     --train-split-path './saved_logs/version_85/train_images.txt' \
+#     --val-split-path './saved_logs/version_85/val_images.txt' \
+#     --test-split-path './saved_logs/version_85/test_images.txt' \
 
 #########################
 ## Best Model
 #########################
 
 # python3.9 src/main.py \
-#     --experiment-name "MobileNet" \
-#     --model-type-list "RawToTile_MobileNetV3Large" \
+#     --experiment-name "MobileNet_DeiT_IntSupervision_NoCheckpoint" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
 #     --min-epochs 3 \
-#     --max-epochs 50 \
-#     --batch-size 8 \
+#     --max-epochs 25 \
+#     --batch-size 4 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 4 \
+#     --accumulate-grad-batches 8 \
 #     --no-lr-schedule \
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
 #     --raw-data-path '/root/raw_images' \

@@ -27,6 +27,8 @@ import util_fns
 
 class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
+                 omit_images_from_test=False,
+                 
                  raw_data_path=None, 
                  embeddings_path=None,
                  labels_path=None, 
@@ -61,6 +63,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  create_data = False):
         """
         Args:
+            - omit_images_from_test (bool): omits omit_list_images from the test set
             - raw_data_path (str): path to raw data
             - embeddings_path (str): path to embeddings generated from pretrained model
             - labels_path (str): path to Numpy labels
@@ -109,6 +112,8 @@ class DynamicDataModule(pl.LightningDataModule):
             - self.has_setup (bool): if setup has already occurred to prevent from doing twice
         """
         super().__init__()
+        
+        self.omit_images_from_test = omit_images_from_test
                 
         self.raw_data_path = raw_data_path
         self.embeddings_path = embeddings_path
@@ -251,7 +256,7 @@ class DynamicDataModule(pl.LightningDataModule):
             # Create train/val/test split of Images, removing images from omit_images_list
             self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, self.metadata['omit_images_list'])
             self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, self.metadata['omit_images_list'])
-            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, self.metadata['omit_images_list'])
+            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, self.metadata['omit_images_list'] if self.omit_images_from_test else None)
 
             # If logdir is provided, then save train/val/test splits
             if log_dir:

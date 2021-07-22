@@ -151,7 +151,7 @@ def unpack_fire_images(fire_to_images, fires_list, omit_images_list=None):
     
     for fire in fires_list:
         for image in fire_to_images[fire]:
-            if omit_images_list is not None and image not in omit_images_list:
+            if omit_images_list is None or image not in omit_images_list:
                 unpacked_images.append(image)
                 
     return unpacked_images

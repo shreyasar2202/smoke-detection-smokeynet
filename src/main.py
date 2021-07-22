@@ -36,6 +36,8 @@ parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
                     help='Skips training for testing only. Useful when checkpoint loading.')
+parser.add_argument('--omit-images-from-test', action='store_true',
+                    help='Omits omit_list_images from the test set.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -107,7 +109,6 @@ parser.add_argument('--no-blur-augment', action='store_false',
 parser.add_argument('--no-jitter-augment', action='store_false',
                     help='Disables data augmentation with slightly displaced cropping.')
 
-
 # Model args = 5 + 4 + 4
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
@@ -178,6 +179,7 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
 def main(# Debug args
         is_debug=False,
         is_test_only=False,
+        omit_images_from_test=False,
         
         # Path args
         raw_data_path=None, 
@@ -260,6 +262,8 @@ def main(# Debug args
 
     ### Initialize data_module ###
     data_module = DynamicDataModule(
+        omit_images_from_test=omit_images_from_test,
+        
         # Path args
         raw_data_path=raw_data_path,
         embeddings_path=embeddings_path,
@@ -426,6 +430,7 @@ if __name__ == '__main__':
     main(# Debug args
         is_debug=args['is_debug'],
         is_test_only=args['is_test_only'],
+        omit_images_from_test=args['omit_images_from_test'],
         
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],
@@ -441,8 +446,8 @@ if __name__ == '__main__':
         save_embeddings_path=args['save_embeddings_path'],
 
         # Experiment args
-        experiment_name=parsed_args['experiment_name'],
-        experiment_description=parsed_args['experiment_description'],
+        experiment_name=args['experiment_name'],
+        experiment_description=args['experiment_description'],
         parsed_args=parsed_args,
 
         # Dataloader args
