@@ -4,28 +4,9 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
- 
+
 python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_Checkpoint-Test" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --no-intermediate-supervision \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    --train-split-path './saved_logs/version_85/train_images.txt' \
-    --val-split-path './saved_logs/version_85/val_images.txt' \
-    --test-split-path './saved_logs/version_85/test_images.txt' \
-    --backbone-checkpoint-path './saved_logs/version_85/epoch=8-step=2015.ckpt' \
-    --checkpoint-path './lightning_logs/version_106/checkpoints/epoch=6-step=1567.ckpt' \
-    --is-test-only
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_IntSupervision_Checkpoint-Test" \
+    --experiment-name "MobileNet_DeiT" \
     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
     --min-epochs 3 \
     --max-epochs 25 \
@@ -35,34 +16,10 @@ python3.9 src/main.py \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --train-split-path './saved_logs/version_85/train_images.txt' \
-    --val-split-path './saved_logs/version_85/val_images.txt' \
-    --test-split-path './saved_logs/version_85/test_images.txt' \
-    --backbone-checkpoint-path './saved_logs/version_85/epoch=8-step=2015.ckpt' \
-    --checkpoint-path './lightning_logs/MobileNetCheckpoint_DeiT_IntSupervision/version_0/checkpoints/epoch=2-step=671.ckpt' \
-    --is-test-only
-    
+
 python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_NoCheckpoint-Test" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --no-intermediate-supervision \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    --train-split-path './saved_logs/version_85/train_images.txt' \
-    --val-split-path './saved_logs/version_85/val_images.txt' \
-    --test-split-path './saved_logs/version_85/test_images.txt' \
-    --checkpoint-path './lightning_logs/MobileNet_DeiT_NoCheckpoint/version_1/checkpoints/epoch=16-step=3807.ckpt' \
-    --is-test-only
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_IntSupervision_NoCheckpoint-Test" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --experiment-name "MobileNet_DeiT_LinearOutputs_TilePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
     --min-epochs 3 \
     --max-epochs 25 \
     --batch-size 4 \
@@ -71,61 +28,44 @@ python3.9 src/main.py \
     --no-lr-schedule \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --train-split-path './saved_logs/version_85/train_images.txt' \
-    --val-split-path './saved_logs/version_85/val_images.txt' \
-    --test-split-path './saved_logs/version_85/test_images.txt' \
-    --checkpoint-path './saved_logs/version_109/checkpoints/epoch=13-step=3135.ckpt' \
-    --is-test-only
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_DeiT_LinearOutputs_TilePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-#     --min-epochs 3 \
-#     --max-epochs 25 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_LinearOutputs_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --use-image-preds \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_DeiT_LinearOutputs_ImagePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-#     --min-epochs 3 \
-#     --max-epochs 25 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --use-image-preds \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_LinearEmbeddings_TilePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
     
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_DeiT_LinearEmbeddings_TilePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
-#     --min-epochs 3 \
-#     --max-epochs 25 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
-    
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_DeiT_LinearEmbeddings_ImagePreds" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
-#     --min-epochs 3 \
-#     --max-epochs 25 \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --use-image-preds \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+python3.9 src/main.py \
+    --experiment-name "MobileNet_DeiT_LinearEmbeddings_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
+    --min-epochs 3 \
+    --max-epochs 25 \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --use-image-preds \
+    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+    --raw-data-path '/root/raw_images' \
     
 
 #####################

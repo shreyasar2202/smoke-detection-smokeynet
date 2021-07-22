@@ -32,6 +32,7 @@ class LightningModule(pl.LightningModule):
 
     def __init__(self,
                  model,
+                 omit_images_from_test=False,
                  
                  optimizer_type='SGD',
                  optimizer_weight_decay=0.0001,
@@ -44,6 +45,7 @@ class LightningModule(pl.LightningModule):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
+            - omit_images_from_test (bool): prevents logging of tile-related metrics
             
             - optimizer_type (str): type of optimizer to use. Options: [AdamW] [SGD]
             - optimizer_weight_decay (float): weight decay to use with optimizer
@@ -70,6 +72,7 @@ class LightningModule(pl.LightningModule):
         
         # Initialize model
         self.model = model
+        self.omit_images_from_test = omit_images_from_test
         
         # Initialize optimizer params
         self.optimizer_type = optimizer_type
@@ -162,16 +165,22 @@ class LightningModule(pl.LightningModule):
         self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
 
         # Calculate & log evaluation metrics
-        for category, args in zip(self.metrics['category'], 
-                                  ((tile_preds, tile_labels.int()), 
-                                   (image_preds, ground_truth_labels), 
-                                   (image_preds, has_positive_tiles))
-                                 ):
+        # Don't log tile-related metrics if test and not omitting images from test
+        if split==self.metrics['split'][2] and not self.omit_images_from_test:
             for name in self.metrics['name']:
-                if args[0] is not None:
-                    # Have to move the metric to self.device 
-                    self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
-                    self.log(split+category+name, self.metrics['torchmetric'][split+category+name], on_step=False, on_epoch=True)
+                self.metrics['torchmetric'][split+self.metrics['category'][1]+name].to(self.device)(image_preds, ground_truth_labels)
+                self.log(split+self.metrics['category'][1]+name, self.metrics['torchmetric'][split+self.metrics['category'][1]+name], on_step=False, on_epoch=True)
+        else:
+            for category, args in zip(self.metrics['category'], 
+                                      ((tile_preds, tile_labels.int()), 
+                                       (image_preds, ground_truth_labels), 
+                                       (image_preds, has_positive_tiles))
+                                     ):
+                for name in self.metrics['name']:
+                    if args[0] is not None:
+                        # Have to move the metric to self.device 
+                        self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
+                        self.log(split+category+name, self.metrics['torchmetric'][split+category+name], on_step=False, on_epoch=True)
         
         return image_names, total_loss, tile_preds, image_preds, tile_labels
 
@@ -244,6 +253,8 @@ class LightningModule(pl.LightningModule):
         
         # Log image metrics for both raw and corrected image predictions
         for i, fire_preds_dict in enumerate([raw_fire_preds_dict, corrected_fire_preds_dict]):
+            # Don't calculate corrected metrics if not omitting images from test
+            if not self.omit_images_from_test and i ==1: break
             s = 'corrected_' if i == 1 else ''
                         
             # Create data structure to store preds of all relevant fires
