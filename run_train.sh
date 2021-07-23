@@ -10,14 +10,13 @@ python3.9 src/main.py \
     --model-type-list "RawToTile_MobileNetV3Large" "TileToTileImage_SpatialDeiT" \
     --min-epochs 3 \
     --max-epochs 25 \
-    --batch-size 1 \
+    --batch-size 4 \
     --series-length 1 \
-    --accumulate-grad-batches 32 \
+    --accumulate-grad-batches 8 \
     --no-lr-schedule \
     --use-image-preds \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
-    --is-debug
 
 
     

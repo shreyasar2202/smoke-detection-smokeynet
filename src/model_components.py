@@ -364,6 +364,52 @@ class TileToTile_DeiT(nn.Module):
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
+
+class TileToTile_TemporalDeiT(nn.Module):
+    """Description: Temporal Vision Transformer operating on tiles to produce tile predictions"""
+    
+    def __init__(self, series_length=1, tile_embedding_size=960, **kwargs):
+        print('- TileToTile_TemporalDeiT')
+        super().__init__()
+                        
+        # Initialize initial linear layers
+        self.patch_size = int(np.floor(np.sqrt(tile_embedding_size)))
+        self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=self.patch_size*self.patch_size)
+        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
+
+        # Initialize DeiT
+        deit_config = transformers.DeiTConfig(image_size=(self.patch_size*series_length,self.patch_size), 
+                                            patch_size=self.patch_size, 
+                                            num_channels=1, 
+                                            num_labels=1,
+                                            hidden_size=516,
+                                            num_hidden_layers=3, 
+                                            num_attention_heads=3, 
+                                            intermediate_size=768,
+                                            hidden_dropout_prob=0.1)
+        
+        self.deit_model = transformers.DeiTModel(deit_config)
+        
+        # Initialize additional linear layers
+        self.embeddings_to_output = TileEmbeddingsToOutput(516)
+                
+    def forward(self, tile_embeddings, *args):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+                
+        # Run through initial linear layers
+        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 512]
+        
+        # Run through DeiT
+        tile_embeddings = tile_embeddings.view(batch_size * num_tiles, 1, self.patch_size * series_length, self.patch_size)
+        tile_outputs = self.deit_model(tile_embeddings).pooler_output # [batch_size * num_tiles, hidden_size]
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, -1)
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        
+        return tile_outputs, embeddings
     
 class TileToTile_LSTM(nn.Module):
     """Description: LSTM that takes tile embeddings and outputs tile predictions"""
@@ -372,6 +418,7 @@ class TileToTile_LSTM(nn.Module):
         print('- TileToTile_LSTM')
         super().__init__()
         
+        tile_embedding_size = 516
         self.tile_embedding_size = tile_embedding_size
         self.lstm = torch.nn.LSTM(input_size=tile_embedding_size, hidden_size=tile_embedding_size, num_layers=2, batch_first=True)
         
