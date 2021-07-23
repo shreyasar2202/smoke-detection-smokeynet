@@ -73,6 +73,7 @@ class LightningModule(pl.LightningModule):
         # Initialize model
         self.model = model
         self.omit_images_from_test = omit_images_from_test
+        self.series_length = series_length
         
         # Initialize optimizer params
         self.optimizer_type = optimizer_type
@@ -261,7 +262,7 @@ class LightningModule(pl.LightningModule):
             fire_preds = []
             for fire in fire_preds_dict:
                 # ASSUMPTION: only calculate statistics for fires with 81 images
-                if len(fire_preds_dict[fire]) == 81:
+                if len(fire_preds_dict[fire]) == 81-(self.series_length-1):
                     fire_preds.append(fire_preds_dict[fire])
 
             fire_preds = torch.as_tensor(fire_preds, dtype=int)
@@ -272,13 +273,13 @@ class LightningModule(pl.LightningModule):
 
             ### Compute & log metrics ###
             if i == 0:
-                negative_preds = fire_preds[:,:fire_preds.shape[1]//2] 
+                negative_preds = fire_preds[:,:fire_preds.shape[1]//2-(self.series_length-1)] 
                 self.log(self.metrics['split'][2]+s+'negative_accuracy',
                          util_fns.calculate_negative_accuracy(negative_preds))
                 self.log(self.metrics['split'][2]+s+'negative_accuracy_by_fire',
                          util_fns.calculate_negative_accuracy_by_fire(negative_preds))
             
-            positive_preds = fire_preds[:,fire_preds.shape[1]//2:]
+            positive_preds = fire_preds[:,fire_preds.shape[1]//2-(self.series_length-1):]
             self.log(self.metrics['split'][2]+s+'positive_accuracy',
                      util_fns.calculate_positive_accuracy(positive_preds))
             self.log(self.metrics['split'][2]+s+'positive_accuracy_by_fire',

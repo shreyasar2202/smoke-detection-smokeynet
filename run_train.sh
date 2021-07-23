@@ -6,66 +6,20 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" \
+    --experiment-name "MobileNet_SpatialDeiT" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTileImage_SpatialDeiT" \
     --min-epochs 3 \
     --max-epochs 25 \
-    --batch-size 4 \
+    --batch-size 1 \
     --series-length 1 \
-    --accumulate-grad-batches 8 \
+    --accumulate-grad-batches 32 \
     --no-lr-schedule \
+    --use-image-preds \
     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
     --raw-data-path '/root/raw_images' \
+    --is-debug
 
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_LinearOutputs_TilePreds" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_LinearOutputs_ImagePreds" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --use-image-preds \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_LinearEmbeddings_TilePreds" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_DeiT_LinearEmbeddings_ImagePreds" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_DeiT" "TileToImage_LinearEmbeddings" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --use-image-preds \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
+
     
 
 #####################

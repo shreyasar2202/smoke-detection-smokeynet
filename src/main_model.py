@@ -118,9 +118,18 @@ class MainModel(nn.Module):
             
             # Compute forward pass
             outputs, x = model(x, outputs)
-                        
-            # If model predicts tiles...
-            if len(outputs.shape) > 2:
+            
+            # If model predicts images only...
+            if x is None:
+                image_outputs = outputs
+                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
+                
+                # Always add image loss, even if no intermediate_supervision
+                total_loss += loss
+                losses.append(loss)
+                                        
+            # Else if model predicts tiles only...
+            elif len(x.shape) > 2:
                 tile_outputs = outputs
                 embeddings = x
                 loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
@@ -130,16 +139,20 @@ class MainModel(nn.Module):
                     total_loss += loss
                 else:
                     total_loss = loss
+                
+                losses.append(loss)
             
-            # Else if model predicts images...
+            # Else if model predicts tiles and images...
             else:
-                image_outputs = outputs
-                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
-                # Always add image loss, even if no intermediate_supervision
+                tile_outputs = outputs
+                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
                 total_loss += loss
-            
-            # Add loss to total loss
-            losses.append(loss)
+                losses.append(loss)
+                
+                image_outputs = x
+                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
+                total_loss += loss
+                losses.append(loss)
             
         # Compute predictions for tiles and images 
         if tile_outputs is not None:
