@@ -407,7 +407,7 @@ class TileToTile_TemporalDeiT(nn.Module):
         tile_outputs = tile_outputs.contiguous()
         
         tile_outputs = tile_outputs.view(batch_size, num_tiles, -1)
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
         
         return tile_outputs, embeddings
     
@@ -508,7 +508,7 @@ class TileToTile_ViDeiT(nn.Module):
         self.deit_model = transformers.DeiTModel(deit_config)
         
         # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(516)
+        self.embeddings_to_output = TileEmbeddingsToOutput(516*series_length)
                 
     def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
@@ -520,10 +520,11 @@ class TileToTile_ViDeiT(nn.Module):
         # Run through DeiT
         tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height * series_length, self.embeddings_width)
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(tile_embeddings).last_hidden_state[:,-num_tiles-1:-1] # [batch_size, num_tiles, embedding_size]
+        tile_outputs = self.deit_model(tile_embeddings).last_hidden_state[:,1:-1] # [batch_size, num_tiles*series_length, embedding_size]
         # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
         
+        tile_outputs = tile_outputs.view(batch_size, num_tiles, -1)
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
         
         return tile_outputs, embeddings    
