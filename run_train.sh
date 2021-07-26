@@ -4,20 +4,15 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-    
+
 python3.9 src/main.py \
-    --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs_BaseFlow" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-    --min-epochs 3 \
-    --max-epochs 25 \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
+    --experiment-name "MobileNet_SpatialDeiT_AddNoContour" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTileImage_SpatialDeiT" \
+    --batch-size 4 \
+    --series-length 1 \
+    --accumulate-grad-batches 8 \
     --no-lr-schedule \
     --use-image-preds \
-    --add-base-flow \
-    --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-    --raw-data-path '/root/raw_images' \
    
 
 

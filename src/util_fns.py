@@ -209,7 +209,7 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
                                 
     return image_series
 
-def xml_to_record(xml_file):
+def xml_to_contour(xml_file):
     """
     Description: Takes an XML label file and converts it to Numpy array
     Args:
@@ -217,8 +217,6 @@ def xml_to_record(xml_file):
     Returns:
         - all_polys (Numpy array): Numpy array with labels
     """
-    
-    objects_dict = {}
     tree = ET.parse(xml_file)
     
     for cur_object in tree.findall('object'):
@@ -239,20 +237,32 @@ def xml_to_record(xml_file):
     
     return None
 
-def get_filled_labels(raw_data_path, raw_labels_path, image_name):
+def xml_to_bbox(xml_file):
     """
-    Description: Given an image_name, returns pixel labels for the image 
+    Description: Takes an XML label file and converts it to Numpy array
+    Args:
+        - xml_file (str): Path to XML file
+    Returns:
+        - all_polys (Numpy array): Numpy array with labels
     """
-    x = cv2.imread(raw_data_path+'/'+image_name+'.jpg')
-    labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-
-    label_path = raw_labels_path+'/'+\
-        get_fire_name(image_name)+'/xml/'+\
-        get_only_image_name(image_name)+'.xml'
-
-    cv2.fillPoly(labels, xml_to_record(label_path), 1)
+    tree = ET.parse(xml_file)
     
-    return labels
+    for cur_object in tree.findall('object'):
+        if cur_object.find('deleted').text=="1":
+            continue
+        
+        if cur_object.find('name').text=="sbb":
+            x_s = []
+            y_s = []
+            for cur_pt in cur_object.find('polygon').findall('pt'):
+                x_s.append(int(cur_pt.find('x').text))
+                y_s.append(int(cur_pt.find('y').text))
+            
+            all_polys = [[min(x_s), min(y_s)], [max(x_s), max(y_s)]]
+            all_polys = np.array(all_polys, dtype=np.int32)
+            return all_polys
+    
+    return None
 
 
 ###############

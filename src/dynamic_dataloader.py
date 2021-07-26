@@ -114,7 +114,7 @@ class DynamicDataModule(pl.LightningDataModule):
         super().__init__()
         
         self.omit_images_from_test = omit_images_from_test
-                
+           
         self.raw_data_path = raw_data_path
         self.embeddings_path = embeddings_path
         self.labels_path = labels_path
@@ -167,9 +167,11 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['num_images'] = 0
             self.metadata['omit_no_xml'] = []
             self.metadata['omit_no_contour'] = []
+            self.metadata['omit_no_bbox'] = []
             self.metadata['omit_images_list'] = []
             
-            output_path = '/userdata/kerasData/data/new_data/drive_clone_new'
+            images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
+            labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
 
             # Loop through all fires
             for fire in self.metadata['fire_to_images']:
@@ -179,6 +181,14 @@ class DynamicDataModule(pl.LightningDataModule):
                 
                 # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
+                    # Save processed image as npy file
+                    x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
+                    x = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    
+                    os.makedirs(images_output_path + '/' + fire, exist_ok=True)
+                    np.save(images_output_path + '/' + image + '.npy', x.astype(np.uint8))
+                    
+                    # Create metadata
                     self.metadata['num_images'] += 1
                     
                     self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
@@ -189,18 +199,31 @@ class DynamicDataModule(pl.LightningDataModule):
                         self.metadata['omit_no_xml'].append(image)
                     
                     if self.metadata['has_xml_label'][image]:
-                        labels = util_fns.get_filled_labels(self.raw_data_path, self.raw_labels_path, image)
+                        label_path = raw_labels_path+'/'+\
+                            get_fire_name(image_name)+'/xml/'+\
+                            get_only_image_name(image_name)+'.xml'
+
+                        poly = xml_to_contour(label_path)
                         
-                        # If a positive image has an XML file with no segmentation mask in it, add it to omit_images_list
-                        if labels.sum() == 0:
+                        if poly is not None:
+                            labels = np.zeros(x.shape[:2], dtype=np.uint8) 
+                            cv2.fillPoly(labels, poly, 1)
+                            os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
+                            np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
+                        else:
                             self.metadata['omit_no_contour'].append(image)
+                            
+                            poly = xml_to_bbox(label_path)
+                            
+                            if poly is not None:
+                                labels = np.zeros(x.shape[:2], dtype=np.uint8) 
+                                cv2.rectangle(labels, *poly, 1, -1)
+                                os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
+                                np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
+                            else:
+                                self.metadata['omit_no_bbox'].append(image)                        
 
-                        save_path = output_path + '/' + image + '.npy'
-
-                        os.makedirs(output_path + '/' + fire, exist_ok=True)
-                        np.save(save_path, labels.astype(np.uint8))
-
-            self.metadata['omit_images_list'] = list(set().union(self.metadata['omit_no_xml'], self.metadata['omit_no_contour']))
+            self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
         
             with open(f'./metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
@@ -216,6 +239,9 @@ class DynamicDataModule(pl.LightningDataModule):
         if self.has_setup: return
         print("Setting Up Data...")
 
+        # Determine which images to omit
+        omit_images_list = self.metadata['omit_mislabeled']
+        
         is_split_given = self.train_split_path is not None and self.val_split_path is not None and self.test_split_path is not None
         
         # If split is given, load existing splits
@@ -254,9 +280,9 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], (-2400,2400), self.series_length, test_fires)
             
             # Create train/val/test split of Images, removing images from omit_images_list
-            self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, self.metadata['omit_images_list'])
-            self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, self.metadata['omit_images_list'])
-            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, self.metadata['omit_images_list'] if self.omit_images_from_test else None)
+            self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, omit_images_list)
+            self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, omit_images_list)
+            self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, omit_images_list if self.omit_images_from_test else None)
 
             # If logdir is provided, then save train/val/test splits
             if log_dir:
@@ -352,7 +378,7 @@ class DynamicDataModule(pl.LightningDataModule):
     
 class DynamicDataloader(Dataset):
     def __init__(self, 
-                 raw_data_path=None, 
+                 raw_data_path=None,
                  embeddings_path=None,
                  labels_path=None, 
                  
@@ -451,7 +477,8 @@ class DynamicDataloader(Dataset):
         """Description: Loads data augmented raw images to be saved as embeddings"""
         x = []
         
-        img = cv2.imread(self.raw_data_path+'/'+image_name+'.jpg')
+        img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions)
         
         x.append(util_fns.normalize_image(util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
