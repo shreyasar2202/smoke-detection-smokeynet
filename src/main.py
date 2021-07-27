@@ -40,6 +40,8 @@ parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
 parser.add_argument('--omit-images-from-test', action='store_true',
                     help='Omits omit_list_images from the test set.')
+parser.add_argument('--mask-omit-images', action='store_true',
+                    help='Masks tile predictions for images in omit_list_images.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -183,6 +185,7 @@ def main(# Debug args
         is_test_only=False,
         omit_list=None,
         omit_images_from_test=False,
+        mask_omit_images=False,
         
         # Path args
         raw_data_path=None, 
@@ -267,6 +270,7 @@ def main(# Debug args
     data_module = DynamicDataModule(
         omit_list=omit_list,
         omit_images_from_test=omit_images_from_test,
+        mask_omit_images=mask_omit_images,
         
         # Path args
         raw_data_path=raw_data_path,
@@ -438,6 +442,7 @@ if __name__ == '__main__':
         is_test_only=args['is_test_only'],
         omit_list=parsed_args['omit_list'],
         omit_images_from_test=args['omit_images_from_test'],
+        mask_omit_images=parsed_args['mask_omit_images'],
         
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],

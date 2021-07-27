@@ -202,6 +202,7 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
             image_series[img] = []
             idx = i
             
+            # Add the t-5 image if add_base_flow
             if series_length != 1 and add_base_flow:
                 image_series[img].append(fire_to_images[fire][np.maximum(0, idx-5)])
 
@@ -209,7 +210,6 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
                 image_series[img].insert(int(add_base_flow), fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
     
-    print(image_series)
     return image_series
 
 def xml_to_contour(xml_file):

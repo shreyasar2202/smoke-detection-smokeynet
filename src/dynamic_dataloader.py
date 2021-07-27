@@ -29,6 +29,7 @@ class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
                  omit_list=None,
                  omit_images_from_test=False,
+                 mask_omit_images=False,
                  
                  raw_data_path=None, 
                  embeddings_path=None,
@@ -66,6 +67,7 @@ class DynamicDataModule(pl.LightningDataModule):
         Args:
             - omit_list (list of str): list of metadata keys to omit from train/val sets
             - omit_images_from_test (bool): omits omit_list_images from the test set
+            - mask_omit_images (bool): masks tile predictions for images in omit_list_images
             - raw_data_path (str): path to raw data
             - embeddings_path (str): path to embeddings generated from pretrained model
             - labels_path (str): path to Numpy labels
@@ -118,6 +120,7 @@ class DynamicDataModule(pl.LightningDataModule):
         
         self.omit_list = omit_list
         self.omit_images_from_test = omit_images_from_test
+        self.mask_omit_images = mask_omit_images
            
         self.raw_data_path = raw_data_path
         self.embeddings_path = embeddings_path
@@ -244,11 +247,11 @@ class DynamicDataModule(pl.LightningDataModule):
         print("Setting Up Data...")
 
         # Determine which images to omit
-        omit_images_list = []
+        self.omit_images_list = []
         if self.omit_list is not None:
             for key in self.omit_list:
-                omit_images_list.append(self.metadata[key])
-        
+                self.omit_images_list.extend(self.metadata[key])
+                        
         is_split_given = self.train_split_path is not None and self.val_split_path is not None and self.test_split_path is not None
         
         # If split is given, load existing splits
@@ -286,9 +289,12 @@ class DynamicDataModule(pl.LightningDataModule):
             # Shorten test only by series_length
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             
-            # Create train/val/test split of Images, removing images from omit_images_list
+            # Create train/val/test split of Images
+            # Only remove images from omit_images_list if not masking
+            omit_images_list = None if self.mask_omit_images else self.omit_images_list
             self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, omit_images_list)
             self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, omit_images_list)
+            # Only remove images from test is omit_images_from_test=True
             self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, omit_images_list if self.omit_images_from_test else None)
 
             # If logdir is provided, then save train/val/test splits
@@ -310,6 +316,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata, 
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.train_split,
+                                          omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
@@ -336,6 +343,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata,
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.val_split,
+                                          omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                         
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
@@ -361,6 +369,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata,
                                           save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.test_split,
+                                          omit_images_list=None,
                                          
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
@@ -392,6 +401,7 @@ class DynamicDataloader(Dataset):
                  metadata=None,
                  save_embeddings_path=None,
                  data_split=None, 
+                 omit_images_list=None,
                  
                  resize_dimensions = (1536, 2016),
                  crop_height = 1120,
@@ -411,6 +421,7 @@ class DynamicDataloader(Dataset):
         self.metadata = metadata
         self.save_embeddings_path = save_embeddings_path
         self.data_split = data_split
+        self.omit_images_list = omit_images_list
         
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
@@ -545,5 +556,8 @@ class DynamicDataloader(Dataset):
         # Load Image-level Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(labels)
-                        
-        return image_name, x, labels, ground_truth_label, has_positive_tile
+        
+        # Determine if tile predictions should be masked
+        omit_mask = False if (self.omit_images_list is not None and image_name in self.omit_images_list) else True
+            
+        return image_name, x, labels, ground_truth_label, has_positive_tile, omit_mask

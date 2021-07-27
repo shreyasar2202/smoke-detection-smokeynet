@@ -82,13 +82,14 @@ class MainModel(nn.Module):
             
         return outputs
         
-    def forward_pass(self, x, tile_labels, ground_truth_labels, num_epoch):
+    def forward_pass(self, x, tile_labels, ground_truth_labels, omit_masks, num_epoch):
         """
         Description: compute forward pass of all model_list models
         Args:
             - x (tensor): raw image input
             - tile_labels (tensor): labels for tiles for tile_loss
             - ground_truth_labels (tensor): labels for images for image_loss
+            - omit_masks (tensor): determines if tile predictions should be masked
             - num_epoch (int): current epoch number (for pretrain_epochs)
         Outputs:
             - x (tensor): final outputs of model
@@ -132,7 +133,7 @@ class MainModel(nn.Module):
             elif len(x.shape) > 2:
                 tile_outputs = outputs
                 embeddings = x
-                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
+                loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 
                 # Only add loss if intermediate_supervision
                 if self.intermediate_supervision:
@@ -145,7 +146,7 @@ class MainModel(nn.Module):
             # Else if model predicts tiles and images...
             else:
                 tile_outputs = outputs
-                loss = self.tile_loss(tile_outputs[:,:,-1], tile_labels) 
+                loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 total_loss += loss
                 losses.append(loss)
                 
