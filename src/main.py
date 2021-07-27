@@ -36,6 +36,8 @@ parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
                     help='Skips training for testing only. Useful when checkpoint loading.')
+parser.add_argument('--omit-list', nargs='*',
+                    help='Specify which lists to omit from the train/val set.')
 parser.add_argument('--omit-images-from-test', action='store_true',
                     help='Omits omit_list_images from the test set.')
 
@@ -179,6 +181,7 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
 def main(# Debug args
         is_debug=False,
         is_test_only=False,
+        omit_list=None,
         omit_images_from_test=False,
         
         # Path args
@@ -262,6 +265,7 @@ def main(# Debug args
 
     ### Initialize data_module ###
     data_module = DynamicDataModule(
+        omit_list=omit_list,
         omit_images_from_test=omit_images_from_test,
         
         # Path args
@@ -432,6 +436,7 @@ if __name__ == '__main__':
     main(# Debug args
         is_debug=args['is_debug'],
         is_test_only=args['is_test_only'],
+        omit_list=parsed_args['omit_list'],
         omit_images_from_test=args['omit_images_from_test'],
         
         # Path args - always used command line args for these

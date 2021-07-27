@@ -27,6 +27,7 @@ import util_fns
 
 class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
+                 omit_list=None,
                  omit_images_from_test=False,
                  
                  raw_data_path=None, 
@@ -113,6 +114,7 @@ class DynamicDataModule(pl.LightningDataModule):
         """
         super().__init__()
         
+        self.omit_list = omit_list
         self.omit_images_from_test = omit_images_from_test
            
         self.raw_data_path = raw_data_path
@@ -240,7 +242,10 @@ class DynamicDataModule(pl.LightningDataModule):
         print("Setting Up Data...")
 
         # Determine which images to omit
-        omit_images_list = self.metadata['omit_mislabeled']
+        omit_images_list = []
+        if self.omit_list is not None:
+            for key in self.omit_list:
+                omit_images_list.append(self.metadata[key])
         
         is_split_given = self.train_split_path is not None and self.val_split_path is not None and self.test_split_path is not None
         

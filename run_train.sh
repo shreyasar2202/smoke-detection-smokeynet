@@ -13,6 +13,15 @@ python3.9 src/main.py \
     --accumulate-grad-batches 8 \
     --no-lr-schedule \
     --use-image-preds \
+    
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LSTM_SpatialDeiT_AddNoXML" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialDeiT" \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --no-lr-schedule \
+    --use-image-preds \
    
 
 
