@@ -4,27 +4,18 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-
-python3.9 src/main.py \
-    --experiment-name "MobileNet_SpatialDeiT_AddNoContour" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTileImage_SpatialDeiT" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --use-image-preds \
     
 python3.9 src/main.py \
-    --experiment-name "MobileNet_LSTM_SpatialDeiT_AddNoXML" \
+    --experiment-name "MobileNet_LSTM_SpatialDeiT_NoXML_OmitMask" \
     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialDeiT" \
+    --omit-list "omit_no_xml" \
+    --mask-omit-images \
     --batch-size 2 \
     --series-length 2 \
     --accumulate-grad-batches 16 \
     --no-lr-schedule \
     --use-image-preds \
    
-
-
     
 
 #####################

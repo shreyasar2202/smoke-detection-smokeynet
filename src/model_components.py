@@ -456,6 +456,69 @@ class TileToTileImage_SpatialDeiT(nn.Module):
         
         return tile_outputs, image_outputs
     
+class TileToTileImage_SpatialDeiTV3(nn.Module):
+    """Description: Spatial Vision Transformer operating on tiles to produce tile and image predictions"""
+    
+    def __init__(self, num_tiles=45, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
+        print('- TileToTileImage_SpatialDeiTV3')
+        super().__init__()
+        
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+                        
+        # Initialize linear layers
+        patch_size = int(np.floor(np.sqrt(tile_embedding_size/4)))
+        self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size*4)
+        self.fc2 = nn.Linear(in_features=num_tiles, out_features=1)
+        self.fc1, self.fc2 = util_fns.init_weights_Xavier(self.fc1, self.fc2)
+
+        # Initialize DeiT
+        self.embeddings_height = num_tiles_height * patch_size * 2
+        self.embeddings_width = num_tiles_width * patch_size * 2
+        
+        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
+                                            patch_size=patch_size, 
+                                            num_channels=1, 
+                                            num_labels=1,
+                                            hidden_size=516,
+                                            num_hidden_layers=6, 
+                                            num_attention_heads=6, 
+                                            intermediate_size=1536,
+                                            hidden_dropout_prob=0.1)
+        
+        self.deit_model = transformers.DeiTModel(deit_config)
+        
+        # Initialize additional linear layers
+        self.embeddings_to_output = TileEmbeddingsToOutput(516*4)
+                
+    def forward(self, tile_embeddings, *args):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+        assert series_length == 1, "TileToTileImage_SpatialDeiT should only take series_length=1"
+                
+        # Run through initial linear layers
+        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, 1, 512]
+        
+        # Run through DeiT
+        tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height, self.embeddings_width)
+        outputs = self.deit_model(tile_embeddings)
+        
+        # For tile_outputs, save only last_hidden_state and remove cls_token+distillation token
+        tile_outputs = outputs.last_hidden_state[:,1:-1] # [batch_size, (num_tiles*4), embedding_size]
+        
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs = tile_outputs.view(batch_size, self.num_tiles_height,4,self.num_tiles_width,4,-1)
+        tile_outputs = torch.swapaxes(tile_outputs,2,3).reshape(batch_size, num_tiles, -1)        
+        
+        tile_outputs, _ = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
+        
+        image_outputs = tile_outputs.view(batch_size, num_tiles)
+        image_outputs = self.fc2(image_outputs) # [batch_size, 1]
+        
+        return tile_outputs, image_outputs
+    
 ###########################
 ## TileToImage Models
 ########################### 
