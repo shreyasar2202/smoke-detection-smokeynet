@@ -37,7 +37,7 @@ parser.add_argument('--is-debug', action='store_true',
 parser.add_argument('--is-test-only', action='store_true',
                     help='Skips training for testing only. Useful when checkpoint loading.')
 parser.add_argument('--omit-list', nargs='*',
-                    help='Specify which lists to omit from the train/val set.')
+                    help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
 parser.add_argument('--omit-images-from-test', action='store_true',
                     help='Omits omit_list_images from the test set.')
 

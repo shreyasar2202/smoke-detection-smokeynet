@@ -64,6 +64,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  create_data = False):
         """
         Args:
+            - omit_list (list of str): list of metadata keys to omit from train/val sets
             - omit_images_from_test (bool): omits omit_list_images from the test set
             - raw_data_path (str): path to raw data
             - embeddings_path (str): path to embeddings generated from pretrained model
@@ -76,8 +77,9 @@ class DynamicDataModule(pl.LightningDataModule):
                 - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
                 - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
-                - omit_no_contour (list of str): list of images that erroneously do not have loaded bboxes for labels
-                - omit_images_list (list of str): union of omit_no_xml and omit_no_contour
+                - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels
+                - omit_no_bbox (list of str): list of images that erroneously do not have contours or bboxes
+                - omit_mistlabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled
             - save_embeddings_path (str): if not None, saves embeddings to this path
             
             - train_split_path (str): path to existing train split .txt file
@@ -280,9 +282,9 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow)
             
             # Shorten fire_to_images to relevant time frame
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], self.time_range, self.series_length, list(train_fires)+list(val_fires))
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(list(train_fires)+list(val_fires), self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
             # Shorten test only by series_length
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(self.metadata['fire_to_images'], (-2400,2400), self.series_length, test_fires)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             
             # Create train/val/test split of Images, removing images from omit_images_list
             self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, omit_images_list)

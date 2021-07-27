@@ -156,22 +156,24 @@ def unpack_fire_images(fire_to_images, fires_list, omit_images_list=None):
                 
     return unpacked_images
 
-def shorten_time_range(fire_to_images, time_range, series_length, train_fires):
+def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), series_length=1, add_base_flow=False):
     """
     Description: From lists of images per fire, returns list of images within specified time range
     Args:
+        - fires_list (list of str): list of fires in desired split
         - fire_to_images (dict): maps fire to a list of images for that fire
         - time_range (int, int): the time range of images to consider for training by time stamp
         - series_length (int): length of series to cut off starting of fires
-        - train_fires (list of str): list of fires in train split
+        - add_base_flow (bool): if True, adds image from t-5 for fire
     Returns:
         - fire_to_images (dict): list of images for each fire
     """
     # Calculate effective time start
-    effective_start = np.maximum(time_range[0], -2400 + (series_length - 1) * 60)
+    effective_series_length = np.maximum(int(add_base_flow)*5, series_length)
+    effective_start = np.maximum(time_range[0], -2400 + (effective_series_length - 1) * 60)
         
     if effective_start > -2400 or time_range[1] < 2400:
-        for fire in train_fires:
+        for fire in fires_list:
             images_to_keep = []
 
             for image in fire_to_images[fire]:
@@ -189,7 +191,7 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
     Args:
         - fire_to_images (dict): maps fire to a list of images for that fire
         - series_length (int): how many sequential images should be used for training
-        - add_base_flow (bool): if True, adds image from t=0 for fire
+        - add_base_flow (bool): if True, adds image from t-5 for fire
     Returns:
         - image_series (dict): maps image names to lists of past <series_length> images in chronological order
     """
@@ -201,12 +203,13 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
             idx = i
             
             if series_length != 1 and add_base_flow:
-                image_series[img].append(fire_to_images[fire][0])
+                image_series[img].append(fire_to_images[fire][np.maximum(0, idx-5)])
 
             while (len(image_series[img]) < series_length):
                 image_series[img].insert(int(add_base_flow), fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
-                                
+    
+    print(image_series)
     return image_series
 
 def xml_to_contour(xml_file):
