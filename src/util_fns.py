@@ -107,6 +107,10 @@ def generate_fire_to_images(raw_data_path, labels_path):
     all_fires = [folder.stem for folder in filter(Path.is_dir, labels_path.iterdir())]
 
     for fire in all_fires:
+        # Skip if first character is '.' or if fire is monochrome
+        if fire[0] == '.' or 'mobo-m' in fire:
+            continue
+        
         fire_to_images[fire] = [get_image_name(str(item)) for item in (raw_data_path/fire).glob('*.jpg')]
         fire_to_images[fire].sort()
         

@@ -177,6 +177,8 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['omit_no_contour'] = []
             self.metadata['omit_no_bbox'] = []
             self.metadata['omit_images_list'] = []
+            self.metadata['train_only_fires'] = []
+            self.metadata['eligible_fires'] = []
             
             images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
             labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
@@ -187,6 +189,11 @@ class DynamicDataModule(pl.LightningDataModule):
                 
                 print('Preparing Folder ', self.metadata['num_fires'])
                 
+                if 'mobo-c' not in fire:
+                    self.metadata['train_only_fires'].append(fire)
+                else:
+                    self.metadata['eligible_fires'].append(fire)
+                    
                 # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
                     # Save processed image as npy file
@@ -279,8 +286,9 @@ class DynamicDataModule(pl.LightningDataModule):
                 test_fires  = {util_fns.get_fire_name(item) for item in test_list}
             # Else if split is not provided, randomly create our own splits
             else:
-                train_fires, val_fires = train_test_split(list(self.metadata['fire_to_images'].keys()), test_size=(1-self.train_split_size))
+                train_fires, val_fires = train_test_split(self.metadata['eligible_fires'], test_size=(1-self.train_split_size))
                 val_fires, test_fires = train_test_split(val_fires, test_size=self.test_split_size/(1-self.train_split_size))
+                train_fires += self.metadata['train_only_fires']
                         
             # Save arrays representing series of images
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow)
