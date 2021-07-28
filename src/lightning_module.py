@@ -148,7 +148,7 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        outputs, embeddings, losses, total_loss, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
+        outputs, embeddings, losses, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
         
         # Save test embeddings if save_embeddings_path is not None
         if self.save_embeddings_path is not None and split == self.metrics['split'][2]:
@@ -183,18 +183,18 @@ class LightningModule(pl.LightningModule):
                         self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
                         self.log(split+category+name, self.metrics['torchmetric'][split+category+name], on_step=False, on_epoch=True)
         
-        return image_names, total_loss, tile_preds, image_preds, tile_labels
+        return image_names, total_loss, tile_probs, tile_preds, image_preds, tile_labels
 
     def training_step(self, batch, batch_idx):
-        image_names, loss, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][0])
+        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][0])
         return loss
 
     def validation_step(self, batch, batch_idx):
-        image_names, loss, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][1])
+        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][1])
 
     def test_step(self, batch, batch_idx):
-        image_names, loss, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][2])
-        return image_names, tile_preds, image_preds, tile_labels
+        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][2])
+        return image_names, tile_probs, tile_preds, image_preds, tile_labels
 
     
     #########################
@@ -205,7 +205,7 @@ class LightningModule(pl.LightningModule):
         """
         Description: saves predictions to .txt files and computes additional evaluation metrics for test set (e.g. time-to-detection)
         Args:
-            - test_step_outputs (list of {image_names, tile_preds, image_preds}): what's returned from test_step
+            - test_step_outputs (list of {image_names, tile_probs, tile_preds, image_preds}): what's returned from test_step
         """
         
         print("Computing Test Evaluation Metrics...")
@@ -218,13 +218,13 @@ class LightningModule(pl.LightningModule):
             image_preds_csv_writer = csv.writer(image_preds_csv)
 
         # Loop through batch
-        for image_names, tile_preds, image_preds, tile_labels in test_step_outputs:
+        for image_names, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
             # Account for if we predicted images directly
             if tile_preds is None:
                 tile_preds = [None] * len(image_names)
             
             # Loop through entry in batch
-            for image_name, tile_pred, image_pred, tile_label in zip(image_names, tile_preds, image_preds, tile_labels):
+            for image_name, tile_prob, tile_pred, image_pred, tile_label in zip(image_names, tile_probs, tile_preds, image_preds, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
                 corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
@@ -232,6 +232,14 @@ class LightningModule(pl.LightningModule):
                 if self.logger is not None:
                     # Save image predictions
                     image_preds_csv_writer.writerow([image_name, image_pred])
+                    
+                    # Save tile probabilities
+                    if tile_prob is not None:
+                        tile_probs_path = self.logger.log_dir+'/tile_probs/'+fire_name
+                        Path(tile_probs_path).mkdir(parents=True, exist_ok=True)
+                        np.save(self.logger.log_dir+'/tile_probs/'+\
+                                image_name+\
+                                '.npy', tile_prob.cpu().numpy())
 
                     # Save tile predictions
                     if tile_pred is not None:

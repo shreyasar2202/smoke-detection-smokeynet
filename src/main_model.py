@@ -108,6 +108,7 @@ class MainModel(nn.Module):
         losses = []
         total_loss = 0
         
+        tile_probs = None
         tile_preds = None
         image_preds = None
         
@@ -157,7 +158,8 @@ class MainModel(nn.Module):
             
         # Compute predictions for tiles and images 
         if tile_outputs is not None:
-            tile_preds = (torch.sigmoid(tile_outputs[:,:,-1]) > 0.5).int()
+            tile_probs = torch.sigmoid(tile_outputs[:,:,-1])
+            tile_preds = (tile_probs > 0.5).int()
         
         # If created image_outputs, predict directly
         if self.use_image_preds and image_outputs is not None:
@@ -166,4 +168,4 @@ class MainModel(nn.Module):
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
-        return outputs, embeddings, losses, total_loss, tile_preds, image_preds
+        return outputs, embeddings, losses, total_loss, tile_probs, tile_preds, image_preds
