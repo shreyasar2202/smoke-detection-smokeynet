@@ -80,8 +80,9 @@ class DynamicDataModule(pl.LightningDataModule):
                 - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
                 - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels
-                - omit_no_bbox (list of str): list of images that erroneously do not have contours or bboxes
-                - omit_mistlabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled
+                - omit_no_bbox (list of str): list of images that erroneously do not have bboxes
+                - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled
+                - train_fires_only (list of str): list of fires that should only be used for train (not 'mobo-c')
             - save_embeddings_path (str): if not None, saves embeddings to this path
             
             - train_split_path (str): path to existing train split .txt file

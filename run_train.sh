@@ -6,15 +6,24 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "MobileNet_LSTM_SpatialDeiT_NoXML_OmitMask" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialDeiT" \
-    --omit-list "omit_no_xml" \
-    --mask-omit-images \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
+    --experiment-name "EfficientNetB4" \
+    --model-type-list "RawToTile_EfficientNet" \
+    --omit-list "omit_no_xml" "omit_no_bbox" \
+    --batch-size 1 \
+    --series-length 1 \
+    --accumulate-grad-batches 32 \
+    --backbone-size 'large' \
     --no-lr-schedule \
-    --use-image-preds \
+    
+python3.9 src/main.py \
+    --experiment-name "EfficientNetB4_DeiT" \
+    --model-type-list "RawToTile_EfficientNet" "TileToTile_DeiT" \
+    --omit-list "omit_no_xml" "omit_no_bbox" \
+    --batch-size 1 \
+    --series-length 1 \
+    --accumulate-grad-batches 32 \
+    --backbone-size 'large' \
+    --no-lr-schedule \
    
     
 

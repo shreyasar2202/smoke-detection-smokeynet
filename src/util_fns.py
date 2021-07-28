@@ -258,8 +258,8 @@ def xml_to_bbox(xml_file):
             x_s = []
             y_s = []
             for cur_pt in cur_object.find('polygon').findall('pt'):
-                x_s.append(int(cur_pt.find('x').text))
-                y_s.append(int(cur_pt.find('y').text))
+                x_s.append(int(round(float(cur_pt.find('x').text))))
+                y_s.append(int(round(float(cur_pt.find('y').text))))
             
             all_polys = [[min(x_s), min(y_s)], [max(x_s), max(y_s)]]
             all_polys = np.array(all_polys, dtype=np.int32)

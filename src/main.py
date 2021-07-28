@@ -50,11 +50,11 @@ parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args = 5 + 4
-parser.add_argument('--raw-data-path', type=str, default='/dev/shm/raw_images',
+parser.add_argument('--raw-data-path', type=str, default='/root/raw_images',
                     help='Path to raw images.')
 parser.add_argument('--embeddings-path', type=str, default=None,
-                    help='(Optional) Path to pretrained embeddings. Default: /dev/shm/embeddings')
-parser.add_argument('--labels-path', type=str, default='/dev/shm/pytorch_lightning_data/drive_clone_numpy',
+                    help='(Optional) Path to pretrained embeddings. Default: /root/embeddings')
+parser.add_argument('--labels-path', type=str, default='/root/pytorch_lightning_data/drive_clone_numpy',
                     help='Path to processed XML labels.')
 parser.add_argument('--raw-labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
                     help='Path to raw XML labels. Only used to generated processed XML labels.')
