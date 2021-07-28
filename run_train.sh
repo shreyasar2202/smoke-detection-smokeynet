@@ -6,25 +6,35 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "EfficientNetB4" \
-    --model-type-list "RawToTile_EfficientNet" \
-    --omit-list "omit_no_xml" "omit_no_bbox" \
-    --batch-size 1 \
-    --series-length 1 \
-    --accumulate-grad-batches 32 \
-    --backbone-size 'large' \
+    --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
     --no-lr-schedule \
+
+python3.9 src/main.py \
+    --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs_Focal" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --no-lr-schedule \
+    --tile-loss-type 'focal' \
     
 python3.9 src/main.py \
-    --experiment-name "EfficientNetB4_DeiT" \
-    --model-type-list "RawToTile_EfficientNet" "TileToTile_DeiT" \
-    --omit-list "omit_no_xml" "omit_no_bbox" \
+    --experiment-name "ViTSmall_LSTM_ViT_LinearOutputs" \
+    --model-type-list "RawToTile_ViT" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
     --batch-size 1 \
-    --series-length 1 \
+    --series-length 2 \
     --accumulate-grad-batches 32 \
-    --backbone-size 'large' \
+    --backbone-size 'medium' \
     --no-lr-schedule \
-   
+    --tile-embedding-size 384 \
+    
     
 
 #####################
@@ -34,14 +44,20 @@ python3.9 src/main.py \
 # python3.9 src/main.py \
 #     --experiment-name "MobileNet" \
 #     --model-type-list "RawToTile_MobileNetV3Large" \
-#     --min-epochs 3 \
-#     --max-epochs 50 \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
 #     --batch-size 4 \
 #     --series-length 1 \
 #     --accumulate-grad-batches 8 \
 #     --no-lr-schedule \
-#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
-#     --raw-data-path '/root/raw_images' \
+
+# python3.9 src/main.py \
+#     --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+#     --omit-list "omit_no_xml" \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --no-lr-schedule \
 
 #########################
 ## Without Overlapping Tiles

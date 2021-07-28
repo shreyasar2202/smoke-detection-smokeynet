@@ -175,7 +175,7 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['num_images'] = 0
             self.metadata['omit_no_xml'] = []
             self.metadata['omit_no_contour'] = []
-            self.metadata['omit_no_bbox'] = []
+            self.metadata['omit_no_contour_or_bbox'] = []
             self.metadata['omit_images_list'] = []
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
@@ -236,7 +236,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                 os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                                 np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
                             else:
-                                self.metadata['omit_no_bbox'].append(image)                        
+                                self.metadata['omit_no_contour_or_bbox'].append(image)                        
 
             self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
         

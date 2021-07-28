@@ -266,7 +266,7 @@ class RawToTile_EfficientNet(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_DeiT(nn.Module):
+class RawToTile_ViT(nn.Module):
     """
     Description: Vision Transformer operating on raw inputs to produce tile predictions
     Args:
@@ -281,7 +281,7 @@ class RawToTile_DeiT(nn.Module):
                  backbone_checkpoint_path=None, 
                  backbone_size='small', 
                  **kwargs):
-        print('- RawToTile_DeiT_'+backbone_size)
+        print('- RawToTile_ViT_'+backbone_size)
         super().__init__()
         
         self.backbone_size = backbone_size
@@ -289,10 +289,10 @@ class RawToTile_DeiT(nn.Module):
         size_to_name = {'small': 'tiny', 'medium': 'small', 'large': 'base'}
 
         if pretrain_backbone:
-            self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.ViT_model = transformers.ViTModel.from_pretrained('facebook/ViT-'+size_to_name[backbone_size]+'-distilled-patch16-224')
         else:
-            deit_config = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
-            self.deit_model = transformers.DeiTModel(deit_config)
+            ViT_config = transformers.ViTConfig.from_pretrained('facebook/ViT-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.ViT_model = transformers.ViTModel(ViT_config)
         
         self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
 
@@ -300,11 +300,11 @@ class RawToTile_DeiT(nn.Module):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        # Run through DeiT
+        # Run through ViT
         x = x.view(batch_size * series_length * num_tiles, num_channels, height, width)
         
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(x).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
+        tile_outputs = self.ViT_model(x).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
                 
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
@@ -315,11 +315,11 @@ class RawToTile_DeiT(nn.Module):
 ## TileToTile Models
 ########################### 
 
-class TileToTile_DeiT(nn.Module):
+class TileToTile_ViT(nn.Module):
     """Description: Vision Transformer operating on tiles to produce tile predictions"""
     
     def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTile_DeiT')
+        print('- TileToTile_ViT')
         super().__init__()
                         
         # Initialize initial linear layers
@@ -327,11 +327,11 @@ class TileToTile_DeiT(nn.Module):
         self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size)
         self.fc1, = util_fns.init_weights_Xavier(self.fc1)
 
-        # Initialize DeiT
+        # Initialize ViT
         self.embeddings_height = num_tiles_height * patch_size
         self.embeddings_width = num_tiles_width * patch_size
         
-        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
+        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
                                             patch_size=patch_size, 
                                             num_channels=1, 
                                             num_labels=1,
@@ -341,7 +341,7 @@ class TileToTile_DeiT(nn.Module):
                                             intermediate_size=1536,
                                             hidden_dropout_prob=0.1)
         
-        self.deit_model = transformers.DeiTModel(deit_config)
+        self.ViT_model = transformers.ViTModel(ViT_config)
         
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516)
@@ -353,10 +353,10 @@ class TileToTile_DeiT(nn.Module):
         # Run through initial linear layers
         tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 512]
         
-        # Run through DeiT
+        # Run through ViT
         tile_embeddings = tile_embeddings.view(batch_size * series_length, 1, self.embeddings_height, self.embeddings_width)
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(tile_embeddings).last_hidden_state[:,1:-1] # [batch_size * series_length, num_tiles, embedding_size]
+        tile_outputs = self.ViT_model(tile_embeddings).last_hidden_state[:,1:] # [batch_size * series_length, num_tiles, embedding_size]
         # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
         
@@ -393,11 +393,11 @@ class TileToTile_LSTM(nn.Module):
         
         return tile_outputs, embeddings
     
-class TileToTile_ViDeiT(nn.Module):
+class TileToTile_ViViT(nn.Module):
     """Description: Video Vision Transformer operating on tiles to produce tile predictions"""
     
     def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, series_length=1, **kwargs):
-        print('- TileToTile_ViDeiT')
+        print('- TileToTile_ViViT')
         super().__init__()
                         
         # Initialize initial linear layers
@@ -405,11 +405,11 @@ class TileToTile_ViDeiT(nn.Module):
         self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size)
         self.fc1, = util_fns.init_weights_Xavier(self.fc1)
 
-        # Initialize DeiT
+        # Initialize ViT
         self.embeddings_height = num_tiles_height * patch_size
         self.embeddings_width = num_tiles_width * patch_size
         
-        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height*series_length, self.embeddings_width), 
+        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height*series_length, self.embeddings_width), 
                                             patch_size=patch_size, 
                                             num_channels=1, 
                                             num_labels=1,
@@ -419,7 +419,7 @@ class TileToTile_ViDeiT(nn.Module):
                                             intermediate_size=1536,
                                             hidden_dropout_prob=0.1)
         
-        self.deit_model = transformers.DeiTModel(deit_config)
+        self.ViT_model = transformers.ViTModel(ViT_config)
         
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516*series_length)
@@ -431,10 +431,10 @@ class TileToTile_ViDeiT(nn.Module):
         # Run through initial linear layers
         tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 1764]
         
-        # Run through DeiT
+        # Run through ViT
         tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height * series_length, self.embeddings_width)
         # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.deit_model(tile_embeddings).last_hidden_state[:,1:-1] # [batch_size, num_tiles*series_length, embedding_size]
+        tile_outputs = self.ViT_model(tile_embeddings).last_hidden_state[:,1:] # [batch_size, num_tiles*series_length, embedding_size]
         # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
         
@@ -447,11 +447,11 @@ class TileToTile_ViDeiT(nn.Module):
 ## TileToTileImage Models
 ########################### 
     
-class TileToTileImage_SpatialDeiT(nn.Module):
+class TileToTileImage_SpatialViT(nn.Module):
     """Description: Spatial Vision Transformer operating on tiles to produce tile and image predictions"""
     
     def __init__(self, num_tiles=45, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTileImage_SpatialDeiT')
+        print('- TileToTileImage_SpatialViT')
         super().__init__()
                         
         # Initialize linear layers
@@ -460,11 +460,11 @@ class TileToTileImage_SpatialDeiT(nn.Module):
         self.fc2 = nn.Linear(in_features=num_tiles+1, out_features=1)
         self.fc1, self.fc2 = util_fns.init_weights_Xavier(self.fc1, self.fc2)
 
-        # Initialize DeiT
+        # Initialize ViT
         self.embeddings_height = num_tiles_height * patch_size
         self.embeddings_width = num_tiles_width * patch_size
         
-        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
+        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
                                             patch_size=patch_size, 
                                             num_channels=1, 
                                             num_labels=1,
@@ -474,7 +474,7 @@ class TileToTileImage_SpatialDeiT(nn.Module):
                                             intermediate_size=1536,
                                             hidden_dropout_prob=0.1)
         
-        self.deit_model = transformers.DeiTModel(deit_config)
+        self.ViT_model = transformers.ViTModel(ViT_config)
         
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516)
@@ -482,17 +482,17 @@ class TileToTileImage_SpatialDeiT(nn.Module):
     def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-        assert series_length == 1, "TileToTileImage_SpatialDeiT should only take series_length=1"
+        assert series_length == 1, "TileToTileImage_SpatialViT should only take series_length=1"
                 
         # Run through initial linear layers
         tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, 1, 512]
         
-        # Run through DeiT
+        # Run through ViT
         tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height, self.embeddings_width)
-        outputs = self.deit_model(tile_embeddings)
+        outputs = self.ViT_model(tile_embeddings)
         
-        # For tile_outputs, save only last_hidden_state and remove distillation token
-        tile_outputs = outputs.last_hidden_state[:,:-1] # [batch_size, num_tiles+1, embedding_size]
+        # For tile_outputs, save only last_hidden_state
+        tile_outputs = outputs.last_hidden_state # [batch_size, num_tiles+1, embedding_size]
         # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
         tile_outputs, _ = self.embeddings_to_output(tile_outputs, batch_size, num_tiles+1, 1)
@@ -505,11 +505,11 @@ class TileToTileImage_SpatialDeiT(nn.Module):
         
         return tile_outputs, image_outputs
     
-class TileToTileImage_SpatialDeiTV3(nn.Module):
+class TileToTileImage_SpatialViTV3(nn.Module):
     """Description: Spatial Vision Transformer operating on tiles to produce tile and image predictions"""
     
     def __init__(self, num_tiles=45, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTileImage_SpatialDeiTV3')
+        print('- TileToTileImage_SpatialViTV3')
         super().__init__()
         
         self.num_tiles_height = num_tiles_height
@@ -521,11 +521,11 @@ class TileToTileImage_SpatialDeiTV3(nn.Module):
         self.fc2 = nn.Linear(in_features=num_tiles, out_features=1)
         self.fc1, self.fc2 = util_fns.init_weights_Xavier(self.fc1, self.fc2)
 
-        # Initialize DeiT
+        # Initialize ViT
         self.embeddings_height = num_tiles_height * patch_size * 2
         self.embeddings_width = num_tiles_width * patch_size * 2
         
-        deit_config = transformers.DeiTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
+        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
                                             patch_size=patch_size, 
                                             num_channels=1, 
                                             num_labels=1,
@@ -535,7 +535,7 @@ class TileToTileImage_SpatialDeiTV3(nn.Module):
                                             intermediate_size=1536,
                                             hidden_dropout_prob=0.1)
         
-        self.deit_model = transformers.DeiTModel(deit_config)
+        self.ViT_model = transformers.ViTModel(ViT_config)
         
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516*4)
@@ -543,17 +543,17 @@ class TileToTileImage_SpatialDeiTV3(nn.Module):
     def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-        assert series_length == 1, "TileToTileImage_SpatialDeiT should only take series_length=1"
+        assert series_length == 1, "TileToTileImage_SpatialViT should only take series_length=1"
                 
         # Run through initial linear layers
         tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, 1, 512]
         
-        # Run through DeiT
+        # Run through ViT
         tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height, self.embeddings_width)
-        outputs = self.deit_model(tile_embeddings)
+        outputs = self.ViT_model(tile_embeddings)
         
-        # For tile_outputs, save only last_hidden_state and remove cls_token+distillation token
-        tile_outputs = outputs.last_hidden_state[:,1:-1] # [batch_size, (num_tiles*4), embedding_size]
+        # For tile_outputs, save only last_hidden_state and remove cls_token token
+        tile_outputs = outputs.last_hidden_state[:,1:] # [batch_size, (num_tiles*4), embedding_size]
         
         # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
