@@ -266,7 +266,7 @@ class RawToTile_EfficientNet(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_ViT(nn.Module):
+class RawToTile_DeiT(nn.Module):
     """
     Description: Vision Transformer operating on raw inputs to produce tile predictions
     Args:
@@ -281,7 +281,7 @@ class RawToTile_ViT(nn.Module):
                  backbone_checkpoint_path=None, 
                  backbone_size='small', 
                  **kwargs):
-        print('- RawToTile_ViT_'+backbone_size)
+        print('- RawToTile_DeiT_'+backbone_size)
         super().__init__()
         
         self.backbone_size = backbone_size
@@ -289,10 +289,10 @@ class RawToTile_ViT(nn.Module):
         size_to_name = {'small': 'tiny', 'medium': 'small', 'large': 'base'}
 
         if pretrain_backbone:
-            self.ViT_model = transformers.ViTModel.from_pretrained('facebook/ViT-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
         else:
-            ViT_config = transformers.ViTConfig.from_pretrained('facebook/ViT-'+size_to_name[backbone_size]+'-distilled-patch16-224')
-            self.ViT_model = transformers.ViTModel(ViT_config)
+            deit_config = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.deit_model = transformers.DeiTModel(deit_config)
         
         self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
 
@@ -300,11 +300,9 @@ class RawToTile_ViT(nn.Module):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        # Run through ViT
+        # Run through DeiT
         x = x.view(batch_size * series_length * num_tiles, num_channels, height, width)
-        
-        # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.ViT_model(x).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
+        tile_outputs = self.deit_model(x).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
                 
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         

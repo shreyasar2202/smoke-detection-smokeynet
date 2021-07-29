@@ -40,8 +40,7 @@ class LightningModule(pl.LightningModule):
                  lr_schedule=True,
                  
                  series_length=1,
-                 parsed_args=None,
-                 save_embeddings_path=None):
+                 parsed_args=None):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
@@ -54,7 +53,6 @@ class LightningModule(pl.LightningModule):
             
             - series_length (int): number of sequential video frames to process during training
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
-            - save_embeddings_path (str): if not None, where to save embeddings
 
         Other Attributes:
             - self.metrics (dict): contains many properties related to logging metrics, including:
@@ -85,8 +83,6 @@ class LightningModule(pl.LightningModule):
         self.save_hyperparameters(parsed_args)
         self.save_hyperparameters('learning_rate')
         
-        self.save_embeddings_path = save_embeddings_path
-
         # Initialize evaluation metrics
         self.metrics = {}
         self.metrics['torchmetric'] = {}
@@ -126,8 +122,9 @@ class LightningModule(pl.LightningModule):
         if self.lr_schedule:
             # Includes learning rate scheduler
             scheduler = ReduceLROnPlateau(optimizer, 
-                                          min_lr=self.learning_rate*1e-5, 
-                                          patience=1,
+                                          min_lr=1e-4, 
+                                          factor=0.5,
+                                          patience=0,
                                           threshold=0.01,
                                           verbose=True)
             return {"optimizer": optimizer,
@@ -149,15 +146,6 @@ class LightningModule(pl.LightningModule):
 
         # Compute outputs, loss, and predictions
         outputs, embeddings, losses, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
-        
-        # Save test embeddings if save_embeddings_path is not None
-        if self.save_embeddings_path is not None and split == self.metrics['split'][2]:
-            embedding = embeddings.permute(2, 1, 0, 3)
-            for i, augment in enumerate(embedding):
-                # Embeddings are stacked with raw, flip, blur data augmentations in that order
-                folder_prefix = self.save_embeddings_path+['/raw/', '/flip/', '/blur/'][i]
-                os.makedirs(folder_prefix+util_fns.get_fire_name(image_names[0]), exist_ok=True)
-                np.save(folder_prefix+image_names[0]+'.npy', augment.cpu())
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):

@@ -6,35 +6,35 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
+    --experiment-name "1MobileNet_LSTM_ViT_LinearOutputs_50Resize" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --batch-size 2 \
     --series-length 2 \
     --accumulate-grad-batches 16 \
     --no-lr-schedule \
+    --resize-height 780 \
+    --resize-width 1040 \
+    --crop-height 632 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
+    
+python3.9 src/main.py \
+    --experiment-name "1MobileNet_LSTM_ViT_LinearOutputs_80Resize" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --no-lr-schedule \
+    --resize-height 1239 \
+    --resize-width 1652 \
+    --crop-height 1040 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
 
-python3.9 src/main.py \
-    --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs_Focal" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --no-lr-schedule \
-    --tile-loss-type 'focal' \
-    
-python3.9 src/main.py \
-    --experiment-name "ViTSmall_LSTM_ViT_LinearOutputs" \
-    --model-type-list "RawToTile_ViT" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 1 \
-    --series-length 2 \
-    --accumulate-grad-batches 32 \
-    --backbone-size 'medium' \
-    --no-lr-schedule \
-    --tile-embedding-size 384 \
-    
     
 
 #####################
@@ -58,6 +58,10 @@ python3.9 src/main.py \
 #     --series-length 2 \
 #     --accumulate-grad-batches 16 \
 #     --no-lr-schedule \
+
+
+#     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \
+#     --raw-data-path '/root/raw_images' \
 
 #########################
 ## Without Overlapping Tiles

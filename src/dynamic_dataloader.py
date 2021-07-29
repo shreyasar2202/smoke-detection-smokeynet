@@ -32,11 +32,9 @@ class DynamicDataModule(pl.LightningDataModule):
                  mask_omit_images=False,
                  
                  raw_data_path=None, 
-                 embeddings_path=None,
                  labels_path=None, 
                  raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
-                 save_embeddings_path=None,
                  
                  train_split_path=None,
                  val_split_path=None,
@@ -69,7 +67,6 @@ class DynamicDataModule(pl.LightningDataModule):
             - omit_images_from_test (bool): omits omit_list_images from the test set
             - mask_omit_images (bool): masks tile predictions for images in omit_list_images
             - raw_data_path (str): path to raw data
-            - embeddings_path (str): path to embeddings generated from pretrained model
             - labels_path (str): path to Numpy labels
             - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
@@ -83,7 +80,6 @@ class DynamicDataModule(pl.LightningDataModule):
                 - omit_no_bbox (list of str): list of images that erroneously do not have bboxes
                 - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled
                 - train_fires_only (list of str): list of fires that should only be used for train (not 'mobo-c')
-            - save_embeddings_path (str): if not None, saves embeddings to this path
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -124,11 +120,9 @@ class DynamicDataModule(pl.LightningDataModule):
         self.mask_omit_images = mask_omit_images
            
         self.raw_data_path = raw_data_path
-        self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
-        self.save_embeddings_path = save_embeddings_path
         
         self.train_split_path = train_split_path
         self.val_split_path = val_split_path
@@ -319,11 +313,9 @@ class DynamicDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
-                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                           
                                           metadata=self.metadata, 
-                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.train_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           
@@ -346,11 +338,9 @@ class DynamicDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
-                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                         
                                           metadata=self.metadata,
-                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.val_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                         
@@ -372,11 +362,9 @@ class DynamicDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
-                                          embeddings_path=self.embeddings_path,
                                           labels_path=self.labels_path, 
                                          
                                           metadata=self.metadata,
-                                          save_embeddings_path=self.save_embeddings_path,
                                           data_split=self.test_split,
                                           omit_images_list=None,
                                          
@@ -391,7 +379,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           blur_augment=False,
                                           jitter_augment=False)
         test_loader = DataLoader(test_dataset, 
-                                 batch_size=self.batch_size if self.save_embeddings_path is None else 1, 
+                                 batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
                                  pin_memory=True)
         return test_loader
@@ -404,11 +392,9 @@ class DynamicDataModule(pl.LightningDataModule):
 class DynamicDataloader(Dataset):
     def __init__(self, 
                  raw_data_path=None,
-                 embeddings_path=None,
                  labels_path=None, 
                  
                  metadata=None,
-                 save_embeddings_path=None,
                  data_split=None, 
                  omit_images_list=None,
                  
@@ -424,11 +410,9 @@ class DynamicDataloader(Dataset):
                  jitter_augment = True):
         
         self.raw_data_path = raw_data_path
-        self.embeddings_path = embeddings_path
         self.labels_path = labels_path
         
         self.metadata = metadata
-        self.save_embeddings_path = save_embeddings_path
         self.data_split = data_split
         self.omit_images_list = omit_images_list
         
@@ -447,9 +431,21 @@ class DynamicDataloader(Dataset):
 
     def __len__(self):
         return len(self.data_split)
-    
-    def get_images(self, image_name, should_flip, should_blur, blur_size, jitter_amount):
-        """Description: Loads series_length of raw images. Crops, resizes, and adds data augmentations"""
+
+    def __getitem__(self, idx):
+        image_name = self.data_split[idx]
+        series_length = len(self.metadata['image_series'][image_name])
+        
+        ### Initialize Data Augmentation ###
+        should_flip = np.random.rand() > 0.5 if self.flip_augment else False
+        
+        should_blur = np.random.rand() > 0.5 if self.blur_augment else False
+        blur_size = np.maximum(int(np.random.randn()*3+10), 1)
+        
+        # Always jitter if jitter_augment=True
+        jitter_amount = np.random.randint(self.tile_dimensions[0]) if self.jitter_augment else 0
+        
+        ### Load Images or Embeddings ###
         x = []
         
         for file_name in self.metadata['image_series'][image_name]:
@@ -477,67 +473,6 @@ class DynamicDataloader(Dataset):
         # x.shape = [num_tiles, series_length, num_channels, height, width]
         # e.g. [45, 5, 3, 224, 224]
         x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
-        
-        return x
-        
-    def get_embeddings(self, image_name, should_flip, should_blur, blur_size):
-        """Description: Loads pre-saved embeddings"""
-        x = []
-        
-        for file_name in self.metadata['image_series'][image_name]:
-            if should_flip:
-                img = np.load(self.embeddings_path+'/flip/'+file_name+'.npy').squeeze()
-            elif should_blur:
-                img = np.load(self.embeddings_path+'/blur/'+file_name+'.npy').squeeze()
-            else:
-                img = np.load(self.embeddings_path+'/raw/'+file_name+'.npy').squeeze()
-                
-            x.append(img)
-                
-        # x.shape = [num_tiles, series_length, embedding_size]
-        # e.g. [45, 4, 960]
-        x = np.transpose(np.stack(x), (1, 0, 2))
-        
-        return x
-    
-    def prep_save_embeddings(self, image_name, blur_size):
-        """Description: Loads data augmented raw images to be saved as embeddings"""
-        x = []
-        
-        img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions)
-        
-        x.append(util_fns.normalize_image(util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
-        x.append(util_fns.normalize_image(util_fns.tile_image(cv2.flip(img, 1), self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
-        x.append(util_fns.normalize_image(util_fns.tile_image(cv2.blur(img, (blur_size,blur_size)), self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)))
-        
-        # x.shape = [num_tiles, series_length, num_channels, height, width]
-        # e.g. [45, 5, 3, 224, 224]
-        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
-        
-        return x
-
-    def __getitem__(self, idx):
-        image_name = self.data_split[idx]
-        series_length = len(self.metadata['image_series'][image_name]) if self.save_embeddings_path is None else 3
-        
-        ### Initialize Data Augmentation ###
-        should_flip = np.random.rand() > 0.5 if self.flip_augment else False
-        
-        should_blur = np.random.rand() > 0.5 if self.blur_augment else False
-        blur_size = np.maximum(int(np.random.randn()*3+10), 1)
-        
-        # Always jitter if jitter_augment=True
-        jitter_amount = np.random.randint(self.tile_dimensions[0]) if self.jitter_augment else 0
-        
-        ### Load Images or Embeddings ###
-        if self.embeddings_path is not None:
-            x = self.get_embeddings(image_name, should_flip, should_blur, blur_size)
-        elif self.save_embeddings_path is not None:
-            x = self.prep_save_embeddings(image_name, blur_size)
-        else:
-            x = self.get_images(image_name, should_flip, should_blur, blur_size, jitter_amount)
            
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
@@ -558,7 +493,7 @@ class DynamicDataloader(Dataset):
         # labels.shape = [45,]
         labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
-        if self.save_embeddings_path is None and self.num_tile_samples > 0:
+        if self.num_tile_samples > 0:
             # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
             x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
 
