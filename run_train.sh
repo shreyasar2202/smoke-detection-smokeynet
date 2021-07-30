@@ -5,29 +5,31 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
-python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_ViT_LinearOutputs_50Resize" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --no-lr-schedule \
-    --resize-height 780 \
-    --resize-width 1040 \
-    --crop-height 632 \
-    --train-split-path './data/train_images1.txt' \
-    --val-split-path './data/val_images1.txt' \
-    --test-split-path './data/test_images1.txt' \
+# python3.9 src/main.py \
+#     --experiment-name "1MobileNet_LSTM_ViT_LinearOutputs_90Resize" \
+#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --no-early-stopping \
+#     --resize-height 1392 \
+#     --resize-width 1856 \
+#     --crop-height 1040 \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_ViT_LinearOutputs_80Resize" \
-    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_ViT" "TileToImage_LinearOutputs" \
+    --experiment-name "1EfficientNetB4_80Resize" \
+    --model-type-list "RawToTile_EfficientNet" \
     --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
+    --batch-size 1 \
+    --series-length 1 \
+    --accumulate-grad-batches 32 \
     --no-lr-schedule \
+    --backbone-size 'large' \
+    --tile-embedding-size 1792 \
     --resize-height 1239 \
     --resize-width 1652 \
     --crop-height 1040 \
