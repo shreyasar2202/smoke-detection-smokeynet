@@ -49,6 +49,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  add_base_flow=False,
                  time_range=(-2400, 2400), 
                  
+                 original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
@@ -57,8 +58,10 @@ class DynamicDataModule(pl.LightningDataModule):
                  num_tile_samples = 0,
                  
                  flip_augment = True,
+                 resize_crop_augment = True,
                  blur_augment = True,
-                 jitter_augment = True,
+                 color_augment = True,
+                 brightness_contrast_augment = True,
                  
                  create_data = False):
         """
@@ -94,6 +97,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - add_base_flow (bool): if True, adds image from t=0 for fire
             - time_range (int, int): The time range of images to consider for training by time stamp
             
+            - original_dimensions (int, int): original dimensions of image
             - resize_dimensions (int, int): desired dimensions of image before cropping
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
@@ -102,8 +106,10 @@ class DynamicDataModule(pl.LightningDataModule):
             - num_tile_samples (int): number of random tile samples per batch. If < 1, then turned off
 
             - flip_augment (bool): enables data augmentation with horizontal flip
+            - resize_crop_augment (bool): enables data augmentation with random resize cropping
             - blur_augment (bool): enables data augmentation with Gaussian blur
-            - jitter_augment (bool): enables data augmentation with slightly displaced cropping
+            - color_augment (bool): enables data augmentation with color jitter
+            - brightness_contrast_augment (bool): enables data augmentation with brightness contrast adjustment
             
             - create_data (bool): should prepare_data be run?
         
@@ -137,6 +143,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.add_base_flow = add_base_flow
         self.time_range = time_range
         
+        self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
@@ -145,8 +152,10 @@ class DynamicDataModule(pl.LightningDataModule):
         self.num_tile_samples = num_tile_samples
         
         self.flip_augment = flip_augment
+        self.resize_crop_augment = resize_crop_augment
         self.blur_augment = blur_augment
-        self.jitter_augment = jitter_augment
+        self.color_augment = color_augment
+        self.brightness_contrast_augment = brightness_contrast_augment
         
         self.create_data = create_data
         self.has_setup = False
@@ -319,6 +328,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.train_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           
+                                          original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
@@ -327,8 +337,10 @@ class DynamicDataModule(pl.LightningDataModule):
                                           num_tile_samples=self.num_tile_samples,
                                           
                                           flip_augment=self.flip_augment,
+                                          resize_crop_augment=self.resize_crop_augment,
                                           blur_augment=self.blur_augment,
-                                          jitter_augment=self.jitter_augment)
+                                          color_augment=self.color_augment,
+                                          brightness_contrast_augment=self.brightness_contrast_augment)
         train_loader = DataLoader(train_dataset, 
                                   batch_size=self.batch_size, 
                                   num_workers=self.num_workers,
@@ -344,6 +356,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.val_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                         
+                                          original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
@@ -352,8 +365,10 @@ class DynamicDataModule(pl.LightningDataModule):
                                           num_tile_samples=self.num_tile_samples,
                                         
                                           flip_augment=False,
+                                          resize_crop_augment=False,
                                           blur_augment=False,
-                                          jitter_augment=False)
+                                          color_augment=False,
+                                          brightness_contrast_augment=False)
         val_loader = DataLoader(val_dataset, 
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
@@ -368,6 +383,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.test_split,
                                           omit_images_list=None,
                                          
+                                          original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
@@ -376,8 +392,10 @@ class DynamicDataModule(pl.LightningDataModule):
                                           num_tile_samples=0,
                                          
                                           flip_augment=False,
+                                          resize_crop_augment=False,
                                           blur_augment=False,
-                                          jitter_augment=False)
+                                          color_augment=False,
+                                          brightness_contrast_augment=False)
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
@@ -398,6 +416,7 @@ class DynamicDataloader(Dataset):
                  data_split=None, 
                  omit_images_list=None,
                  
+                 original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
@@ -406,8 +425,10 @@ class DynamicDataloader(Dataset):
                  num_tile_samples = 0,
                  
                  flip_augment = True,
+                 resize_crop_augment = True,
                  blur_augment = True,
-                 jitter_augment = True):
+                 color_augment = True,
+                 brightness_contrast_augment = True):
         
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
@@ -416,6 +437,7 @@ class DynamicDataloader(Dataset):
         self.data_split = data_split
         self.omit_images_list = omit_images_list
         
+        self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
@@ -424,8 +446,10 @@ class DynamicDataloader(Dataset):
         self.num_tile_samples = num_tile_samples
         
         self.flip_augment = flip_augment
+        self.resize_crop_augment = resize_crop_augment
         self.blur_augment = blur_augment
-        self.jitter_augment = jitter_augment
+        self.color_augment = color_augment
+        self.brightness_contrast_augment = brightness_contrast_augment
         
         self.num_tiles_height, self.num_tiles_width = util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
 
@@ -436,31 +460,30 @@ class DynamicDataloader(Dataset):
         image_name = self.data_split[idx]
         series_length = len(self.metadata['image_series'][image_name])
         
-        ### Initialize Data Augmentation ###
-        should_flip = np.random.rand() > 0.5 if self.flip_augment else False
+        data_augmentations = util_fns.DataAugmentations(self.original_dimensions,
+                                                        self.resize_dimensions,
+                                                        self.crop_height,
+                                                        
+                                                        self.flip_augment, 
+                                                        self.resize_crop_augment, 
+                                                        self.blur_augment, 
+                                                        self.color_augment, 
+                                                        self.brightness_contrast_augment)
         
-        should_blur = np.random.rand() > 0.5 if self.blur_augment else False
-        blur_size = np.maximum(int(np.random.randn()*3+10), 1)
-        
-        # Always jitter if jitter_augment=True
-        jitter_amount = np.random.randint(self.tile_dimensions[0]) if self.jitter_augment else 0
-        
-        ### Load Images or Embeddings ###
+        ### Load Images ###
         x = []
         
         for file_name in self.metadata['image_series'][image_name]:
+            # Load image
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             
-            # Resize and crop
-            img = util_fns.crop_image(img, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
+            # Resize image to original dimensions if it isn't already
+            if img.shape[:2] != self.original_dimensions:
+                img = cv2.resize(img, (self.original_dimensions[1], self.original_dimensions[0]))
             
-            # Add data augmentations
-            if should_flip:
-                img = cv2.flip(img, 1)
-            if should_blur:
-                img = cv2.blur(img, (blur_size,blur_size))
+            # Apply data augmentations
+            img = data_augmentations(img, is_labels=False)
                 
             # Tile image
             img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
@@ -470,27 +493,26 @@ class DynamicDataloader(Dataset):
 
             x.append(img)
             
-        # x.shape = [num_tiles, series_length, num_channels, height, width]
-        # e.g. [45, 5, 3, 224, 224]
+        # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
         x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
            
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
         if Path(label_path).exists():
             labels = np.load(label_path)
+            
+            if labels.shape[:2] != self.original_dimensions:
+                labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
+                
+            # Apply data augmentations
+            labels = data_augmentations(labels, is_labels=True)
         else:
             labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
-        
-        # labels.shape = [height, width]
-        labels = util_fns.crop_image(labels, self.resize_dimensions, self.crop_height, self.tile_dimensions, jitter_amount)
-        if should_flip:
-            labels = cv2.flip(labels, 1)
-        if should_blur:
-            labels = cv2.blur(labels, (blur_size, blur_size))
 
+        # Tile labels
         labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-        # labels.shape = [45,]
+        # labels.shape = [num_tiles,]
         labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
         if self.num_tile_samples > 0:

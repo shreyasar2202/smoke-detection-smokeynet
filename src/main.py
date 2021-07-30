@@ -87,11 +87,15 @@ parser.add_argument('--time-range-min', type=int, default=-2400,
 parser.add_argument('--time-range-max', type=int, default=2400,
                     help='End time of fire images to consider during training (inclusive).')
 
-parser.add_argument('--resize-height', type=int, default=1536,
+parser.add_argument('--original-height', type=int, default=1536,
+                    help='Original height of image.')
+parser.add_argument('--original-width', type=int, default=2048,
+                    help='Original width of image.')
+parser.add_argument('--resize-height', type=int, default=1392,
                     help='Desired resize height of image.')
-parser.add_argument('--resize-width', type=int, default=2060,
+parser.add_argument('--resize-width', type=int, default=1856,
                     help='Desired resize width of image.')
-parser.add_argument('--crop-height', type=int, default=1244,
+parser.add_argument('--crop-height', type=int, default=1040,
                     help='Desired height after cropping.')
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
@@ -104,10 +108,14 @@ parser.add_argument('--num-tile-samples', type=int, default=0,
 
 parser.add_argument('--no-flip-augment', action='store_false',
                     help='Disables data augmentation with horizontal flip.')
+parser.add_argument('--no-resize-crop-augment', action='store_false',
+                    help='Disables data augmentation with random resize cropping.')
 parser.add_argument('--no-blur-augment', action='store_false',
                     help='Disables data augmentation with Gaussian blur.')
-parser.add_argument('--no-jitter-augment', action='store_false',
-                    help='Disables data augmentation with slightly displaced cropping.')
+parser.add_argument('--no-color-augment', action='store_false',
+                    help='Disables data augmentation with color jitter.')
+parser.add_argument('--no-brightness-contrast-augment', action='store_false',
+                    help='Disables data augmentation with brightness and contrast jitter.')
 
 # Model args = 5 + 4 + 4
 parser.add_argument('--model-type-list', nargs='*',
@@ -208,6 +216,7 @@ def main(# Debug args
         add_base_flow=False, 
         time_range=(-2400,2400), 
     
+        original_dimensions=(1536, 2016),
         resize_dimensions=(1536, 2016),
         crop_height=1120,
         tile_dimensions=(224,224),
@@ -216,8 +225,10 @@ def main(# Debug args
         num_tile_samples=0,
     
         flip_augment=True,
+        resize_crop_augment=True,
         blur_augment=True,
-        jitter_augment=True,
+        color_augment=True,
+        brightness_contrast_augment=True,
 
         # Model args
         model_type_list=['RawToTile_MobileNetV3Large'],
@@ -287,6 +298,7 @@ def main(# Debug args
         add_base_flow=add_base_flow,
         time_range=time_range,
 
+        original_dimensions=original_dimensions,
         resize_dimensions=resize_dimensions,
         crop_height=crop_height,
         tile_dimensions=tile_dimensions,
@@ -295,8 +307,10 @@ def main(# Debug args
         num_tile_samples=num_tile_samples,
 
         flip_augment=flip_augment,
+        resize_crop_augment=resize_crop_augment,
         blur_augment=blur_augment,
-        jitter_augment=jitter_augment)
+        color_augment=color_augment,
+        brightness_contrast_augment=brightness_contrast_augment)
 
     ### Initialize MainModel ###
     num_tiles_height, num_tiles_width = util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
@@ -460,6 +474,7 @@ if __name__ == '__main__':
         add_base_flow=parsed_args['add_base_flow'], 
         time_range=(parsed_args['time_range_min'],parsed_args['time_range_max']), 
 
+        original_dimensions=(parsed_args['original_height'], parsed_args['original_width']),
         resize_dimensions=(parsed_args['resize_height'], parsed_args['resize_width']),
         crop_height=parsed_args['crop_height'],
         tile_dimensions=(parsed_args['tile_size'], parsed_args['tile_size']),
@@ -468,8 +483,10 @@ if __name__ == '__main__':
         num_tile_samples=parsed_args['num_tile_samples'],
 
         flip_augment=parsed_args['no_flip_augment'],
+        resize_crop_augment=parsed_args['no_resize_crop_augment'],
         blur_augment=parsed_args['no_blur_augment'],
-        jitter_augment=parsed_args['no_jitter_augment'],
+        color_augment=parsed_args['no_color_augment'],
+        brightness_contrast_augment=parsed_args['no_brightness_contrast_augment'],
 
         # Model args
         model_type_list=parsed_args['model_type_list'],

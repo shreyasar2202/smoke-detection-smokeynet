@@ -276,26 +276,65 @@ def xml_to_bbox(xml_file):
 ## Dataloader
 ###############
 
-def crop_image(img, resize_dimensions=(1536,2016), crop_height=1120, tile_dimensions=(224,224), jitter_amount=0):
-    """
-    Description: Resizes, crops, and randomly shifts image
-    Args:
-        - img (np array): raw image loaded from npy file
-        - resize_dimensions (int, int): dimensions to resize raw image
-        - crop_height (int): height after cropping image
-        - tile_dimensions (int, int): dimensions of tile
-        - jitter_amount (int): amount to jitter height
-    Returns:
-        - img (np array): after crop, resize, and jittering
-    """
-    # Resize image. Crop a little extra to account for jitter
-    img = cv2.resize(img, (resize_dimensions[1], resize_dimensions[0]))[-(crop_height+tile_dimensions[0]):]
+class DataAugmentations():
+    """Description: Data Augmentation class to ensure same augmentations are applied to image and labels"""
+    def __init__(self, 
+                 original_dimensions = (1536, 2048),
+                 resize_dimensions = (1536, 2048),
+                 crop_height = 1244,
+                 
+                 flip_augment = True,
+                 resize_crop_augment = True,
+                 blur_augment = True,
+                 color_augment = True,
+                 brightness_contrast_augment = True):
+        
+        self.resize_dimensions = resize_dimensions
+        self.crop_height = crop_height
+        
+        self.resize_crop_augment = resize_crop_augment
+        self.blur_augment = blur_augment
+        self.color_augment = color_augment
+        self.brightness_contrast_augment = brightness_contrast_augment
+        
+        self.should_flip = np.random.rand() > 0.5 if flip_augment else False
+        
+        target_scale = np.random.uniform([0.5,0.6], [1.2,1])
+        crop_scale = np.random.uniform(target_scale, [1.2,1])
+        self.crop_size = np.round((self.crop_height, original_dimensions[1]) * crop_scale).astype(int)
+        self.crop_start = np.random.randint(0, original_dimensions-self.crop_size+1)
+        resize_scale = target_scale / crop_scale
+        self.resize_size = np.round(self.crop_size*resize_scale).astype(int)
+        
+        self.blur_size = np.random.randint(1,5)
+        
+    def __call__(self, img, is_labels=False):
+        if self.should_flip:
+            img = cv2.flip(img, 1)
+            
+        if self.resize_crop_augment:
+            img = img[self.crop_start[0]:self.crop_start[0]+self.crop_size[0],self.crop_start[1]:self.crop_start[1]+self.crop_size[1]]
+            img = cv2.resize(img, (self.resize_size[1], self.resize_size[0]))
+            # x.shape = [crop_height, resize_dimensions[1], num_channels]
+            img = cv2.resize(img, (self.resize_dimensions[1], self.crop_height))
+        else:
+            # x.shape = [crop_height, resize_dimensions[1], num_channels]
+            img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))[-self.crop_height:]
 
-    # Crop image further with jitter
-    jitter_amount = tile_dimensions[0] - jitter_amount # Normalize jitter such that 0 is the bottom of the image
-    img = img[jitter_amount:crop_height+jitter_amount]
-    
-    return img
+        if self.color_augment and not is_labels:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            img[:,:,0] = np.add(img[:,:,0], np.random.randn()*3, casting="unsafe")
+            img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+        elif not is_labels:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        if self.brightness_contrast_augment and not is_labels:
+            img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.1), beta=np.random.randint(0,20))
+
+        if self.blur_augment:
+            img = cv2.blur(img, (self.blur_size,self.blur_size))
+        
+        return img
 
 def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
     """Description: Tiles image with overlap"""
