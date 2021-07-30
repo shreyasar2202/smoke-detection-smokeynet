@@ -483,9 +483,11 @@ class DynamicDataloader(Dataset):
                 img = cv2.resize(img, (self.original_dimensions[1], self.original_dimensions[0]))
             
             # Apply data augmentations
+            # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = data_augmentations(img, is_labels=False)
                 
             # Tile image
+            # img.shape = [num_tiles, tile_height, tile_width, num_channels]
             img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
@@ -499,12 +501,12 @@ class DynamicDataloader(Dataset):
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'
         if Path(label_path).exists():
+            # Repeat similar steps to images
             labels = np.load(label_path)
             
             if labels.shape[:2] != self.original_dimensions:
                 labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
                 
-            # Apply data augmentations
             labels = data_augmentations(labels, is_labels=True)
         else:
             labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 

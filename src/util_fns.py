@@ -297,9 +297,11 @@ class DataAugmentations():
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
+        # Determine if we should flip this time
         self.should_flip = np.random.rand() > 0.5 if flip_augment else False
         
-        target_scale = np.random.uniform([0.5,0.6], [1.2,1])
+        # Controls how much x & y are resized & cropped so that the image is not too stretched
+        target_scale = np.random.uniform([0.6,0.6], [1.2,1])
         crop_scale = np.random.uniform(target_scale, [1.2,1])
         self.crop_size = np.round((self.crop_height, original_dimensions[1]) * crop_scale).astype(int)
         self.crop_start = np.random.randint(0, original_dimensions-self.crop_size+1)
@@ -315,10 +317,10 @@ class DataAugmentations():
         if self.resize_crop_augment:
             img = img[self.crop_start[0]:self.crop_start[0]+self.crop_size[0],self.crop_start[1]:self.crop_start[1]+self.crop_size[1]]
             img = cv2.resize(img, (self.resize_size[1], self.resize_size[0]))
-            # x.shape = [crop_height, resize_dimensions[1], num_channels]
+            # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = cv2.resize(img, (self.resize_dimensions[1], self.crop_height))
         else:
-            # x.shape = [crop_height, resize_dimensions[1], num_channels]
+            # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))[-self.crop_height:]
 
         if self.color_augment and not is_labels:
@@ -337,10 +339,13 @@ class DataAugmentations():
         return img
 
 def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
-    """Description: Tiles image with overlap"""
-    # Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
-    # WARNING: Tile size must divide perfectly into image height and width
+    """
+    Description: Tiles image with overlap
+    Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
+    WARNING: Tile size must divide perfectly into image height and width
+    """
     bytelength = img.nbytes // img.size
+    
     # img.shape = [num_tiles_height, num_tiles_width, tile_height, tile_width, 3]
     img = np.lib.stride_tricks.as_strided(img, 
         shape=(num_tiles_height, 
@@ -354,7 +359,7 @@ def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_d
                  bytelength*3, 
                  bytelength), writeable=False)
 
-    # img.shape = [num_tiles, tile_height, tile_width, 3]
+    # img.shape = [num_tiles, tile_height, tile_width, num_channels]
     img = img.reshape((-1, tile_dimensions[0], tile_dimensions[1], 3))
     
     return img
@@ -369,7 +374,11 @@ def normalize_image(img):
     return img
 
 def tile_labels(labels, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
-    """Description: Tiles labels with overlap"""
+    """
+    Description: Tiles labels with overlap
+    Source: https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7
+    WARNING: Tile size must divide perfectly into image height and width
+    """
     
     bytelength = labels.nbytes // labels.size
     labels = np.lib.stride_tricks.as_strided(labels, 
