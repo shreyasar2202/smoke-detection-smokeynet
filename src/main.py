@@ -412,8 +412,8 @@ def main(# Debug args
 
         # Dev args
 #             fast_dev_run=True, 
-#             overfit_batches=65,
-#             limit_train_batches=1,
+#             overfit_batches=100,
+#             limit_train_batches=100,
 #             limit_val_batches=1,
 #             limit_test_batches=1,
 #             track_grad_norm=2,

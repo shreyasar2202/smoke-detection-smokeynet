@@ -163,6 +163,53 @@ class RawToTile_MobileNetV3Large(nn.Module):
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
+    
+class RawToTile_MobileNetV3LargeV2(nn.Module):
+    """
+    Description: MobileNetV3Large backbone with a few linear layers.
+    Args:
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
+    """
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None,
+                 **kwargs):
+        print('- RawToTile_MobileNetV3Large')
+        super().__init__()
+        
+        self.tile_embedding_size = 960
+
+        self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
+        self.conv.avgpool = nn.Identity()
+        self.conv.classifier = nn.Identity()
+
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
+        
+        if backbone_checkpoint_path is not None:
+            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
+        
+        if freeze_backbone:
+            for param in self.conv.parameters():
+                param.requires_grad = False
+        
+    def forward(self, x, *args):
+        x = x.float()
+        batch_size, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        tile_outputs = self.conv(tile_outputs) 
+        
+        tile_outputs = tile_outputs.view(-1, 960, 7, 7)
+        tile_outputs = self.avgpool(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
+
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        
+        return tile_outputs, embeddings
 
 class RawToTile_ResNet(nn.Module):
     """
@@ -449,7 +496,7 @@ class TileToTileImage_SpatialViT(nn.Module):
     """Description: Vision Transformer operating on tiles to produce tile and image predictions"""
     
     def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTileImage_SpatialViTV4')
+        print('- TileToTileImage_SpatialViT')
         super().__init__()
                         
         # Initialize initial linear layers

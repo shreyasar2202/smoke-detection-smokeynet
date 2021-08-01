@@ -281,6 +281,7 @@ class DataAugmentations():
     def __init__(self, 
                  original_dimensions = (1536, 2048),
                  resize_dimensions = (1536, 2048),
+                 tile_dimensions = (224, 224),
                  crop_height = 1244,
                  
                  flip_augment = True,
@@ -297,18 +298,38 @@ class DataAugmentations():
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
+        
+        
+        ### Resize Crop Parameters ###
+        if self.resize_crop_augment:
+            # Sets the maximum scale in either dimension
+            height_scale_max = np.min([1.2, resize_dimensions[0]/crop_height, original_dimensions[0]/crop_height])
+            scale_max = [height_scale_max, 1]
+            # Sets the minimum scale in either dimension
+            scale_min = [0.8,0.8]
+            # Determines how much the overall scale should be
+            target_scale = np.random.uniform(scale_min, scale_max)
+
+            # Determines how much of the overall scale should come from cropping
+            crop_scale = np.random.uniform(target_scale, scale_max)
+            # Determines how big the size should be after cropping
+            self.crop_size = np.round(np.minimum((self.crop_height, original_dimensions[1])*crop_scale,original_dimensions)).astype(int)
+            # Determines where the cropping should start
+            self.crop_start = np.random.randint(0, original_dimensions-self.crop_size+1)
+
+            # Determine how much to resize to get to target scale
+            resize_scale = target_scale / crop_scale
+            # Determine actual resize size in pixels
+            self.resize_size = np.round(self.crop_size*resize_scale).astype(int)
+        
+        ### Other Parameters ###
         # Determine if we should flip this time
         self.should_flip = np.random.rand() > 0.5 if flip_augment else False
         
-        # Controls how much x & y are resized & cropped so that the image is not too stretched
-        target_scale = np.random.uniform([0.6,0.6], [1.2,1])
-        crop_scale = np.random.uniform(target_scale, [1.2,1])
-        self.crop_size = np.round((self.crop_height, original_dimensions[1]) * crop_scale).astype(int)
-        self.crop_start = np.random.randint(0, original_dimensions-self.crop_size+1)
-        resize_scale = target_scale / crop_scale
-        self.resize_size = np.round(self.crop_size*resize_scale).astype(int)
+        # Determines blur amount
+        if self.blur_augment:
+            self.blur_size = np.random.randint(1,5)
         
-        self.blur_size = np.random.randint(1,5)
         
     def __call__(self, img, is_labels=False):
         if self.should_flip:
@@ -323,12 +344,13 @@ class DataAugmentations():
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))[-self.crop_height:]
 
-        if self.color_augment and not is_labels:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            img[:,:,0] = np.add(img[:,:,0], np.random.randn()*3, casting="unsafe")
-            img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
-        elif not is_labels:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if not is_labels:
+            if self.color_augment:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+                img[:,:,0] = np.add(img[:,:,0], np.random.randn()*3, casting="unsafe")
+                img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+            else:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.brightness_contrast_augment and not is_labels:
             img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.1), beta=np.random.randint(0,20))

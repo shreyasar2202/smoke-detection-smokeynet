@@ -462,6 +462,7 @@ class DynamicDataloader(Dataset):
         
         data_augmentations = util_fns.DataAugmentations(self.original_dimensions,
                                                         self.resize_dimensions,
+                                                        self.tile_dimensions,
                                                         self.crop_height,
                                                         
                                                         self.flip_augment, 
@@ -508,14 +509,15 @@ class DynamicDataloader(Dataset):
                 labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
                 
             labels = data_augmentations(labels, is_labels=True)
+            
+            # Tile labels
+            labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+
+            # labels.shape = [num_tiles]
+            labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
         else:
-            labels = np.zeros(x[0].shape[:2], dtype=np.uint8) 
-
-        # Tile labels
-        labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
-
-        # labels.shape = [num_tiles,]
-        labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+            # labels.shape = [num_tiles]
+            labels = np.zeros(self.num_tiles_height*self.num_tiles_width).astype(float) 
 
         if self.num_tile_samples > 0:
             # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
