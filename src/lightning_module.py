@@ -169,7 +169,11 @@ class LightningModule(pl.LightningModule):
                     if args[0] is not None:
                         # Have to move the metric to self.device 
                         self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
-                        self.log(split+category+name, self.metrics['torchmetric'][split+category+name], on_step=False, on_epoch=True)
+                        self.log(split+category+name, 
+                                 self.metrics['torchmetric'][split+category+name], 
+                                 on_step=False, 
+                                 on_epoch=True, 
+                                 metric_attribute=self.metrics['torchmetric'][split+category+name])
         
         return image_names, total_loss, tile_probs, tile_preds, image_preds, tile_labels
 

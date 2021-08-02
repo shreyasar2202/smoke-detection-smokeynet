@@ -54,6 +54,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  crop_height = 1120,
                  tile_dimensions = (224, 224),
                  tile_overlap = 0,
+                 pre_tile = True,
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
@@ -102,6 +103,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - crop_height (int): height to crop image to
             - tile_dimensions (int, int): desired size of tiles
             - tile_overlap (int): amount to overlap each tile
+            - pre_tile (bool): determines if image should be tiled in dataloader or not
             - smoke_threshold (int): # of pixels of smoke to consider tile positive
             - num_tile_samples (int): number of random tile samples per batch. If < 1, then turned off
 
@@ -148,6 +150,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.tile_overlap = tile_overlap
+        self.pre_tile = pre_tile
         self.smoke_threshold = smoke_threshold
         self.num_tile_samples = num_tile_samples
         
@@ -333,6 +336,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
+                                          pre_tile=self.pre_tile,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                           
@@ -361,6 +365,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
+                                          pre_tile=self.pre_tile,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=self.num_tile_samples,
                                         
@@ -388,6 +393,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           crop_height=self.crop_height,
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
+                                          pre_tile=self.pre_tile,
                                           smoke_threshold=self.smoke_threshold,
                                           num_tile_samples=0,
                                          
@@ -421,6 +427,7 @@ class DynamicDataloader(Dataset):
                  crop_height = 1120,
                  tile_dimensions = (224,224), 
                  tile_overlap = 0,
+                 pre_tile = True,
                  smoke_threshold = 250,
                  num_tile_samples = 0,
                  
@@ -442,6 +449,7 @@ class DynamicDataloader(Dataset):
         self.crop_height = crop_height
         self.tile_dimensions = tile_dimensions
         self.tile_overlap = tile_overlap
+        self.pre_tile = pre_tile
         self.smoke_threshold = smoke_threshold
         self.num_tile_samples = num_tile_samples
         
@@ -486,19 +494,21 @@ class DynamicDataloader(Dataset):
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = data_augmentations(img, is_labels=False)
                 
-            # Tile image - TODO
-#             img.shape = [num_tiles, tile_height, tile_width, num_channels]
-#             img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+            # Tile image
+            # img.shape = [num_tiles, tile_height, tile_width, num_channels]
+            if self.pre_tile:
+                img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
             img = util_fns.normalize_image(img)
 
             x.append(img)
         
-        # TODO
-#         x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
-#         x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
-        x = np.transpose(np.stack(x), (0, 3, 1, 2))
+        # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
+        if self.pre_tile:
+            x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
+        else:
+            x = np.transpose(np.stack(x), (0, 3, 1, 2))
            
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'

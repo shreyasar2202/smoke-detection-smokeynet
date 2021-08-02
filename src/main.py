@@ -101,6 +101,8 @@ parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
 parser.add_argument('--tile-overlap', type=int, default=20,
                     help='Amount to overlap each tile.')
+parser.add_argument('--no-pre-tile', action='store_false',
+                    help='Disables tiling of image in dataloader.')
 parser.add_argument('--smoke-threshold', type=int, default=250,
                     help='Number of pixels of smoke to consider tile positive.')
 parser.add_argument('--num-tile-samples', type=int, default=0,
@@ -221,6 +223,7 @@ def main(# Debug args
         crop_height=1120,
         tile_dimensions=(224,224),
         tile_overlap=0,
+        pre_tile=True,
         smoke_threshold=250,
         num_tile_samples=0,
     
@@ -303,6 +306,7 @@ def main(# Debug args
         crop_height=crop_height,
         tile_dimensions=tile_dimensions,
         tile_overlap=tile_overlap,
+        pre_tile=pre_tile,
         smoke_threshold=smoke_threshold,
         num_tile_samples=num_tile_samples,
 
@@ -479,6 +483,7 @@ if __name__ == '__main__':
         crop_height=parsed_args['crop_height'],
         tile_dimensions=(parsed_args['tile_size'], parsed_args['tile_size']),
         tile_overlap=parsed_args['tile_overlap'],
+        pre_tile=parsed_args['no_pre_tile'],
         smoke_threshold=parsed_args['smoke_threshold'],
         num_tile_samples=parsed_args['num_tile_samples'],
 
