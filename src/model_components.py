@@ -453,6 +453,45 @@ class TileToTile_LSTM(nn.Module):
         
         return tile_outputs, embeddings
     
+class TileToTile_ResNet3D(nn.Module):
+    """Description: 3D ResNet operating on tiles to produce tile predictions"""
+    
+    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, series_length=1, **kwargs):
+        print('- TileToTile_ResNet3D')
+        super().__init__()
+        
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        self.tile_embedding
+                        
+        # Initialize initial linear layers
+        self.square_embedding_size = np.round(np.sqrt(tile_embedding_size)).astype(int)
+        self.fc = nn.Linear(in_features=tile_embedding_size, out_features=self.square_embedding_size**2)
+        
+        # Initialize ResNet3D
+        self.conv = 3d_resnet.resnet10(tile_embedding_size=tile_embedding_size)
+        
+        # Initialize additional linear layers
+        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+                
+    def forward(self, tile_embeddings, *args):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+        
+        # Run through initial linear layers
+        tile_outputs = F.relu(self.fc(tile_embeddings)) # [batch_size, num_tiles, series_length, squared_embedding_size**2]
+        
+        # Run through ResNet3D
+        tile_embeddings = tile_embeddings.swapaxes(1,2).contiguous() # [batch_size, series_length, num_tiles, self.square_embedding_size**2]
+        tile_embeddings = tile_embeddings.view(batch_size, 1, series_length, self.num_tiles_height*self.square_embedding_size, self.num_tiles_width*self.square_embedding_size)
+        tile_outputs = self.conv(tile_embeddings) # [batch_size, tile_embedding_size, 1, num_tiles_height, num_tiles_width]
+        
+        tile_outputs = tile_outputs.view(batch_size, tile_embedding_size, num_tiles)
+        tile_outputs = tile_outputs.swapaxes(1,2).contiguous # [batch_size, num_tiles, tile_embedding_size]
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
+        
+        return tile_outputs, embeddings 
+    
 class TileToTile_ViViT(nn.Module):
     """Description: Video Vision Transformer operating on tiles to produce tile predictions"""
     
