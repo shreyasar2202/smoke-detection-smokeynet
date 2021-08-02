@@ -488,7 +488,7 @@ class DynamicDataloader(Dataset):
                 
             # Tile image - TODO
 #             img.shape = [num_tiles, tile_height, tile_width, num_channels]
-            img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+#             img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
             img = util_fns.normalize_image(img)
@@ -497,8 +497,8 @@ class DynamicDataloader(Dataset):
         
         # TODO
 #         x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
-        x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
-#         x = np.transpose(np.stack(x), (0, 3, 1, 2))
+#         x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
+        x = np.transpose(np.stack(x), (0, 3, 1, 2))
            
         ### Load Labels ###
         label_path = self.labels_path+'/'+image_name+'.npy'

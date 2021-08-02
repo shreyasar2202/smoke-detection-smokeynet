@@ -311,7 +311,7 @@ class DataAugmentations():
         
         # Determines blur amount
         if self.should_blur:
-            self.blur_size = np.maximum(int(np.random.randn()*3+10), 1) #1,5
+            self.blur_size = np.maximum(int(np.random.randn()*3+8), 1) #1,5
         
     def __call__(self, img, is_labels=False):
         if self.should_flip:
@@ -319,7 +319,8 @@ class DataAugmentations():
         
         img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
         if self.resize_crop_augment:
-            img = img[-(self.crop_height+self.jitter_amount):-self.jitter_amount]
+            img = img[-(self.crop_height+self.tile_dimensions[0]):]
+            img = img[self.jitter_amount:self.crop_height+self.jitter_amount]
         else:
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = img[-self.crop_height:]

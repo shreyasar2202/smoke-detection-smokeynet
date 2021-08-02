@@ -164,7 +164,7 @@ class RawToTile_MobileNetV3Large(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_MobileNetV3LargeV3(nn.Module):
+class RawToTile_MobileNetV3LargeV4(nn.Module):
     """
     Description: MobileNetV3Large backbone with a few linear layers.
     Args:
@@ -207,19 +207,20 @@ class RawToTile_MobileNetV3LargeV3(nn.Module):
 
         # Run through conv model
         tile_outputs = x.view(batch_size * series_length, num_channels, height, width)
-        tile_outputs = self.conv(tile_outputs) # [batch_size * series_length, num_tiles * tile_embedding_size * 49]
-                        
+        tile_outputs = self.conv(tile_outputs) # [batch_size * series_length, num_tiles * 960 * 49]
+        
         tile_outputs = tile_outputs.view(batch_size, 
                                          series_length,
+                                         self.tile_embedding_size,
                                          self.num_tiles_height, 
-                                         self.tile_embedding_size*49, 
+                                         7, 
                                          self.num_tiles_width,
-                                         1)
-        tile_outputs = torch.swapaxes(tile_outputs, 3,4)
+                                         7)
+        tile_outputs = tile_outputs.permute(0,1,3,5,2,4,6) 
         tile_outputs = tile_outputs.contiguous().view(batch_size, series_length, self.num_tiles, self.tile_embedding_size, 7, 7)
-        tile_outputs = tile_outputs.permute(0,2,1,3,4,5) # [batch_size, num_tiles, series_length, tile_embedding_size, 7, 7]
         
-        tile_outputs = self.avgpool(tile_outputs) # [batch_size, num_tiles, series_length, tile_embedding_size, 1, 1]
+        tile_outputs = self.avgpool(tile_outputs) # [batch_size, series_length, num_tiles, tile_embedding_size, 1, 1]
+        tile_outputs = tile_outputs.squeeze().swapaxes(1,2).contiguous() # [batch_size, num_tiles, series_length, tile_embedding_size]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, self.num_tiles, series_length)
         
         return tile_outputs, embeddings
