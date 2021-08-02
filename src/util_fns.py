@@ -298,8 +298,6 @@ class DataAugmentations():
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
-        
-        
         ### Resize Crop Parameters ###
         if self.resize_crop_augment:
             # Sets the maximum scale in either dimension
@@ -313,9 +311,10 @@ class DataAugmentations():
             # Determines how much of the overall scale should come from cropping
             crop_scale = np.random.uniform(target_scale, scale_max)
             # Determines how big the size should be after cropping
-            self.crop_size = np.round(np.minimum((self.crop_height, original_dimensions[1])*crop_scale,original_dimensions)).astype(int)
+            effective_dimensions = (crop_height+tile_dimensions[0],original_dimensions[1])
+            self.crop_size = np.round(np.minimum((self.crop_height, original_dimensions[1])*crop_scale,effective_dimensions)).astype(int)
             # Determines where the cropping should start
-            self.crop_start = np.random.randint(0, original_dimensions-self.crop_size+1)
+            self.crop_start = np.random.randint(0, effective_dimensions-self.crop_size+1)
 
             # Determine how much to resize to get to target scale
             resize_scale = target_scale / crop_scale

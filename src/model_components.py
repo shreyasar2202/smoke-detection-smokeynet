@@ -164,7 +164,7 @@ class RawToTile_MobileNetV3Large(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_MobileNetV3LargeV2(nn.Module):
+class RawToTile_MobileNetV3LargeV3(nn.Module):
     """
     Description: MobileNetV3Large backbone with a few linear layers.
     Args:
@@ -176,11 +176,16 @@ class RawToTile_MobileNetV3LargeV2(nn.Module):
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
                  backbone_checkpoint_path=None,
+                 num_tiles_height=5,
+                 num_tiles_width=9,
                  **kwargs):
         print('- RawToTile_MobileNetV3Large')
         super().__init__()
         
         self.tile_embedding_size = 960
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        self.num_tiles = num_tiles_height * num_tiles_width
 
         self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
         self.conv.avgpool = nn.Identity()
@@ -201,13 +206,21 @@ class RawToTile_MobileNetV3LargeV2(nn.Module):
         batch_size, series_length, num_channels, height, width = x.size()
 
         # Run through conv model
-        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
-        tile_outputs = self.conv(tile_outputs) 
+        tile_outputs = x.view(batch_size * series_length, num_channels, height, width)
+        tile_outputs = self.conv(tile_outputs) # [batch_size * series_length, num_tiles * tile_embedding_size * 49]
+                        
+        tile_outputs = tile_outputs.view(batch_size, 
+                                         series_length,
+                                         self.num_tiles_height, 
+                                         self.tile_embedding_size*49, 
+                                         self.num_tiles_width,
+                                         1)
+        tile_outputs = torch.swapaxes(tile_outputs, 3,4)
+        tile_outputs = tile_outputs.contiguous().view(batch_size, series_length, self.num_tiles, self.tile_embedding_size, 7, 7)
+        tile_outputs = tile_outputs.permute(0,2,1,3,4,5) # [batch_size, num_tiles, series_length, tile_embedding_size, 7, 7]
         
-        tile_outputs = tile_outputs.view(-1, 960, 7, 7)
-        tile_outputs = self.avgpool(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
-
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        tile_outputs = self.avgpool(tile_outputs) # [batch_size, num_tiles, series_length, tile_embedding_size, 1, 1]
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, self.num_tiles, series_length)
         
         return tile_outputs, embeddings
 
