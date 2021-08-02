@@ -5,56 +5,9 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
-# python3.9 src/main.py \
-#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_BlurFlip" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --batch-size 4 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --num-workers 6 \
-#     --train-split-path './data/train_images1.txt' \
-#     --val-split-path './data/val_images1.txt' \
-#     --test-split-path './data/test_images1.txt' \
-#     --no-resize-crop-augment \
-#     --no-color-augment \
-#     --no-brightness-contrast-augment \
-    
-# python3.9 src/main.py \
-#     --experiment-name "2MobileNet_LSTM_SpatialViT_90Resize_BlurFlip" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --batch-size 4 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --num-workers 6 \
-#     --train-split-path './data/train_images2.txt' \
-#     --val-split-path './data/val_images2.txt' \
-#     --test-split-path './data/test_images2.txt' \
-#     --no-resize-crop-augment \
-#     --no-color-augment \
-#     --no-brightness-contrast-augment \
-    
-# python3.9 src/main.py \
-#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_BlurFlipColor" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --batch-size 4 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-#     --num-workers 6 \
-#     --train-split-path './data/train_images1.txt' \
-#     --val-split-path './data/val_images1.txt' \
-#     --test-split-path './data/test_images1.txt' \
-#     --no-resize-crop-augment \
-#     --no-brightness-contrast-augment \
-
 python3.9 src/main.py \
-    --experiment-name "1MobileNetV3_LSTM_SpatialViT_90Resize_BlurFlip" \
-    --model-type-list "RawToTile_MobileNetV3LargeV3" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_BlurFlipCrop" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --batch-size 4 \
     --series-length 2 \
@@ -64,15 +17,38 @@ python3.9 src/main.py \
     --train-split-path './data/train_images1.txt' \
     --val-split-path './data/val_images1.txt' \
     --test-split-path './data/test_images1.txt' \
-    --no-resize-crop-augment \
     --no-color-augment \
     --no-brightness-contrast-augment \
+    
+python3.9 src/main.py \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_DataAugmentation" \
+    --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --batch-size 4 \
+    --series-length 2 \
+    --accumulate-grad-batches 8 \
+    --no-lr-schedule \
+    --num-workers 6 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
+    
+python3.9 src/main.py \
+    --experiment-name "1MobileNetV3" \
+    --model-type-list "RawToTile_MobileNetV3LargeV3" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --batch-size 8 \
+    --series-length 1 \
+    --accumulate-grad-batches 4 \
+    --no-lr-schedule \
+    --no-early-stopping \
+    --num-workers 6 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
     --resize-height 1344 \
     --resize-width 1792 \
     --crop-height 1120 \
-    
-    
-
     
 
 #####################

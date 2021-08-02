@@ -292,69 +292,50 @@ class DataAugmentations():
         
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
+        self.tile_dimensions = tile_dimensions
         
         self.resize_crop_augment = resize_crop_augment
         self.blur_augment = blur_augment
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
-        ### Resize Crop Parameters ###
+        # Determine amount to jitter height
         if self.resize_crop_augment:
-            # Sets the maximum scale in either dimension
-            height_scale_max = np.min([1.2, resize_dimensions[0]/crop_height, original_dimensions[0]/crop_height])
-            scale_max = [height_scale_max, 1]
-            # Sets the minimum scale in either dimension
-            scale_min = [0.8,0.8]
-            # Determines how much the overall scale should be
-            target_scale = np.random.uniform(scale_min, scale_max)
-
-            # Determines how much of the overall scale should come from cropping
-            crop_scale = np.random.uniform(target_scale, scale_max)
-            # Determines how big the size should be after cropping
-            effective_dimensions = (crop_height+tile_dimensions[0],original_dimensions[1])
-            self.crop_size = np.round(np.minimum((self.crop_height, original_dimensions[1])*crop_scale,effective_dimensions)).astype(int)
-            # Determines where the cropping should start
-            self.crop_start = np.random.randint(0, effective_dimensions-self.crop_size+1)
-
-            # Determine how much to resize to get to target scale
-            resize_scale = target_scale / crop_scale
-            # Determine actual resize size in pixels
-            self.resize_size = np.round(self.crop_size*resize_scale).astype(int)
+            self.jitter_amount = np.random.randint(tile_dimensions[0])
         
-        ### Other Parameters ###
         # Determine if we should flip this time
         self.should_flip = np.random.rand() > 0.5 if flip_augment else False
+        self.should_blur = np.random.rand() > 0.5 if blur_augment else False
+        self.should_color = np.random.rand() > 0.5 if color_augment else False
+        self.should_brightness = np.random.rand() > 0.5 if brightness_contrast_augment else False
         
         # Determines blur amount
-        if self.blur_augment:
-            self.blur_size = np.random.randint(1,5)
-        
+        if self.should_blur:
+            self.blur_size = np.maximum(int(np.random.randn()*3+10), 1) #1,5
         
     def __call__(self, img, is_labels=False):
         if self.should_flip:
             img = cv2.flip(img, 1)
-            
+        
+        img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
         if self.resize_crop_augment:
-            img = img[self.crop_start[0]:self.crop_start[0]+self.crop_size[0],self.crop_start[1]:self.crop_start[1]+self.crop_size[1]]
-            img = cv2.resize(img, (self.resize_size[1], self.resize_size[0]))
-            # img.shape = [crop_height, resize_dimensions[1], num_channels]
-            img = cv2.resize(img, (self.resize_dimensions[1], self.crop_height))
+            img = img[-(self.crop_height+self.jitter_amount):-self.jitter_amount]
         else:
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
-            img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))[-self.crop_height:]
+            img = img[-self.crop_height:]
 
         if not is_labels:
-            if self.color_augment:
+            if self.should_color:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-                img[:,:,0] = np.add(img[:,:,0], np.random.randn()*3, casting="unsafe")
+                img[:,:,0] = np.add(img[:,:,0], np.random.randn()*2, casting="unsafe") #np.random.randn()*3
                 img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
             else:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        if self.brightness_contrast_augment and not is_labels:
-            img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.1), beta=np.random.randint(0,20))
+        if self.should_brightness and not is_labels:
+            img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.05), beta=np.random.randint(-10,10)) # np.random.uniform(0.95,1.1), beta=np.random.randint(0,20)
 
-        if self.blur_augment:
+        if self.should_blur:
             img = cv2.blur(img, (self.blur_size,self.blur_size))
         
         return img
