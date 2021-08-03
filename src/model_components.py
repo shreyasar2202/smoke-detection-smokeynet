@@ -27,6 +27,7 @@ import numpy as np
 
 # File imports
 import resnet
+import rtwo
 import util_fns
 
 
@@ -312,6 +313,8 @@ class RawToTile_EfficientNet(nn.Module):
                 param.requires_grad = False
 
         # Initialize additional linear layers
+        self.fc = nn.Linear(in_features=self.size_to_embeddings[self.backbone_size], out_features=512)
+        self.fc, = util_fns.init_weights_Xavier(self.fc)
         self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
         
     def forward(self, x, *args):
@@ -323,6 +326,8 @@ class RawToTile_EfficientNet(nn.Module):
         tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 7, 7]
         tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 1, 1]
         
+#         tile_outputs = tile_outputs.squeeze() # [batch_size * num_tiles * series_length, embedding_size]
+#         tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 512]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
@@ -490,56 +495,50 @@ class TileToTile_ResNet3D(nn.Module):
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
         
         return tile_outputs, embeddings 
+
+class TileToTile_R2(nn.Module):
+    """Description: 3D ResNet operating on tiles to produce tile predictions"""
     
-class TileToTile_ViViT(nn.Module):
-    """Description: Video Vision Transformer operating on tiles to produce tile predictions"""
-    
-    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, series_length=1, **kwargs):
-        print('- TileToTile_ViViT')
+    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
+        print('- TileToTile_ResNet3D')
         super().__init__()
+        
+        self.tile_embedding_size = 512
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        self.square_embedding_size = 16
+        self.num_channels = 3
                         
         # Initialize initial linear layers
-        patch_size = int(np.floor(np.sqrt(tile_embedding_size)))
-        self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size)
-        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
-
-        # Initialize ViT
-        self.embeddings_height = num_tiles_height * patch_size
-        self.embeddings_width = num_tiles_width * patch_size
+        self.fc = nn.Linear(in_features=tile_embedding_size, out_features=self.num_channels*self.square_embedding_size**2)
+        self.fc, = util_fns.init_weights_Xavier(self.fc)
         
-        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height*series_length, self.embeddings_width), 
-                                            patch_size=patch_size, 
-                                            num_channels=1, 
-                                            num_labels=1,
-                                            hidden_size=516,
-                                            num_hidden_layers=6, 
-                                            num_attention_heads=6, 
-                                            intermediate_size=1536,
-                                            hidden_dropout_prob=0.1)
-        
-        self.ViT_model = transformers.ViTModel(ViT_config)
-        
+        # Initialize R2
+        self.conv = torchvision.models.video.r2plus1d_18()
+        self.conv.avgpool = nn.Identity()
+        self.conv.fc = nn.Identity()
+                
         # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(516*series_length)
+        self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
                 
     def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
         # Run through initial linear layers
-        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 1764]
+        tile_embeddings = F.relu(self.fc(tile_embeddings)) # [batch_size, num_tiles, series_length, 972]
         
-        # Run through ViT
-        tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height * series_length, self.embeddings_width)
-        # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.ViT_model(tile_embeddings).last_hidden_state[:,1:] # [batch_size, num_tiles*series_length, embedding_size]
-        # Avoid contiguous error
-        tile_outputs = tile_outputs.contiguous()
+        # Run through R2
+        tile_embeddings = tile_embeddings.view(batch_size, num_tiles, series_length, self.num_channels, self.square_embedding_size**2)
+        tile_embeddings = tile_embeddings.permute(0,3,2,1,4).contiguous() # [batch_size, num_channels, series_length, num_tiles, self.square_embedding_size**2]
+        tile_embeddings = tile_embeddings.view(batch_size, self.num_channels, series_length, self.num_tiles_height*self.square_embedding_size, self.num_tiles_width*self.square_embedding_size)
+        tile_outputs = self.conv(tile_embeddings) # [batch_size, tile_embedding_size * num_tiles_height*2 * num_tiles_width*2]
         
-        tile_outputs = tile_outputs.view(batch_size, num_tiles, -1)
+        tile_outputs = tile_outputs.view(batch_size, self.tile_embedding_size, num_tiles)
+        tile_outputs = tile_outputs.swapaxes(1,2).contiguous() # [batch_size, num_tiles, tile_embedding_size]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
         
-        return tile_outputs, embeddings  
+        return tile_outputs, embeddings 
 
 ###########################
 ## TileToTileImage Models
@@ -597,6 +596,60 @@ class TileToTileImage_SpatialViT(nn.Module):
         tile_outputs = tile_outputs[:,1:]
         
         return tile_outputs, image_outputs
+    
+class TileToTileImage_ViViT(nn.Module):
+    """Description: Video Vision Transformer operating on tiles to produce tile predictions"""
+    
+    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, series_length=1, **kwargs):
+        print('- TileToTileImage_ViViT')
+        super().__init__()
+                        
+        # Initialize initial linear layers
+        patch_size = int(np.floor(np.sqrt(tile_embedding_size)))
+        self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size)
+        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
+
+        # Initialize ViT
+        self.embeddings_height = num_tiles_height * patch_size
+        self.embeddings_width = num_tiles_width * patch_size
+        
+        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height*series_length, self.embeddings_width), 
+                                            patch_size=patch_size, 
+                                            num_channels=1, 
+                                            num_labels=1,
+                                            hidden_size=516,
+                                            num_hidden_layers=6, 
+                                            num_attention_heads=6, 
+                                            intermediate_size=1536,
+                                            hidden_dropout_prob=0.1)
+        
+        self.ViT_model = transformers.ViTModel(ViT_config)
+        
+        # Initialize additional linear layers
+        self.embeddings_to_output = TileEmbeddingsToOutput(516*series_length)
+                
+    def forward(self, tile_embeddings, *args):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+        
+        # Run through initial linear layers
+        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 1764]
+        
+        # Run through ViT
+        tile_embeddings = tile_embeddings.view(batch_size, 1, self.embeddings_height * series_length, self.embeddings_width)
+        # Save only last_hidden_state and remove initial class token
+        tile_outputs = self.ViT_model(tile_embeddings).last_hidden_state # [batch_size, (num_tiles+1)*series_length, embedding_size]
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs = tile_outputs.view(batch_size, num_tiles+1, -1)
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles+1, 1)
+        
+        # Split CLS token
+        image_outputs = tile_outputs[:,0]
+        tile_outputs = tile_outputs[:,1:]
+        
+        return tile_outputs, image_outputs 
     
 ###########################
 ## TileToImage Models

@@ -5,24 +5,24 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
+# python3.9 src/main.py \
+#     --experiment-name "1EfficientNetB0_LSTM_SpatialViT" \
+#     --model-type-list "RawToTile_EfficientNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --no-lr-schedule \
+#     --num-workers 6 \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
+#     --backbone-size 'small' \
+#     --tile-embedding-size 1280 \
+
 python3.9 src/main.py \
-    --experiment-name "1EfficientNetB0_LSTM_SpatialViT" \
-    --model-type-list "RawToTile_EfficientNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --no-lr-schedule \
-    --num-workers 6 \
-    --train-split-path './data/train_images1.txt' \
-    --val-split-path './data/val_images1.txt' \
-    --test-split-path './data/test_images1.txt' \
-    --backbone-size 'small' \
-    --tile-embedding-size 1280 \
-    
-python3.9 src/main.py \
-    --experiment-name "1EfficientNetB2_LSTM_SpatialViT" \
-    --model-type-list "RawToTile_EfficientNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "1DeiTSmall_LSTM_SpatialViT" \
+    --model-type-list "RawToTile_DeiT" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" \
     --batch-size 1 \
     --series-length 2 \
@@ -33,7 +33,39 @@ python3.9 src/main.py \
     --val-split-path './data/val_images1.txt' \
     --test-split-path './data/test_images1.txt' \
     --backbone-size 'medium' \
-    --tile-embedding-size 1408 \
+    --tile-embedding-size 384 \
+    
+python3.9 src/main.py \
+    --experiment-name "1DeiTSmall_LSTM_SpatialViT_ImagePreds" \
+    --model-type-list "RawToTile_DeiT" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" \
+    --use-image-preds \
+    --batch-size 1 \
+    --series-length 2 \
+    --accumulate-grad-batches 32 \
+    --no-lr-schedule \
+    --num-workers 6 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
+    --backbone-size 'medium' \
+    --tile-embedding-size 384 \
+    
+python3.9 src/main.py \
+    --experiment-name "1DeiTSmall_LSTM_SpatialViT_Mislabeled" \
+    --model-type-list "RawToTile_DeiT" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_mislabeled" \
+    --mask-omit-images \
+    --batch-size 1 \
+    --series-length 2 \
+    --accumulate-grad-batches 32 \
+    --no-lr-schedule \
+    --num-workers 6 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
+    --backbone-size 'medium' \
+    --tile-embedding-size 384 \
     
 
 #####################
