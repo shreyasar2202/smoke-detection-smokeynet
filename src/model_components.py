@@ -496,50 +496,6 @@ class TileToTile_ResNet3D(nn.Module):
         
         return tile_outputs, embeddings 
 
-class TileToTile_R2(nn.Module):
-    """Description: 3D ResNet operating on tiles to produce tile predictions"""
-    
-    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTile_ResNet3D')
-        super().__init__()
-        
-        self.tile_embedding_size = 512
-        self.num_tiles_height = num_tiles_height
-        self.num_tiles_width = num_tiles_width
-        self.square_embedding_size = 16
-        self.num_channels = 3
-                        
-        # Initialize initial linear layers
-        self.fc = nn.Linear(in_features=tile_embedding_size, out_features=self.num_channels*self.square_embedding_size**2)
-        self.fc, = util_fns.init_weights_Xavier(self.fc)
-        
-        # Initialize R2
-        self.conv = torchvision.models.video.r2plus1d_18()
-        self.conv.avgpool = nn.Identity()
-        self.conv.fc = nn.Identity()
-                
-        # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
-                
-    def forward(self, tile_embeddings, *args):
-        tile_embeddings = tile_embeddings.float()
-        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-        
-        # Run through initial linear layers
-        tile_embeddings = F.relu(self.fc(tile_embeddings)) # [batch_size, num_tiles, series_length, 972]
-        
-        # Run through R2
-        tile_embeddings = tile_embeddings.view(batch_size, num_tiles, series_length, self.num_channels, self.square_embedding_size**2)
-        tile_embeddings = tile_embeddings.permute(0,3,2,1,4).contiguous() # [batch_size, num_channels, series_length, num_tiles, self.square_embedding_size**2]
-        tile_embeddings = tile_embeddings.view(batch_size, self.num_channels, series_length, self.num_tiles_height*self.square_embedding_size, self.num_tiles_width*self.square_embedding_size)
-        tile_outputs = self.conv(tile_embeddings) # [batch_size, tile_embedding_size * num_tiles_height*2 * num_tiles_width*2]
-        
-        tile_outputs = tile_outputs.view(batch_size, self.tile_embedding_size, num_tiles)
-        tile_outputs = tile_outputs.swapaxes(1,2).contiguous() # [batch_size, num_tiles, tile_embedding_size]
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
-        
-        return tile_outputs, embeddings 
-
 ###########################
 ## TileToTileImage Models
 ########################### 
