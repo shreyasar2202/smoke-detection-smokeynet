@@ -140,9 +140,9 @@ class ResNet(nn.Module):
         
         self.layer1 = self._make_layer(block, 64, layers[0], shortcut_type)
         self.layer2 = self._make_layer(
-            block, 256, layers[1], shortcut_type, stride=2)
+            block, 128, layers[1], shortcut_type, stride=2)
         self.layer3 = self._make_layer(
-            block, 512, layers[2], shortcut_type, stride=2)
+            block, 256, layers[2], shortcut_type, stride=2)
         self.layer4 = self._make_layer(
             block, tile_embedding_size, layers[3], shortcut_type, stride=2)
 

@@ -31,7 +31,7 @@ import util_fns
 # All args recorded as hyperparams
 parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
 
-# Debug args = 2
+# Debug args = 5
 parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
@@ -49,7 +49,7 @@ parser.add_argument('--experiment-name', type=str, default=None,
 parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
-# Path args = 5 + 4
+# Path args = 4 + 4
 parser.add_argument('--raw-data-path', type=str, default='/root/raw_images',
                     help='Path to raw images.')
 parser.add_argument('--labels-path', type=str, default='/root/pytorch_lightning_data/drive_clone_numpy',
@@ -68,7 +68,7 @@ parser.add_argument('--test-split-path', type=str, default=None,
 parser.add_argument('--load-images-from-split', action='store_true',
                     help='If images should be loaded exactly from split (as opposed to fires)')
 
-# Dataloader args = 4 + 4 + 6 + 2
+# Dataloader args = 4 + 4 + 5 + 5 + 5
 parser.add_argument('--train-split-size', type=int, default=0.7,
                     help='% of data to split for train.')
 parser.add_argument('--test-split-size', type=int, default=0.15,
@@ -97,6 +97,7 @@ parser.add_argument('--resize-width', type=int, default=1856,
                     help='Desired resize width of image.')
 parser.add_argument('--crop-height', type=int, default=1040,
                     help='Desired height after cropping.')
+
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
 parser.add_argument('--tile-overlap', type=int, default=20,
@@ -221,6 +222,7 @@ def main(# Debug args
         original_dimensions=(1536, 2016),
         resize_dimensions=(1536, 2016),
         crop_height=1120,
+    
         tile_dimensions=(224,224),
         tile_overlap=0,
         pre_tile=True,
@@ -234,7 +236,7 @@ def main(# Debug args
         brightness_contrast_augment=True,
 
         # Model args
-        model_type_list=['RawToTile_MobileNetV3Large'],
+        model_type_list=['RawToTile_MobileNet'],
         pretrain_epochs=None,
         intermediate_supervision=True,
         use_image_preds=False,
@@ -304,6 +306,7 @@ def main(# Debug args
         original_dimensions=original_dimensions,
         resize_dimensions=resize_dimensions,
         crop_height=crop_height,
+        
         tile_dimensions=tile_dimensions,
         tile_overlap=tile_overlap,
         pre_tile=pre_tile,

@@ -26,6 +26,7 @@ from efficientnet_pytorch import EfficientNet
 import numpy as np
 
 # File imports
+import resnet
 import util_fns
 
 
@@ -138,12 +139,10 @@ class RawToTile_MobileNet(nn.Module):
         print('- RawToTile_MobileNet')
         super().__init__()
         
-        self.tile_embedding_size = 960
-
         self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
         self.conv.classifier = nn.Identity()
 
-        self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
+        self.embeddings_to_output = TileEmbeddingsToOutput(960)
         
         if backbone_checkpoint_path is not None:
             self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
@@ -164,9 +163,9 @@ class RawToTile_MobileNet(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_MobileNetNoTile(nn.Module):
+class RawToTile_MobileNetNoPreTile(nn.Module):
     """
-    Description: MobileNetV3Large backbone with a few linear layers.
+    Description: MobileNetV3Large backbone with a few linear layers. Inputs should not be pre-tiled
     Args:
         - freeze_backbone (bool): Freezes layers of pretrained backbone
         - pretrain_backbone (bool): Pretrains backbone on ImageNet
@@ -431,7 +430,6 @@ class TileToTile_LSTM(nn.Module):
         print('- TileToTile_LSTM')
         super().__init__()
         
-        self.tile_embedding_size = tile_embedding_size
         self.lstm = torch.nn.LSTM(input_size=tile_embedding_size, hidden_size=tile_embedding_size, num_layers=2, batch_first=True)
         
         self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
@@ -456,38 +454,39 @@ class TileToTile_LSTM(nn.Module):
 class TileToTile_ResNet3D(nn.Module):
     """Description: 3D ResNet operating on tiles to produce tile predictions"""
     
-    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, series_length=1, **kwargs):
+    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
         print('- TileToTile_ResNet3D')
         super().__init__()
         
+        self.tile_embedding_size = 512
         self.num_tiles_height = num_tiles_height
         self.num_tiles_width = num_tiles_width
-        self.tile_embedding
                         
         # Initialize initial linear layers
         self.square_embedding_size = np.round(np.sqrt(tile_embedding_size)).astype(int)
         self.fc = nn.Linear(in_features=tile_embedding_size, out_features=self.square_embedding_size**2)
+        self.fc, = util_fns.init_weights_Xavier(self.fc)
         
         # Initialize ResNet3D
-        self.conv = 3d_resnet.resnet10(tile_embedding_size=tile_embedding_size)
+        self.conv = resnet.resnet18(tile_embedding_size=self.tile_embedding_size)
         
         # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+        self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
                 
     def forward(self, tile_embeddings, *args):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
         # Run through initial linear layers
-        tile_outputs = F.relu(self.fc(tile_embeddings)) # [batch_size, num_tiles, series_length, squared_embedding_size**2]
+        tile_embeddings = F.relu(self.fc(tile_embeddings)) # [batch_size, num_tiles, series_length, squared_embedding_size**2]
         
         # Run through ResNet3D
         tile_embeddings = tile_embeddings.swapaxes(1,2).contiguous() # [batch_size, series_length, num_tiles, self.square_embedding_size**2]
         tile_embeddings = tile_embeddings.view(batch_size, 1, series_length, self.num_tiles_height*self.square_embedding_size, self.num_tiles_width*self.square_embedding_size)
         tile_outputs = self.conv(tile_embeddings) # [batch_size, tile_embedding_size, 1, num_tiles_height, num_tiles_width]
         
-        tile_outputs = tile_outputs.view(batch_size, tile_embedding_size, num_tiles)
-        tile_outputs = tile_outputs.swapaxes(1,2).contiguous # [batch_size, num_tiles, tile_embedding_size]
+        tile_outputs = tile_outputs.view(batch_size, self.tile_embedding_size, num_tiles)
+        tile_outputs = tile_outputs.swapaxes(1,2).contiguous() # [batch_size, num_tiles, tile_embedding_size]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
         
         return tile_outputs, embeddings 

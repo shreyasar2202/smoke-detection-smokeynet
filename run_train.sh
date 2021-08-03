@@ -6,20 +6,34 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNetV4_LSTM_SpatialViT_DataAugmentation_NoCrazy" \
-    --model-type-list "RawToTile_MobileNetV3LargeV4" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 4 \
+    --experiment-name "1EfficientNetB0_LSTM_SpatialViT" \
+    --model-type-list "RawToTile_EfficientNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" \
+    --batch-size 2 \
     --series-length 2 \
-    --accumulate-grad-batches 8 \
+    --accumulate-grad-batches 16 \
     --no-lr-schedule \
     --num-workers 6 \
     --train-split-path './data/train_images1.txt' \
     --val-split-path './data/val_images1.txt' \
     --test-split-path './data/test_images1.txt' \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
+    --backbone-size 'small' \
+    --tile-embedding-size 1280 \
+    
+python3.9 src/main.py \
+    --experiment-name "1EfficientNetB2_LSTM_SpatialViT" \
+    --model-type-list "RawToTile_EfficientNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" \
+    --batch-size 1 \
+    --series-length 2 \
+    --accumulate-grad-batches 32 \
+    --no-lr-schedule \
+    --num-workers 6 \
+    --train-split-path './data/train_images1.txt' \
+    --val-split-path './data/val_images1.txt' \
+    --test-split-path './data/test_images1.txt' \
+    --backbone-size 'medium' \
+    --tile-embedding-size 1408 \
     
 
 #####################

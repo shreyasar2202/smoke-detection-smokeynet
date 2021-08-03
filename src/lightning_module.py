@@ -158,7 +158,11 @@ class LightningModule(pl.LightningModule):
         if split==self.metrics['split'][2] and not self.omit_images_from_test:
             for name in self.metrics['name']:
                 self.metrics['torchmetric'][split+self.metrics['category'][1]+name].to(self.device)(image_preds, ground_truth_labels)
-                self.log(split+self.metrics['category'][1]+name, self.metrics['torchmetric'][split+self.metrics['category'][1]+name], on_step=False, on_epoch=True)
+                self.log(split+self.metrics['category'][1]+name, 
+                         self.metrics['torchmetric'][split+self.metrics['category'][1]+name], 
+                         on_step=False, 
+                         on_epoch=True,
+                         metric_attribute=self.metrics['torchmetric'][split+self.metrics['category'][1]+name])
         else:
             for category, args in zip(self.metrics['category'], 
                                       ((tile_preds, tile_labels.int()), 

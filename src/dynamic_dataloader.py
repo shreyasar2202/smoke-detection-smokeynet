@@ -148,6 +148,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
         self.crop_height = crop_height
+        
         self.tile_dimensions = tile_dimensions
         self.tile_overlap = tile_overlap
         self.pre_tile = pre_tile
@@ -334,6 +335,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
+                                          
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
                                           pre_tile=self.pre_tile,
@@ -363,6 +365,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
+                                        
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
                                           pre_tile=self.pre_tile,
@@ -391,6 +394,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
                                           crop_height=self.crop_height,
+                                         
                                           tile_dimensions=self.tile_dimensions,
                                           tile_overlap=self.tile_overlap,
                                           pre_tile=self.pre_tile,
