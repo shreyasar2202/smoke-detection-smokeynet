@@ -311,12 +311,9 @@ class DataAugmentations():
         
         # Determines blur amount
         if self.should_blur:
-            self.blur_size = np.maximum(int(np.random.randn()*3+8), 1) #1,5
+            self.blur_size = np.maximum(int(np.random.randn()*3+10), 1)
         
     def __call__(self, img, is_labels=False):
-        if self.should_flip:
-            img = cv2.flip(img, 1)
-        
         img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
         if self.resize_crop_augment:
             img = img[-(self.crop_height+self.tile_dimensions[0]):]
@@ -325,16 +322,19 @@ class DataAugmentations():
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = img[-self.crop_height:]
 
+        if self.should_flip:
+            img = cv2.flip(img, 1)
+            
         if not is_labels:
             if self.should_color:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-                img[:,:,0] = np.add(img[:,:,0], np.random.randn()*2, casting="unsafe") #np.random.randn()*3
+                img[:,:,0] = np.add(img[:,:,0], np.random.randn()*2, casting="unsafe")
                 img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
             else:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.should_brightness and not is_labels:
-            img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.05), beta=np.random.randint(-10,10)) # np.random.uniform(0.95,1.1), beta=np.random.randint(0,20)
+            img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.05), beta=np.random.randint(-10,10))
 
         if self.should_blur:
             img = cv2.blur(img, (self.blur_size,self.blur_size))

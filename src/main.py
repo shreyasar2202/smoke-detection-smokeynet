@@ -91,11 +91,11 @@ parser.add_argument('--original-height', type=int, default=1536,
                     help='Original height of image.')
 parser.add_argument('--original-width', type=int, default=2048,
                     help='Original width of image.')
-parser.add_argument('--resize-height', type=int, default=1392,
+parser.add_argument('--resize-height', type=int, default=1545,
                     help='Desired resize height of image.')
-parser.add_argument('--resize-width', type=int, default=1856,
+parser.add_argument('--resize-width', type=int, default=2060,
                     help='Desired resize width of image.')
-parser.add_argument('--crop-height', type=int, default=1040,
+parser.add_argument('--crop-height', type=int, default=1244,
                     help='Desired height after cropping.')
 
 parser.add_argument('--tile-size', type=int, default=224,

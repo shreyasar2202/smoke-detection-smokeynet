@@ -490,10 +490,6 @@ class DynamicDataloader(Dataset):
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
             
-            # Resize image to original dimensions if it isn't already
-            if img.shape[:2] != self.original_dimensions:
-                img = cv2.resize(img, (self.original_dimensions[1], self.original_dimensions[0]))
-            
             # Apply data augmentations
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = data_augmentations(img, is_labels=False)

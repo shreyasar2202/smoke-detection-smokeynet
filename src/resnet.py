@@ -120,7 +120,6 @@ class ResNet(nn.Module):
                  block,
                  layers,
                  num_channels=1,
-                 tile_embedding_size=960,
                  shortcut_type='B'):
         
         self.inplanes = 64
@@ -144,7 +143,7 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(
             block, 256, layers[2], shortcut_type, stride=2)
         self.layer4 = self._make_layer(
-            block, tile_embedding_size, layers[3], shortcut_type, stride=2)
+            block, 512, layers[3], shortcut_type, stride=2)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):

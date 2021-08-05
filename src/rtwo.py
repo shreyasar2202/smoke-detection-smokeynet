@@ -1,3 +1,11 @@
+"""
+Created by: Anshuman Dewangan
+Modified from: https://pytorch.org/vision/stable/_modules/torchvision/models/video/resnet.html#r2plus1d_18
+Date: 2021
+
+Description: ResNet with 3D convolutions
+"""
+
 import torch.nn as nn
 
 __all__ = ['r3d_18', 'mc3_18', 'r2plus1d_18']
