@@ -5,43 +5,80 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
-python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --num-workers 6 \
-    --no-color-augment \
-    --no-brightness-contrast-augment \
-    --resize-height 1392 \
-    --resize-width 1856 \
-    --crop-height 1040 \
-    --train-split-path './data/train_images1.txt' \
-    --val-split-path './data/val_images1.txt' \
-    --test-split-path './data/test_images1.txt' \
+# python3.9 src/main.py \
+#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --num-workers 6 \
+#     --no-color-augment \
+#     --no-brightness-contrast-augment \
+#     --resize-height 1392 \
+#     --resize-width 1856 \
+#     --crop-height 1040 \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
+    
+# python3.9 src/main.py \
+#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --num-workers 6 \
+#     --resize-height 1392 \
+#     --resize-width 1856 \
+#     --crop-height 1040 \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
+    
+# python3.9 src/main.py \
+#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --mask-omit-images \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --num-workers 6 \
+#     --resize-height 1392 \
+#     --resize-width 1856 \
+#     --crop-height 1040 \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
+    
+# python3.9 src/main.py \
+#     --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment_ImagePreds_NoPreTile" \
+#     --model-type-list "RawToTile_MobileNetNoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --mask-omit-images \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --no-lr-schedule \
+#     --num-workers 6 \
+#     --resize-height 1344 \
+#     --resize-width 1792 \
+#     --crop-height 1120 \
+#     --no-pre-tile \
+#     --train-split-path './data/train_images1.txt' \
+#     --val-split-path './data/val_images1.txt' \
+#     --test-split-path './data/test_images1.txt' \
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --no-lr-schedule \
-    --num-workers 6 \
-    --resize-height 1392 \
-    --resize-width 1856 \
-    --crop-height 1040 \
-    --train-split-path './data/train_images1.txt' \
-    --val-split-path './data/val_images1.txt' \
-    --test-split-path './data/test_images1.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment_ImagePreds" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "1MobileNet_ResNet3D_LinearOutputs_90Resize_DataAugment_ImagePreds" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_ResNet3D" "TileToImage_LinearOutputs" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
     --use-image-preds \
@@ -58,13 +95,14 @@ python3.9 src/main.py \
     --test-split-path './data/test_images1.txt' \
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNet_ResNet3D_LinearOutputs_90Resize_DataAugment" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_ResNet3D" "TileToImage_LinearOutputs" \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_90Resize_DataAugment_ImagePreds_LRSchedule" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
     --batch-size 4 \
     --series-length 2 \
     --accumulate-grad-batches 8 \
-    --no-lr-schedule \
     --num-workers 6 \
     --resize-height 1392 \
     --resize-width 1856 \
@@ -72,6 +110,8 @@ python3.9 src/main.py \
     --train-split-path './data/train_images1.txt' \
     --val-split-path './data/val_images1.txt' \
     --test-split-path './data/test_images1.txt' \
+    
+
 
 
 #####################

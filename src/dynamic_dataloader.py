@@ -79,11 +79,13 @@ class DynamicDataModule(pl.LightningDataModule):
                 - num_images (int): total number of images in dataset
                 - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
                 - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
-                - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels
-                - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels
-                - omit_no_bbox (list of str): list of images that erroneously do not have bboxes
-                - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled
-                - train_fires_only (list of str): list of fires that should only be used for train (not 'mobo-c')
+                - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels. Does not include unlabeled fires.
+                - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
+                - omit_no_bbox (list of str): list of images that erroneously do not have bboxes. Does not include unlabeled fires.
+                - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled. Does not include unlabeled fires.
+                - unlabeled_fires (list of str): list of fires that have not been labelled at all
+                - train_only_fires (list of str): list of fires that should only be used for train (not 'mobo-c')
+                - eligible_fires (list of str): list of fires that can be used for test or train (not in train_only_fires)
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -175,7 +177,7 @@ class DynamicDataModule(pl.LightningDataModule):
             ### Create metadata.pkl ###
             self.metadata = {}
 
-            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path, self.labels_path)
+            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path)
             self.metadata['ground_truth_label'] = {}
             self.metadata['has_xml_label'] = {}
             self.metadata['num_fires'] = 0
@@ -184,37 +186,38 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['omit_no_contour'] = []
             self.metadata['omit_no_contour_or_bbox'] = []
             self.metadata['omit_images_list'] = []
+            self.metadata['unlabeled_fires'] = []
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
             
             images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
             labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
+            
+            labeled_fires = [folder.stem for folder in filter(Path.is_dir, Path(self.labels_path).iterdir())]
 
             # Loop through all fires
             for fire in self.metadata['fire_to_images']:
                 self.metadata['num_fires'] += 1
                 
-                print('Preparing Folder ', self.metadata['num_fires'])
-                
-                if 'mobo-c' not in fire:
+                if fire not in labeled_fires:
+                    self.metadata['unlabeled_fires'].append(fire)
+                elif 'mobo-c' not in fire:
                     self.metadata['train_only_fires'].append(fire)
                 else:
                     self.metadata['eligible_fires'].append(fire)
-                    
+                
+                print('Preparing Folder ', self.metadata['num_fires'])
+                
                 # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
-                    # Save processed image as npy file
-                    x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
-                    x = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                    
-                    os.makedirs(images_output_path + '/' + fire, exist_ok=True)
-                    np.save(images_output_path + '/' + image + '.npy', x.astype(np.uint8))
-                    
                     # Create metadata
                     self.metadata['num_images'] += 1
                     
                     self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
                     self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
+                    
+                    # Skip the next steps if the fire has not been labeled
+                    if fire not in labeled_fires: continue
                     
                     # If a positive image does not have an XML file associated with it, add it to omit_images_list
                     if self.metadata['ground_truth_label'][image] != self.metadata['has_xml_label'][image]:
@@ -228,6 +231,7 @@ class DynamicDataModule(pl.LightningDataModule):
                         poly = xml_to_contour(label_path)
                         
                         if poly is not None:
+                            x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
                             labels = np.zeros(x.shape[:2], dtype=np.uint8) 
                             cv2.fillPoly(labels, poly, 1)
                             os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
@@ -238,13 +242,14 @@ class DynamicDataModule(pl.LightningDataModule):
                             poly = xml_to_bbox(label_path)
                             
                             if poly is not None:
+                                x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
                                 labels = np.zeros(x.shape[:2], dtype=np.uint8) 
                                 cv2.rectangle(labels, *poly, 1, -1)
                                 os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                                 np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
                             else:
-                                self.metadata['omit_no_contour_or_bbox'].append(image)                        
-
+                                self.metadata['omit_no_contour_or_bbox'].append(image)
+            
             self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
         
             with open(f'./metadata.pkl', 'wb') as pkl_file:

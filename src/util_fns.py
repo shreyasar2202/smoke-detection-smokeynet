@@ -91,20 +91,18 @@ def calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_ov
 ## DataModule
 ###############
 
-def generate_fire_to_images(raw_data_path, labels_path):
+def generate_fire_to_images(raw_data_path):
     """
-    Description: Given path to raw images and labels, create dictionary mapping fire to list of images
+    Description: Given path to raw images, create dictionary mapping fire to list of images
     Args:
         - raw_data_path (str): path to raw data
-        - labels_path (str): path to XML labels
     Returns:
         - fire_to_images (dict): maps fire to a list of images for that fire
     """
     raw_data_path = Path(raw_data_path)
-    labels_path = Path(labels_path)
         
     fire_to_images = {}
-    all_fires = [folder.stem for folder in filter(Path.is_dir, labels_path.iterdir())]
+    all_fires = [folder.stem for folder in filter(Path.is_dir, raw_data_path.iterdir())]
 
     for fire in all_fires:
         # Skip if first character is '.' or if fire is monochrome

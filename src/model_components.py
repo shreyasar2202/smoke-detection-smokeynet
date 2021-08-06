@@ -27,7 +27,6 @@ import numpy as np
 
 # File imports
 import resnet
-import rtwo
 import util_fns
 
 
