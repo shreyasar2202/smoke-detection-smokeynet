@@ -145,7 +145,7 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        outputs, embeddings, losses, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
+        outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):
@@ -179,18 +179,18 @@ class LightningModule(pl.LightningModule):
                                  on_epoch=True, 
                                  metric_attribute=self.metrics['torchmetric'][split+category+name])
         
-        return image_names, total_loss, tile_probs, tile_preds, image_preds, tile_labels
+        return image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels
 
     def training_step(self, batch, batch_idx):
-        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][0])
-        return loss
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][0])
+        return total_loss
 
     def validation_step(self, batch, batch_idx):
-        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][1])
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][1])
 
     def test_step(self, batch, batch_idx):
-        image_names, loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][2])
-        return image_names, tile_probs, tile_preds, image_preds, tile_labels
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][2])
+        return image_names, image_loss, tile_probs, tile_preds, image_preds, tile_labels
 
     
     #########################
@@ -214,20 +214,21 @@ class LightningModule(pl.LightningModule):
             image_preds_csv_writer = csv.writer(image_preds_csv)
 
         # Loop through batch
-        for image_names, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
+        for image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
             # Account for if we predicted images directly
             if tile_preds is None:
                 tile_preds = [None] * len(image_names)
             
             # Loop through entry in batch
-            for image_name, tile_prob, tile_pred, image_pred, tile_label in zip(image_names, tile_probs, tile_preds, image_preds, tile_labels):
+            for image_name, image_loss, tile_prob, tile_pred, image_pred, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
+                image_loss = image_loss.item()
                 corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
 
                 if self.logger is not None:
-                    # Save image predictions
-                    image_preds_csv_writer.writerow([image_name, image_pred])
+                    # Save image predictions and image_loss
+                    image_preds_csv_writer.writerow([image_name, image_pred, image_loss])
                     
                     # Save tile probabilities
                     if tile_prob is not None:

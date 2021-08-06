@@ -420,9 +420,9 @@ def main(# Debug args
         # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=100,
-#             limit_train_batches=100,
-#             limit_val_batches=1,
-#             limit_test_batches=1,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            limit_test_batches=2,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

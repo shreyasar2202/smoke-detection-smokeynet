@@ -107,6 +107,7 @@ class MainModel(nn.Module):
         
         losses = []
         total_loss = 0
+        image_loss = None
         
         tile_probs = None
         tile_preds = None
@@ -124,9 +125,10 @@ class MainModel(nn.Module):
             # If model predicts images only...
             if x is None:
                 image_outputs = outputs
-                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none') 
                 
                 # Always add image loss, even if no intermediate_supervision
+                loss = image_loss.mean()
                 total_loss += loss
                 losses.append(loss)
                                         
@@ -152,7 +154,9 @@ class MainModel(nn.Module):
                 losses.append(loss)
                 
                 image_outputs = x
-                loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float()) 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none') 
+                
+                loss = image_loss.mean()
                 total_loss += loss
                 losses.append(loss)
             
@@ -168,4 +172,4 @@ class MainModel(nn.Module):
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
             
-        return outputs, embeddings, losses, total_loss, tile_probs, tile_preds, image_preds
+        return outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
