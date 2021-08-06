@@ -27,6 +27,7 @@ import util_fns
 
 class DynamicDataModule(pl.LightningDataModule):
     def __init__(self, 
+                 is_hem_training=False,
                  omit_list=None,
                  omit_images_from_test=False,
                  mask_omit_images=False,
@@ -67,6 +68,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  create_data = False):
         """
         Args:
+            - is_hem_training (bool): Loads train set exactly as is for hard example mining training
             - omit_list (list of str): list of metadata keys to omit from train/val sets
             - omit_images_from_test (bool): omits omit_list_images from the test set
             - mask_omit_images (bool): masks tile predictions for images in omit_list_images
@@ -125,6 +127,7 @@ class DynamicDataModule(pl.LightningDataModule):
         """
         super().__init__()
         
+        self.is_hem_training = is_hem_training
         self.omit_list = omit_list
         self.omit_images_from_test = omit_images_from_test
         self.mask_omit_images = mask_omit_images
@@ -293,7 +296,19 @@ class DynamicDataModule(pl.LightningDataModule):
         else:
             # If split is provided, extract fires from split
             if is_split_given:
-                train_fires = {util_fns.get_fire_name(item) for item in train_list}
+                # If doing training for hard example mining
+                if self.is_hem_training:
+                    # Get the train split exactly as is
+                    self.train_split = [util_fns.get_image_name(item) for item in train_list]
+                    
+                    # Replace fire_to_images only with the train changes
+                    fire_to_images = util_fns.generate_fire_to_images_from_splits([self.train_split])
+                    
+                    for fire in fire_to_images:
+                        self.metadata['fire_to_images'][fire] = fire_to_images[fire]
+                else:
+                    train_fires = {util_fns.get_fire_name(item) for item in train_list}
+                
                 val_fires   = {util_fns.get_fire_name(item) for item in val_list}
                 test_fires  = {util_fns.get_fire_name(item) for item in test_list}
             # Else if split is not provided, randomly create our own splits
@@ -306,14 +321,17 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow)
             
             # Shorten fire_to_images to relevant time frame
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(list(train_fires)+list(val_fires), self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
+            if not self.is_hem_training:
+                self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
             # Shorten test only by series_length
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             
             # Create train/val/test split of Images
             # Only remove images from omit_images_list if not masking
             omit_images_list = None if self.mask_omit_images else self.omit_images_list
-            self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, omit_images_list)
+            if not self.is_hem_training:
+                self.train_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], train_fires, omit_images_list)
             self.val_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], val_fires, omit_images_list)
             # Only remove images from test is omit_images_from_test=True
             self.test_split = util_fns.unpack_fire_images(self.metadata['fire_to_images'], test_fires, omit_images_list if self.omit_images_from_test else None)

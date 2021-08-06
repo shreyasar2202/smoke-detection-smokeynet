@@ -36,6 +36,8 @@ parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
                     help='Skips training for testing only. Useful when checkpoint loading.')
+parser.add_argument('--is-hem-training', action='store_true',
+                    help='Enables hard example mining training. Prevents loading Trainer from checkpoint and loads train set exactly as is.')
 parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
 parser.add_argument('--omit-images-from-test', action='store_true',
@@ -190,6 +192,7 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
 def main(# Debug args
         is_debug=False,
         is_test_only=False,
+        is_hem_training=False,
         omit_list=None,
         omit_images_from_test=False,
         mask_omit_images=False,
@@ -278,6 +281,7 @@ def main(# Debug args
 
     ### Initialize data_module ###
     data_module = DynamicDataModule(
+        is_hem_training=is_hem_training,
         omit_list=omit_list,
         omit_images_from_test=omit_images_from_test,
         mask_omit_images=mask_omit_images,
@@ -412,7 +416,7 @@ def main(# Debug args
         accumulate_grad_batches=accumulate_grad_batches,
 
         # Other args
-        resume_from_checkpoint=checkpoint_path,
+        resume_from_checkpoint=checkpoint_path if is_hem_training else None,
         logger=logger if not is_debug else False,
         log_every_n_steps=512/(batch_size*accumulate_grad_batches),
 #             val_check_interval=0.5,
@@ -420,9 +424,9 @@ def main(# Debug args
         # Dev args
 #             fast_dev_run=True, 
 #             overfit_batches=100,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            limit_test_batches=2,
+#             limit_train_batches=2,
+#             limit_val_batches=2,
+#             limit_test_batches=2,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
@@ -451,6 +455,7 @@ if __name__ == '__main__':
     main(# Debug args
         is_debug=args['is_debug'],
         is_test_only=args['is_test_only'],
+        is_hem_training=args['is_hem_training'],
         omit_list=parsed_args['omit_list'],
         omit_images_from_test=args['omit_images_from_test'],
         mask_omit_images=parsed_args['mask_omit_images'],
