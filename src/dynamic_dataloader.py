@@ -196,6 +196,8 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
             
+            self.metadata['bbox_labels'] = {}
+            
             images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
             labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
             
@@ -227,32 +229,39 @@ class DynamicDataModule(pl.LightningDataModule):
                     if self.metadata['ground_truth_label'][image] != self.metadata['has_xml_label'][image]:
                         self.metadata['omit_no_xml'].append(image)
                     
+                    # If a label file exists...
                     if self.metadata['has_xml_label'][image]:
                         label_path = raw_labels_path+'/'+\
                             get_fire_name(image_name)+'/xml/'+\
                             get_only_image_name(image_name)+'.xml'
 
-                        poly = xml_to_contour(label_path)
+                        # Convert XML file into poly arrays
+                        poly_contour = xml_to_contour(label_path)
+                        poly_bbox = xml_to_bbox(label_path)
                         
-                        if poly is not None:
+                        if poly_contour is not None:
+                            # If there is a contour, use that to fill labels
                             x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
                             labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                            cv2.fillPoly(labels, poly, 1)
+                            cv2.fillPoly(labels, poly_contour, 1)
                             os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                             np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
                         else:
                             self.metadata['omit_no_contour'].append(image)
-                            
-                            poly = xml_to_bbox(label_path)
-                            
-                            if poly is not None:
+                                                        
+                            if poly_bbox is not None:
+                                # If there isn't a contour but there is a bbox, use that to fill labels
                                 x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
                                 labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                                cv2.rectangle(labels, *poly, 1, -1)
+                                cv2.rectangle(labels, *poly_bbox, 1, -1)
                                 os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                                 np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
                             else:
                                 self.metadata['omit_no_contour_or_bbox'].append(image)
+                        
+                        # If there is a bbox, save the array to 'bbox_labels'
+                        if poly_bbox is not None:
+                            self.metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
             
             self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
         
