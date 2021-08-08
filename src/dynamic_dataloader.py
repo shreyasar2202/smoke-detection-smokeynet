@@ -185,10 +185,13 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['has_xml_label'] = {}
             self.metadata['num_fires'] = 0
             self.metadata['num_images'] = 0
+            
             self.metadata['omit_no_xml'] = []
             self.metadata['omit_no_contour'] = []
             self.metadata['omit_no_contour_or_bbox'] = []
             self.metadata['omit_images_list'] = []
+            
+            self.metadata['labeled_fires'] = [folder.stem for folder in filter(Path.is_dir, Path(self.labels_path).iterdir())]
             self.metadata['unlabeled_fires'] = []
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
@@ -196,8 +199,6 @@ class DynamicDataModule(pl.LightningDataModule):
             images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
             labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
             
-            labeled_fires = [folder.stem for folder in filter(Path.is_dir, Path(self.labels_path).iterdir())]
-
             # Loop through all fires
             for fire in self.metadata['fire_to_images']:
                 self.metadata['num_fires'] += 1

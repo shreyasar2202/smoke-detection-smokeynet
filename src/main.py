@@ -416,7 +416,7 @@ def main(# Debug args
         accumulate_grad_batches=accumulate_grad_batches,
 
         # Other args
-        resume_from_checkpoint=checkpoint_path if is_hem_training else None,
+        resume_from_checkpoint=checkpoint_path if not is_hem_training else None,
         logger=logger if not is_debug else False,
         log_every_n_steps=512/(batch_size*accumulate_grad_batches),
 #             val_check_interval=0.5,
@@ -444,13 +444,17 @@ def main(# Debug args
 if __name__ == '__main__':
     args = vars(parser.parse_args())
     
-    # Load hyperparameters from checkpoint if it exists
+    # Load checkpoint if it exists
     if args['checkpoint_path'] is not None:
         checkpoint = torch.load(args['checkpoint_path'])
-        parsed_args = checkpoint['hyper_parameters']
     else:
         checkpoint = None
+    
+    # Load args from checkpoint if it exists and not hem_training
+    if args['checkpoint_path'] is None or args['is_hem_training']:
         parsed_args = args
+    else:
+        parsed_args = checkpoint['hyper_parameters']
         
     main(# Debug args
         is_debug=args['is_debug'],

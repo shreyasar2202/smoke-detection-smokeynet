@@ -7,7 +7,7 @@ Description: PyTorch Lightning LightningModule that defines optimizers, training
 
 # Torch imports
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 import pytorch_lightning as pl
 import torchmetrics
 
@@ -121,11 +121,13 @@ class LightningModule(pl.LightningModule):
         
         if self.lr_schedule:
             # Includes learning rate scheduler
+#             scheduler = CosineAnnealingLR(optimizer,4,verbose=True)
             scheduler = ReduceLROnPlateau(optimizer, 
-                                          min_lr=1e-4, 
+                                          min_lr=0, 
                                           factor=0.5,
                                           patience=0,
                                           threshold=0.01,
+                                          cooldown=1,
                                           verbose=True)
             return {"optimizer": optimizer,
                     "lr_scheduler": scheduler,
