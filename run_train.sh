@@ -6,22 +6,19 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "2MobileNet_LSTM_SpatialViT_ImagePreds_Series3" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
     --use-image-preds \
     --batch-size 2 \
-    --series-length 3 \
+    --series-length 2 \
     --accumulate-grad-batches 16 \
     --no-lr-schedule \
-    --learning-rate 1e-3 \
     --num-workers 6 \
-    --train-split-path './data/split2/train_images2.txt' \
-    --val-split-path './data/split2/val_images2.txt' \
-    --test-split-path './data/split2/test_images2.txt' \
-    --is-test-only \
-    --checkpoint-path './lightning_logs/2MobileNet_LSTM_SpatialViT_ImagePreds_Series3/version_0/checkpoints/epoch=9-step=2509.ckpt'
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
 
 
 
