@@ -44,6 +44,8 @@ parser.add_argument('--omit-images-from-test', action='store_true',
                     help='Omits omit_list_images from the test set.')
 parser.add_argument('--mask-omit-images', action='store_true',
                     help='Masks tile predictions for images in omit_list_images.')
+parser.add_argument('--is-object-detection', action='store_true',
+                    help='Specifies data loader for object detection models.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -159,8 +161,8 @@ parser.add_argument('--optimizer-weight-decay', type=float, default=1e-3,
                     help='Weight decay of optimizer.')
 parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='Learning rate for training.')
-parser.add_argument('--no-lr-schedule', action='store_false',
-                    help='Disables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
+parser.add_argument('--use-lr-schedule', action='store_true',
+                    help='Enables ReduceLROnPlateau learning rate scheduler. See PyTorch Lightning docs for more details.')
 
 # Training args = 8
 parser.add_argument('--min-epochs', type=int, default=3,
@@ -196,6 +198,7 @@ def main(# Debug args
         omit_list=None,
         omit_images_from_test=False,
         mask_omit_images=False,
+        is_object_detection=False,
         
         # Path args
         raw_data_path=None, 
@@ -285,6 +288,7 @@ def main(# Debug args
         omit_list=omit_list,
         omit_images_from_test=omit_images_from_test,
         mask_omit_images=mask_omit_images,
+        is_object_detection=is_object_detection,
         
         # Path args
         raw_data_path=raw_data_path,
@@ -463,6 +467,7 @@ if __name__ == '__main__':
         omit_list=parsed_args['omit_list'],
         omit_images_from_test=args['omit_images_from_test'],
         mask_omit_images=parsed_args['mask_omit_images'],
+        is_object_detection=parsed_args['is_object_detection'],
         
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],
@@ -493,7 +498,7 @@ if __name__ == '__main__':
         original_dimensions=(parsed_args['original_height'], parsed_args['original_width']),
         resize_dimensions=(parsed_args['resize_height'], parsed_args['resize_width']),
         crop_height=parsed_args['crop_height'],
-        tile_dimensions=(parsed_args['tile_size'], parsed_args['tile_size']),
+        tile_dimensions=None if parsed_args['tile_size'] is None else (parsed_args['tile_size'], parsed_args['tile_size']),
         tile_overlap=parsed_args['tile_overlap'],
         pre_tile=parsed_args['no_pre_tile'],
         smoke_threshold=parsed_args['smoke_threshold'],
@@ -526,7 +531,7 @@ if __name__ == '__main__':
         optimizer_type=parsed_args['optimizer_type'],
         optimizer_weight_decay=parsed_args['optimizer_weight_decay'],
         learning_rate=parsed_args['learning_rate'],
-        lr_schedule=parsed_args['no_lr_schedule'],
+        lr_schedule=parsed_args['use_lr_schedule'],
 
         # Trainer args
         min_epochs=parsed_args['min_epochs'],

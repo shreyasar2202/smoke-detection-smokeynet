@@ -152,7 +152,7 @@ class RawToTile_MobileNet(nn.Module):
             for param in self.conv.parameters():
                 param.requires_grad = False
         
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -201,7 +201,7 @@ class RawToTile_MobileNetNoPreTile(nn.Module):
             for param in self.conv.parameters():
                 param.requires_grad = False
         
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, series_length, num_channels, height, width = x.size()
 
@@ -264,7 +264,7 @@ class RawToTile_MobileNetFPN(nn.Module):
             for param in self.conv.parameters():
                 param.requires_grad = False
         
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -336,7 +336,7 @@ class RawToTile_ResNet(nn.Module):
             for param in self.conv.parameters():
                 param.requires_grad = False
         
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -386,7 +386,7 @@ class RawToTile_EfficientNet(nn.Module):
         self.fc, = util_fns.init_weights_Xavier(self.fc)
         self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
         
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -431,7 +431,7 @@ class RawToTile_DeiT(nn.Module):
         
         self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
 
-    def forward(self, x, *args):
+    def forward(self, x, **kwargs):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
@@ -479,7 +479,7 @@ class TileToTile_ViT(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516)
                 
-    def forward(self, tile_embeddings, *args):
+    def forward(self, tile_embeddings, **kwargs):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
                 
@@ -512,7 +512,7 @@ class TileToTile_LSTM(nn.Module):
         
         self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
                 
-    def forward(self, tile_embeddings, *args):
+    def forward(self, tile_embeddings, **kwargs):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
                 
@@ -551,7 +551,7 @@ class TileToTile_ResNet3D(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
                 
-    def forward(self, tile_embeddings, *args):
+    def forward(self, tile_embeddings, **kwargs):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
@@ -604,7 +604,7 @@ class TileToTileImage_SpatialViT(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516)
                 
-    def forward(self, tile_embeddings, *args):
+    def forward(self, tile_embeddings, **kwargs):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
                 
@@ -657,7 +657,7 @@ class TileToTileImage_ViViT(nn.Module):
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(516*series_length)
                 
-    def forward(self, tile_embeddings, *args):
+    def forward(self, tile_embeddings, **kwargs):
         tile_embeddings = tile_embeddings.float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
@@ -679,6 +679,30 @@ class TileToTileImage_ViViT(nn.Module):
         tile_outputs = tile_outputs[:,1:]
         
         return tile_outputs, image_outputs 
+    
+###########################
+## RawToImage Models
+########################### 
+
+class RawToImage_MaskRCNN(nn.Module):
+    def __init__(self, **kwargs):
+        print('- RawToTile_MaskRCNN')
+        super().__init__()
+        
+        self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=False, 
+                                                                        num_classes=2, 
+                                                                        pretrained_backbone=True, 
+                                                                        trainable_backbone_layers=5)
+        
+    def forward(self, x, bbox_labels, **kwargs):
+        x = [item for sublist in x for item in sublist]
+        bbox_labels = [item for sublist in bbox_labels for item in sublist]
+#         import pdb; pdb.set_trace()
+        image_outputs = self.model(x, bbox_labels)
+        
+        import pdb; pdb.set_trace()
+
+        return image_outputs, None # [batch_size, 1]
     
 ###########################
 ## TileToImage Models

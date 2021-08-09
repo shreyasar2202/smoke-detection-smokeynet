@@ -82,12 +82,13 @@ class MainModel(nn.Module):
             
         return outputs
         
-    def forward_pass(self, x, tile_labels, ground_truth_labels, omit_masks, num_epoch):
+    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, num_epoch):
         """
         Description: compute forward pass of all model_list models
         Args:
             - x (tensor): raw image input
             - tile_labels (tensor): labels for tiles for tile_loss
+            - bbox_labels: (list): labels for bboxes
             - ground_truth_labels (tensor): labels for images for image_loss
             - omit_masks (tensor): determines if tile predictions should be masked
             - num_epoch (int): current epoch number (for pretrain_epochs)
@@ -120,7 +121,7 @@ class MainModel(nn.Module):
                 break
             
             # Compute forward pass
-            outputs, x = model(x, outputs)
+            outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
             
             # If model predicts images only...
             if x is None:

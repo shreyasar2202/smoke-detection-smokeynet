@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import torch
 
 # File imports
 import util_fns
@@ -31,6 +32,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  omit_list=None,
                  omit_images_from_test=False,
                  mask_omit_images=False,
+                 is_object_detection=False,
                  
                  raw_data_path=None, 
                  labels_path=None, 
@@ -68,10 +70,12 @@ class DynamicDataModule(pl.LightningDataModule):
                  create_data = False):
         """
         Args:
-            - is_hem_training (bool): Loads train set exactly as is for hard example mining training
+            - is_hem_training (bool): loads train set exactly as is for hard example mining training
             - omit_list (list of str): list of metadata keys to omit from train/val sets
             - omit_images_from_test (bool): omits omit_list_images from the test set
             - mask_omit_images (bool): masks tile predictions for images in omit_list_images
+            - is_object_detection (bool): loads labels for use with object detection models
+            
             - raw_data_path (str): path to raw data
             - labels_path (str): path to Numpy labels
             - raw_labels_path (str): path to XML labels
@@ -131,6 +135,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.omit_list = omit_list
         self.omit_images_from_test = omit_images_from_test
         self.mask_omit_images = mask_omit_images
+        self.is_object_detection = is_object_detection
            
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
@@ -355,8 +360,8 @@ class DynamicDataModule(pl.LightningDataModule):
         
         self.has_setup = True
         print("Setting Up Data Complete.")
-            
-
+    
+    
     def train_dataloader(self):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
                                           labels_path=self.labels_path, 
@@ -364,6 +369,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata, 
                                           data_split=self.train_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
+                                          is_object_detection=self.is_object_detection,
                                           
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -384,7 +390,8 @@ class DynamicDataModule(pl.LightningDataModule):
                                   batch_size=self.batch_size, 
                                   num_workers=self.num_workers,
                                   pin_memory=True, 
-                                  shuffle=True)
+                                  shuffle=True,
+                                  collate_fn=self.collate_fn if self.is_object_detection else None)
         return train_loader
 
     def val_dataloader(self):
@@ -394,6 +401,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata,
                                           data_split=self.val_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
+                                          is_object_detection=self.is_object_detection,
                                         
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -413,7 +421,8 @@ class DynamicDataModule(pl.LightningDataModule):
         val_loader = DataLoader(val_dataset, 
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
-                                pin_memory=True)
+                                pin_memory=True,
+                                collate_fn=self.collate_fn if self.is_object_detection else None)
         return val_loader
 
     def test_dataloader(self):
@@ -423,6 +432,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           metadata=self.metadata,
                                           data_split=self.test_split,
                                           omit_images_list=None,
+                                          is_object_detection=self.is_object_detection,
                                          
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -442,8 +452,12 @@ class DynamicDataModule(pl.LightningDataModule):
         test_loader = DataLoader(test_dataset, 
                                  batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
-                                 pin_memory=True)
+                                 pin_memory=True,
+                                 collate_fn=self.collate_fn if self.is_object_detection else None)
         return test_loader
+    
+    def collate_fn(self, batch):
+        return list(zip(*batch))
     
     
 #####################
@@ -458,6 +472,7 @@ class DynamicDataloader(Dataset):
                  metadata=None,
                  data_split=None, 
                  omit_images_list=None,
+                 is_object_detection=False,
                  
                  original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
@@ -480,6 +495,7 @@ class DynamicDataloader(Dataset):
         self.metadata = metadata
         self.data_split = data_split
         self.omit_images_list = omit_images_list
+        self.is_object_detection = is_object_detection
         
         self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
@@ -529,7 +545,7 @@ class DynamicDataloader(Dataset):
                 
             # Tile image
             # img.shape = [num_tiles, tile_height, tile_width, num_channels]
-            if self.pre_tile:
+            if self.pre_tile and self.tile_dimensions is not None and not self.is_object_detection:
                 img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
@@ -537,10 +553,11 @@ class DynamicDataloader(Dataset):
 
             x.append(img)
         
-        # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
-        if self.pre_tile:
+        if self.tile_dimensions is not None and self.pre_tile and not self.is_object_detection:
+            # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
             x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         else:
+            # x.shape = [series_length, num_channels, tile_height, tile_width]
             x = np.transpose(np.stack(x), (0, 3, 1, 2))
            
         ### Load Labels ###
@@ -553,25 +570,53 @@ class DynamicDataloader(Dataset):
                 labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
                 
             labels = data_augmentations(labels, is_labels=True)
-            
-            # Tile labels
-            labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
-
-            # labels.shape = [num_tiles]
-            labels = (labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
         else:
             # labels.shape = [num_tiles]
-            labels = np.zeros(self.num_tiles_height*self.num_tiles_width).astype(float) 
+            labels = np.zeros(img.shape[:2]).astype(float) 
 
-        if self.num_tile_samples > 0:
-            # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
-            x, labels = util_fns.randomly_sample_tiles(x, labels, self.num_tile_samples)
+        if self.tile_dimensions is not None:
+            # Tile labels
+            tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-        # Load Image-level Labels ###
+            # labels.shape = [num_tiles]
+            tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+        
+            if self.num_tile_samples > 0:
+                # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
+                x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+
+        ### Load Image Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
-        has_positive_tile = util_fns.get_has_positive_tile(labels)
+        has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
+        
+        ### Load Object Detection Labels ###
+        xs = []
+        bbox_labels = []
+        
+        if self.is_object_detection:
+            # Loop through each image in series
+            for image in x:
+                xs.append(torch.as_tensor(image).half())
+                
+                # Create a fake class to allow negative samples
+                masks = np.zeros((1, labels.shape[0], labels.shape[1]))
+                masks[0,0,0] = 1
+                bbox_label = {'boxes': [[0,0,1,1]], 'labels': [2], 'masks': masks}
+
+                # Append real positive image data 
+                if ground_truth_label == 1 and image_name not in self.metadata['omit_no_bbox']: 
+                    bbox_label['boxes'].extend(self.metadata['bbox_labels'][image_name])
+                    bbox_label['labels'].extend([1]*len(self.metadata['bbox_labels'][image_name]))
+                    bbox_label['masks'].append(labels)
+
+                for key in bbox_label:
+                    bbox_label[key] = torch.as_tensor(bbox_label[key])
+                    
+                bbox_labels.append(bbox_label)
+                
+            x = xs
         
         # Determine if tile predictions should be masked
         omit_mask = False if (self.omit_images_list is not None and image_name in self.omit_images_list) else True
             
-        return image_name, x, labels, ground_truth_label, has_positive_tile, omit_mask
+        return image_name, x, labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask

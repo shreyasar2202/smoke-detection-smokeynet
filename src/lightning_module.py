@@ -144,10 +144,10 @@ class LightningModule(pl.LightningModule):
 
     def step(self, batch, split):
         """Description: Takes a batch, calculates forward pass, losses, and predictions, and logs metrics"""
-        image_names, x, tile_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
+        image_names, x, tile_labels, bbox_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, ground_truth_labels, omit_masks, self.current_epoch)
+        outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch)
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):
