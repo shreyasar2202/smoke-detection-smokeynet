@@ -555,7 +555,7 @@ class DynamicDataloader(Dataset):
             # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
             x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         else:
-            # x.shape = [series_length, num_channels, tile_height, tile_width]
+            # x.shape = [series_length, num_channels, height, width]
             x = np.transpose(np.stack(x), (0, 3, 1, 2))
            
         ### Load Labels ###
