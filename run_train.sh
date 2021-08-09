@@ -5,9 +5,28 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
+# python3.9 src/main.py \
+#     --experiment-name "2MobileNetFPN_NoPreTile_LSTM_SpatialViT_ImagePreds" \
+#     --model-type-list "RawToTile_MobileNetFPN_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --mask-omit-images \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 6 \
+#     --train-split-path './data/split2/train_images2.txt' \
+#     --val-split-path './data/split2/val_images2.txt' \
+#     --test-split-path './data/split2/test_images2.txt' \
+#     --no-pre-tile \
+#     --resize-height 1344 \
+#     --resize-width 1792 \
+#     --crop-height 1120 \
+#     --tile-overlap 0 \
+    
 python3.9 src/main.py \
-    --experiment-name "2MobileNetFPNNoPreTile_LSTM_SpatialViT_ImagePreds" \
-    --model-type-list "RawToTile_MobileNetFPN_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "2MobileNetFPNV2_NoPreTile_LSTM_SpatialViT_ImagePreds" \
+    --model-type-list "RawToTile_MobileNetFPNV2_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
     --use-image-preds \
@@ -23,6 +42,7 @@ python3.9 src/main.py \
     --resize-width 1792 \
     --crop-height 1120 \
     --tile-overlap 0 \
+    --tile-embedding-size 768 \
     --is-debug
 
 

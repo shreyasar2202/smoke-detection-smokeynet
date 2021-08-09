@@ -433,6 +433,74 @@ class RawToTile_MobileNetFPN_NoPreTile(nn.Module):
         
         return tile_outputs, embeddings
     
+class RawToTile_MobileNetFPNV2_NoPreTile(nn.Module):
+    """
+    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
+    Args:
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
+    """
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None,
+                 num_tiles_height=5,
+                 num_tiles_width=9,
+                 **kwargs):
+        print('- RawToTile_MobileNetFPNV2')
+        super().__init__()
+        
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        self.num_tiles = num_tiles_height * num_tiles_width
+        
+        self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=True, fpn=True, trainable_layers=6)
+        self.avgpool1 = nn.AdaptiveAvgPool2d(output_size=(3*num_tiles_height,3*num_tiles_width))
+        
+        self.avgpool2 = nn.AdaptiveAvgPool2d(output_size=1)
+
+        self.embeddings_to_output = TileEmbeddingsToOutput(768)
+        
+    def forward(self, x, **kwargs):
+        x = x.float()
+        batch_size, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * series_length, num_channels, height, width)
+        
+        # tile_outputs['0'] = [batch_size * series_length, 256, 7*num_tiles_height, 7*num_tiles_width]
+        # tile_outputs['1'] = [batch_size * series_length, 256, 7*num_tiles_height, 7*num_tiles_width]
+        # tile_outputs['pool'] = [batch_size * series_length, 256, 3*num_tiles_height+eps, 3*num_tiles_height+eps]
+        tile_outputs = self.conv(tile_outputs) 
+        
+        tile_outputs['pool'] = self.avgpool1(tile_outputs['pool']) # tile_outputs['pool'] = [batch_size * series_length, 256, 3*num_tiles_height, 3*num_tiles_height]
+        
+        outputs = {}
+        for key in tile_outputs:
+            square_size = 3 if key == 'pool' else 7
+            output = tile_outputs[key].view(batch_size, 
+                                             series_length,
+                                             256,
+                                             self.num_tiles_height, 
+                                             square_size, 
+                                             self.num_tiles_width,
+                                             square_size)
+            output = output.permute(0,1,3,5,2,4,6).contiguous() # [batch_size, series_length, num_tiles_height, num_tiles_width, tile_embedding_size, 7, 7]
+            output = output.view(batch_size * series_length * self.num_tiles, 256, square_size, square_size)
+            outputs[key] = output
+        tile_outputs = outputs
+        
+        tile_outputs0 = self.avgpool2(tile_outputs['0']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        tile_outputs1 = self.avgpool2(tile_outputs['1']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        tile_outputs2 = self.avgpool2(tile_outputs['pool']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        
+        tile_outputs = torch.cat((tile_outputs0, tile_outputs1, tile_outputs2), dim=1) # [batch_size * num_tiles * series_length, 256*3]
+
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, self.num_tiles, series_length)
+        
+        return tile_outputs, embeddings
+    
 class RawToTile_ResNet(nn.Module):
     """
     Description: ResNet backbone with a few linear layers.
