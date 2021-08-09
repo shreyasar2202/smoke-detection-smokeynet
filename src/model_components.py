@@ -295,6 +295,50 @@ class RawToTile_MobileNetFPN(nn.Module):
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
+
+class RawToTile_MobileNetFPNV2(nn.Module):
+    """
+    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
+    Args:
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
+    """
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None,
+                 **kwargs):
+        print('- RawToTile_MobileNetFPNV2')
+        super().__init__()
+        
+        self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=True, fpn=True, trainable_layers=6)
+        
+        self.avgpool = nn.AdaptaptiveAvgPool2D(output_size=1)
+
+        self.embeddings_to_output = TileEmbeddingsToOutput(768)
+        
+    def forward(self, x, **kwargs):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        
+        # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
+        tile_outputs = self.conv(tile_outputs) 
+        
+        tile_outputs0 = self.avgpool(tile_outputs['0']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        tile_outputs1 = self.avgpool(tile_outputs['1']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        tile_outputs2 = self.avgpool(tile_outputs['pool']).flatten(1) # [batch_size * num_tiles * series_length, 256]
+        
+        tile_outputs = torch.cat((tile_outputs0, tile_outputs1, tile_outputs2), dim=1) # [batch_size * num_tiles * series_length, 256*3]
+
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        
+        return tile_outputs, embeddings
     
 class RawToTile_ResNet(nn.Module):
     """

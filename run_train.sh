@@ -7,7 +7,7 @@
     
 python3.9 src/main.py \
     --experiment-name "2MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
-    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
     --use-image-preds \
@@ -18,6 +18,7 @@ python3.9 src/main.py \
     --train-split-path './data/split2/train_images2.txt' \
     --val-split-path './data/split2/val_images2.txt' \
     --test-split-path './data/split2/test_images2.txt' \
+    --is-debug
     
 
 
