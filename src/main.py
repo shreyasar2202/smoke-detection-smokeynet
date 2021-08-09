@@ -426,6 +426,7 @@ def main(# Debug args
 #             val_check_interval=0.5,
 
         # Dev args
+        num_sanity_val_steps=0,
 #             fast_dev_run=True, 
 #             overfit_batches=100,
 #             limit_train_batches=2,
@@ -498,7 +499,7 @@ if __name__ == '__main__':
         original_dimensions=(parsed_args['original_height'], parsed_args['original_width']),
         resize_dimensions=(parsed_args['resize_height'], parsed_args['resize_width']),
         crop_height=parsed_args['crop_height'],
-        tile_dimensions=None if parsed_args['tile_size'] is None else (parsed_args['tile_size'], parsed_args['tile_size']),
+        tile_dimensions=(parsed_args['tile_size'], parsed_args['tile_size']),
         tile_overlap=parsed_args['tile_overlap'],
         pre_tile=parsed_args['no_pre_tile'],
         smoke_threshold=parsed_args['smoke_threshold'],

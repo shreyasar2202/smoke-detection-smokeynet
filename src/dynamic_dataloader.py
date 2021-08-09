@@ -391,7 +391,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                   num_workers=self.num_workers,
                                   pin_memory=True, 
                                   shuffle=True,
-                                  collate_fn=self.collate_fn if self.is_object_detection else None)
+                                  collate_fn=util_fns.default_collate if self.is_object_detection else None)
         return train_loader
 
     def val_dataloader(self):
@@ -422,7 +422,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
                                 pin_memory=True,
-                                collate_fn=self.collate_fn if self.is_object_detection else None)
+                                collate_fn=util_fns.default_collate if self.is_object_detection else None)
         return val_loader
 
     def test_dataloader(self):
@@ -453,11 +453,9 @@ class DynamicDataModule(pl.LightningDataModule):
                                  batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
                                  pin_memory=True,
-                                 collate_fn=self.collate_fn if self.is_object_detection else None)
+                                 collate_fn=util_fns.default_collate if self.is_object_detection else None)
         return test_loader
     
-    def collate_fn(self, batch):
-        return list(zip(*batch))
     
     
 #####################
@@ -512,7 +510,7 @@ class DynamicDataloader(Dataset):
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
-        self.num_tiles_height, self.num_tiles_width = util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
+        self.num_tiles_height, self.num_tiles_width = (1,1) if self.tile_dimensions is None else util_fns.calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_overlap)
 
     def __len__(self):
         return len(self.data_split)
@@ -545,7 +543,7 @@ class DynamicDataloader(Dataset):
                 
             # Tile image
             # img.shape = [num_tiles, tile_height, tile_width, num_channels]
-            if self.pre_tile and self.tile_dimensions is not None and not self.is_object_detection:
+            if self.pre_tile and not self.is_object_detection:
                 img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
@@ -553,7 +551,7 @@ class DynamicDataloader(Dataset):
 
             x.append(img)
         
-        if self.tile_dimensions is not None and self.pre_tile and not self.is_object_detection:
+        if self.pre_tile and not self.is_object_detection:
             # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
             x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         else:
@@ -571,52 +569,53 @@ class DynamicDataloader(Dataset):
                 
             labels = data_augmentations(labels, is_labels=True)
         else:
-            # labels.shape = [num_tiles]
+            # labels.shape = [height, width]
             labels = np.zeros(img.shape[:2]).astype(float) 
 
-        if self.tile_dimensions is not None:
-            # Tile labels
-            tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+        # Tile labels
+        tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-            # labels.shape = [num_tiles]
-            tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
-        
-            if self.num_tile_samples > 0:
-                # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
-                x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+        # labels.shape = [num_tiles]
+        tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+
+        if self.num_tile_samples > 0:
+            # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
+            x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
 
         ### Load Image Labels ###
         ground_truth_label = self.metadata['ground_truth_label'][image_name]
         has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
         
         ### Load Object Detection Labels ###
-        xs = []
         bbox_labels = []
         
         if self.is_object_detection:
             # Loop through each image in series
             for image in x:
-                xs.append(torch.as_tensor(image).half())
-                
-                # Create a fake class to allow negative samples
-                masks = np.zeros((1, labels.shape[0], labels.shape[1]))
-                masks[0,0,0] = 1
-                bbox_label = {'boxes': [[0,0,1,1]], 'labels': [2], 'masks': masks}
-
-                # Append real positive image data 
+                bbox_label = {}
                 if ground_truth_label == 1 and image_name not in self.metadata['omit_no_bbox']: 
-                    bbox_label['boxes'].extend(self.metadata['bbox_labels'][image_name])
-                    bbox_label['labels'].extend([1]*len(self.metadata['bbox_labels'][image_name]))
-                    bbox_label['masks'].append(labels)
-
+                    # Append real positive image data
+                    bbox_label['boxes'] = self.metadata['bbox_labels'][image_name]
+                    bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
+                    bbox_label['masks'] = np.expand_dims(labels, 0)
+                else:
+                    # Create fake class for negative examples
+                    masks = np.zeros((1, labels.shape[0], labels.shape[1]))
+                    masks[0,0,0] = 1
+                    bbox_label = {'boxes': [[0,0,1,1]], 'labels': [2], 'masks': masks}
+                    
+                    # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
+#                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
+#                                   "labels": torch.zeros(0, dtype=torch.int64),
+#                                   "area": torch.zeros(0, dtype=torch.float32),
+#                                   "masks": torch.zeros((0, *img.shape[:2]), dtype=torch.uint8)}
+                    
                 for key in bbox_label:
                     bbox_label[key] = torch.as_tensor(bbox_label[key])
                     
                 bbox_labels.append(bbox_label)
                 
-            x = xs
-        
         # Determine if tile predictions should be masked
         omit_mask = False if (self.omit_images_list is not None and image_name in self.omit_images_list) else True
-            
-        return image_name, x, labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask
+
+        return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask

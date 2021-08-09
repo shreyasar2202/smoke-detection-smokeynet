@@ -6,7 +6,7 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
+    --experiment-name "2MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
     --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
@@ -14,11 +14,12 @@ python3.9 src/main.py \
     --batch-size 2 \
     --series-length 2 \
     --accumulate-grad-batches 16 \
-    --no-lr-schedule \
     --num-workers 6 \
-    --train-split-path './data/split1/train_images1.txt' \
-    --val-split-path './data/split1/val_images1.txt' \
-    --test-split-path './data/split1/test_images1.txt' \
+    --train-split-path './data/split2/train_images2.txt' \
+    --val-split-path './data/split2/val_images2.txt' \
+    --test-split-path './data/split2/test_images2.txt' \
+    
+
 
 
 
@@ -35,29 +36,10 @@ python3.9 src/main.py \
 #     --batch-size 4 \
 #     --series-length 2 \
 #     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
 #     --num-workers 6 \
-#     --train-split-path './data/split1/hem-train_images1.txt' \
+#     --train-split-path './data/split1/train_images1.txt' \
 #     --val-split-path './data/split1/val_images1.txt' \
 #     --test-split-path './data/split1/test_images1.txt' \
-
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet" \
-#     --model-type-list "RawToTile_MobileNetV3Large" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --no-lr-schedule \
-
-# python3.9 src/main.py \
-#     --experiment-name "MobileNet_LSTM_DeiT_LinearOutputs" \
-#     --model-type-list "RawToTile_MobileNetV3Large" "TileToTile_LSTM" "TileToTile_DeiT" "TileToImage_LinearOutputs" \
-#     --omit-list "omit_no_xml" \
-#     --batch-size 2 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 16 \
-#     --no-lr-schedule \
 
 
 #     --labels-path '/root/pytorch_lightning_data/drive_clone_labels' \

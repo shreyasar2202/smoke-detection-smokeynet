@@ -123,8 +123,14 @@ class MainModel(nn.Module):
             # Compute forward pass
             outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
             
-            # If model predicts images only...
-            if x is None:
+            # If x is a dictionary of object detection losses...
+            if type(x) is dict:
+                tile_outputs = outputs
+                for loss in x:
+                    total_loss += x[loss]
+            
+            # Else if model predicts images only...
+            elif x is None:
                 image_outputs = outputs
                 image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none') 
                 
@@ -172,5 +178,5 @@ class MainModel(nn.Module):
         # Else, use tile_preds to determine image_preds
         else:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
-            
-        return outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
+
+        return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds

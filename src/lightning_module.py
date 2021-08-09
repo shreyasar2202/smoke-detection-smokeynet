@@ -147,7 +147,7 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, bbox_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        outputs, embeddings, losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch)
+        losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch)
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):
