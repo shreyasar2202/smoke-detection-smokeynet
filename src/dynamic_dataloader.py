@@ -570,7 +570,7 @@ class DynamicDataloader(Dataset):
             labels = data_augmentations(labels, is_labels=True)
         else:
             # labels.shape = [height, width]
-            labels = np.zeros(img.shape[:2]).astype(float) 
+            labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
 
         # Tile labels
         tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
