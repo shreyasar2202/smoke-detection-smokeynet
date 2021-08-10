@@ -426,7 +426,7 @@ def main(# Debug args
 #             val_check_interval=0.5,
 
         # Dev args
-        num_sanity_val_steps=0,
+#         num_sanity_val_steps=0,
 #             fast_dev_run=True, 
 #             overfit_batches=100,
 #             limit_train_batches=2,
