@@ -6,7 +6,7 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "2ResNetFPN_LSTM_SpatialViT_ImagePreds_Fixed" \
+    --experiment-name "1ResNetFPN_LSTM_SpatialViT_ImagePreds_Fixed" \
     --model-type-list "RawToTile_ResNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
@@ -15,13 +15,11 @@ python3.9 src/main.py \
     --series-length 2 \
     --accumulate-grad-batches 32 \
     --num-workers 6 \
-    --train-split-path './data/split2/train_images2.txt' \
-    --val-split-path './data/split2/val_images2.txt' \
-    --test-split-path './data/split2/test_images2.txt' \
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
     --backbone-size 'large' \
-    --is-debug
-
-
+    
 
 #####################
 ## Best Run

@@ -616,6 +616,6 @@ class DynamicDataloader(Dataset):
                 bbox_labels.append(bbox_label)
                 
         # Determine if tile predictions should be masked
-        omit_mask = False if (self.omit_images_list is not None and image_name in self.omit_images_list) else True
+        omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
 
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask
