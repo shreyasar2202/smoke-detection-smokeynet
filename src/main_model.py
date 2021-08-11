@@ -82,7 +82,7 @@ class MainModel(nn.Module):
             
         return outputs
         
-    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, num_epoch):
+    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, num_epoch, device):
         """
         Description: compute forward pass of all model_list models
         Args:
@@ -125,9 +125,13 @@ class MainModel(nn.Module):
             
             # If x is a dictionary of object detection losses...
             if type(x) is dict:
-                tile_outputs = outputs
+                # Determine if there were any scores above confidence = 0.5
+                image_preds = torch.as_tensor([(output['scores'] > 0.5).sum() > 0 for output in outputs]).to(device)
+                
                 for loss in x:
                     total_loss += x[loss]
+                    
+                return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
             
             # Else if model predicts images only...
             elif x is None:
@@ -148,11 +152,10 @@ class MainModel(nn.Module):
                 # Only add loss if intermediate_supervision
                 if self.intermediate_supervision:
                     total_loss += loss
+                    losses.append(loss)
                 else:
                     total_loss = loss
                 
-                losses.append(loss)
-            
             # Else if model predicts tiles and images...
             else:
                 tile_outputs = outputs

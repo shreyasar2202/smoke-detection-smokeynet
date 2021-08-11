@@ -147,7 +147,7 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, bbox_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch)
+        losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch, self.device)
         
         # Log losses (on_step only if split='train')
         for i, loss in enumerate(losses):
@@ -227,7 +227,6 @@ class LightningModule(pl.LightningModule):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
                 image_loss = image_loss.item() if image_loss else None
-                corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
 
                 if self.logger is not None:
                     # Save image predictions and image_loss
@@ -256,7 +255,10 @@ class LightningModule(pl.LightningModule):
                     corrected_fire_preds_dict[fire_name] = []
 
                 raw_fire_preds_dict[fire_name].append(image_pred)
-                corrected_fire_preds_dict[fire_name].append(corrected_positive_pred)
+                
+                if self.omit_images_from_test:
+                    corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
+                    corrected_fire_preds_dict[fire_name].append(corrected_positive_pred)
         
         if self.logger is not None: image_preds_csv.close()
         

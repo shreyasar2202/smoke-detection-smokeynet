@@ -853,7 +853,20 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         print('- RawToTile_CustomMaskRCNN')
         super().__init__()
         
-        self.model = custom_maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        pretrain_object_detection = False
+        
+        self.model = custom_maskrcnn_resnet50_fpn(pretrained=pretrain_object_detection, 
+                                                  num_classes=2, 
+                                                  pretrained_backbone=True, 
+                                                  trainable_backbone_layers=5)
+        
+        if pretrain_object_detection:
+        # Source: https://haochen23.github.io/2020/06/fine-tune-mask-rcnn-pytorch.html#.YRN4JdNKhUI
+            # Replace FastRCNN head
+            self.model.roi_heads.box_predictor = FastRCNNPredictor(self.model.roi_heads.box_predictor.cls_score.in_features, num_classes)
+            
+            # Replace MaskRCNN head with hidden_dim=256 and num_classes=2
+            self.model.roi_heads.mask_predictor = MaskRCNNPredictor(self.model.roi_heads.mask_predictor.conv5_mask.in_channels,256,2)
         
     def forward(self, x, bbox_labels, **kwargs):
         x = x.float()
@@ -866,11 +879,7 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         losses, outputs = self.model(x, bbox_labels)
         
-        tile_outputs = torch.cat([output['masks'].sum(0) for output in outputs]) # [batch_size * series_length, height, width]
-        tile_outputs = tile_outputs.view(batch_size, series_length, height*width) # [batch_size, series_length, height * width]
-        tile_outputs = tile_outputs.swapaxes(1,2) # [batch_size, height * width, series_length]
-        
-        return tile_outputs, losses
+        return outputs, losses
     
 class RawToTile_MaskRCNN(nn.Module):
     def __init__(self, **kwargs):
