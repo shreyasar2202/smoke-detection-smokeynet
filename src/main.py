@@ -153,6 +153,10 @@ parser.add_argument('--focal-alpha', type=float, default=0.25,
                     help='Alpha for focal loss.')
 parser.add_argument('--focal-gamma', type=float, default=2,
                     help='Gamma for focal loss.')
+parser.add_argument('--image-loss-only', action='store_true',
+                    help='Only train on image loss, not tile loss.')
+parser.add_argument('--image-pos-weight', type=float, default=1,
+                    help='Weight for positive class for BCE loss for images.')
 
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
@@ -257,6 +261,8 @@ def main(# Debug args
         bce_pos_weight=36,
         focal_alpha=0.25,
         focal_gamma=2,
+        image_loss_only=False,
+        image_pos_weight=1,
 
         # Optimizer args
         optimizer_type='SGD',
@@ -342,6 +348,8 @@ def main(# Debug args
                      bce_pos_weight=bce_pos_weight,
                      focal_alpha=focal_alpha, 
                      focal_gamma=focal_gamma,
+                     image_loss_only=image_loss_only,
+                     image_pos_weight=image_pos_weight,
 
                      freeze_backbone=freeze_backbone, 
                      pretrain_backbone=pretrain_backbone,
@@ -527,6 +535,8 @@ if __name__ == '__main__':
         bce_pos_weight=parsed_args['bce_pos_weight'],
         focal_alpha=parsed_args['focal_alpha'],
         focal_gamma=parsed_args['focal_gamma'],
+        image_loss_only=parsed_args['image_loss_only'],
+        image_pos_weight=parsed_args['image_pos_weight'],
         
         # Optimizer args
         optimizer_type=parsed_args['optimizer_type'],

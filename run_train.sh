@@ -4,9 +4,44 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
+
+python3.9 src/main.py \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_ImagePreds_ReTrain_ImageLossOnly_1e5" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --num-workers 6 \
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
+    --checkpoint-path './saved_logs/version_201/checkpoints/epoch=12-step=3314.ckpt' \
+    --is-hem-training \
+    --learning-rate 1e-5 \
     
 python3.9 src/main.py \
-    --experiment-name "1MobileNet_LSTM_SpatialViT_ImagePreds_ReTrain_ImageLossOnly" \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_ImagePreds_HEM-Train_BCE60" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --num-workers 6 \
+    --train-split-path './data/split1/hem-train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
+    --checkpoint-path './saved_logs/version_201/checkpoints/epoch=12-step=3314.ckpt' \
+    --is-hem-training \
+    --learning-rate 1e-4 \
+    --bce-pos-weight 60 \
+    
+python3.9 src/main.py \
+    --experiment-name "1MobileNet_LSTM_SpatialViT_ImagePreds_ReTrain_BCE60" \
     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \
@@ -21,20 +56,36 @@ python3.9 src/main.py \
     --checkpoint-path './saved_logs/version_201/checkpoints/epoch=12-step=3314.ckpt' \
     --is-hem-training \
     --learning-rate 1e-4 \
+    --bce-pos-weight 60 \
     
-# python3.9 src/main.py \
-#     --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds_Series4" \
-#     --model-type-list "RawToTile_MobileNetFPNV2" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --mask-omit-images \
-#     --use-image-preds \
-#     --batch-size 1 \
-#     --series-length 4 \
-#     --accumulate-grad-batches 32 \
-#     --num-workers 6 \
-#     --train-split-path './data/split1/train_images1.txt' \
-#     --val-split-path './data/split1/val_images1.txt' \
-#     --test-split-path './data/split1/test_images1.txt' \
+python3.9 src/main.py \
+    --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds_BCE50" \
+    --model-type-list "RawToTile_MobileNetFPNV2" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 2 \
+    --series-length 2 \
+    --accumulate-grad-batches 16 \
+    --num-workers 6 \
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
+    --bce-pos-weight 50 \
+    
+python3.9 src/main.py \
+    --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds_Series4" \
+    --model-type-list "RawToTile_MobileNetFPNV2" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 1 \
+    --series-length 4 \
+    --accumulate-grad-batches 32 \
+    --num-workers 6 \
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
     
 # python3.9 src/main.py \
 #     --experiment-name "2ResNetFPN_LSTM_SpatialViT_ImagePreds" \

@@ -43,6 +43,8 @@ class MainModel(nn.Module):
                  bce_pos_weight=36,
                  focal_alpha=0.25, 
                  focal_gamma=2,
+                 image_loss_only=False,
+                 image_pos_weight=1,
                  
                  **kwargs):
         
@@ -64,6 +66,8 @@ class MainModel(nn.Module):
             
         self.intermediate_supervision = intermediate_supervision
         self.use_image_preds = use_image_preds
+        self.image_loss_only = image_loss_only
+        self.image_pos_weight = image_pos_weight
 
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
@@ -136,7 +140,7 @@ class MainModel(nn.Module):
             # Else if model predicts images only...
             elif x is None:
                 image_outputs = outputs
-                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none') 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=self.image_pos_weight) 
                 
                 # Always add image loss, even if no intermediate_supervision
                 loss = image_loss.mean()
@@ -150,7 +154,7 @@ class MainModel(nn.Module):
                 loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 
                 # Only add loss if intermediate_supervision
-                if self.intermediate_supervision:
+                if self.intermediate_supervision and not self.image_loss_only:
                     total_loss += loss
                     losses.append(loss)
                 else:
@@ -159,12 +163,13 @@ class MainModel(nn.Module):
             # Else if model predicts tiles and images...
             else:
                 tile_outputs = outputs
-                loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
-                total_loss += loss
-                losses.append(loss)
+                if not self.image_loss_only:
+                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
+                    total_loss += loss
+                    losses.append(loss)
                 
                 image_outputs = x
-                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none') 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=self.image_pos_weight) 
                 
                 loss = image_loss.mean()
                 total_loss += loss

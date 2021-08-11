@@ -878,7 +878,7 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         losses, outputs = self.model(x, bbox_labels)
-        
+                
         return outputs, losses
     
 class RawToTile_MaskRCNN(nn.Module):
