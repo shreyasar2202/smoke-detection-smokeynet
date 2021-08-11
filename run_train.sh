@@ -6,7 +6,7 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "1ResNetFPN_LSTM_SpatialViT_ImagePreds_Fixed" \
+    --experiment-name "1ResNetFPN_LSTM_SpatialViT_ImagePreds" \
     --model-type-list "RawToTile_ResNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --mask-omit-images \

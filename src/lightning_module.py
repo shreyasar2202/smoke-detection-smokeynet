@@ -218,14 +218,15 @@ class LightningModule(pl.LightningModule):
         # Loop through batch
         for image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
             # Account for if we predicted images directly
-            if tile_preds is None:
-                tile_preds = [None] * len(image_names)
+            if tile_probs is None: tile_probs = [None] * len(image_names)
+            if tile_preds is None: tile_preds = [None] * len(image_names)
+            if image_losses is None: image_losses = [None] * len(image_names)
             
             # Loop through entry in batch
             for image_name, image_loss, tile_prob, tile_pred, image_pred, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
-                image_loss = image_loss.item()
+                image_loss = image_loss.item() if image_loss else None
                 corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
 
                 if self.logger is not None:

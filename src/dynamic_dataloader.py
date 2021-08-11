@@ -593,7 +593,7 @@ class DynamicDataloader(Dataset):
             # Loop through each image in series
             for image in x:
                 bbox_label = {}
-                if ground_truth_label == 1 and image_name not in self.metadata['omit_no_bbox']: 
+                if ground_truth_label == 1 and image_name not in self.metadata['omit_no_bbox'] and image_name not in self.metadata['omit_no_xml'] and util_fns.get_fire_name(image_name) not in self.metadata['unlabeled_fires']: 
                     # Append real positive image data
                     bbox_label['boxes'] = self.metadata['bbox_labels'][image_name]
                     bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
@@ -606,9 +606,9 @@ class DynamicDataloader(Dataset):
                     
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
 #                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
-#                                   "labels": torch.zeros(0, dtype=torch.int64),
+#                                   "labels": torch.zeros(1, dtype=torch.int64),
 #                                   "area": torch.zeros(0, dtype=torch.float32),
-#                                   "masks": torch.zeros((0, *img.shape[:2]), dtype=torch.uint8)}
+#                                   "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
                     
                 for key in bbox_label:
                     bbox_label[key] = torch.as_tensor(bbox_label[key])
@@ -617,5 +617,5 @@ class DynamicDataloader(Dataset):
                 
         # Determine if tile predictions should be masked
         omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
-
+        
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask
