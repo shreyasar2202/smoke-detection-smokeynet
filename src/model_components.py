@@ -22,7 +22,8 @@ import torchvision
 import transformers
 from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
-from rcnn.mask_rcnn import maskrcnn_resnet50_fpn
+from torchvision.models.detection import maskrcnn_resnet50_fpn
+from rcnn.mask_rcnn import custom_maskrcnn_resnet50_fpn
 
 # Other imports 
 import numpy as np
@@ -394,48 +395,48 @@ class RawToTile_DeiT(nn.Module):
 ## RawToTile - Feature Pyramid Network
 ########################### 
     
-# class RawToTile_MobileNetFPN(nn.Module):
-#     """
-#     Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
-#     Args:
-#         - pretrain_backbone (bool): Pretrains backbone on ImageNet
-#     """
-#     def __init__(self, 
-#                  pretrain_backbone=True, 
-#                  **kwargs):
-#         print('- RawToTile_MobileNetFPN')
-#         super().__init__()
+class RawToTile_MobileNetFPNV2(nn.Module):
+    """
+    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
+    Args:
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+    """
+    def __init__(self, 
+                 pretrain_backbone=True, 
+                 **kwargs):
+        print('- RawToTile_MobileNetFPN')
+        super().__init__()
         
-#         self.keys = ['0', '1', 'pool']
+        self.keys = ['0', '1', 'pool']
         
-#         self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=pretrain_backbone,fpn=True, trainable_layers=6)
-#         self.conv_list = nn.ModuleList([FPNToEmbeddings(16), FPNToEmbeddings(16), FPNToEmbeddings(49)])
-#         self.fc = nn.Linear(in_features=49*16*3, out_features=960)
+        self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=pretrain_backbone,fpn=True, trainable_layers=6)
+        self.conv_list = nn.ModuleList([FPNToEmbeddings(16), FPNToEmbeddings(16), FPNToEmbeddings(49)])
+        self.fc = nn.Linear(in_features=49*16*3, out_features=960)
 
-#         self.embeddings_to_output = TileEmbeddingsToOutput(960)
+        self.embeddings_to_output = TileEmbeddingsToOutput(960)
         
-#     def forward(self, x, **kwargs):
-#         x = x.float()
-#         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+    def forward(self, x, **kwargs):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-#         # Run through conv model
-#         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
         
-#         # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
-#         # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
-#         # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
-#         tile_outputs = self.conv(tile_outputs) 
+        # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
+        tile_outputs = self.conv(tile_outputs) 
         
-#         outputs = []
-#         for i in range(len(self.keys)):
-#             outputs.append(self.conv_list[i](tile_outputs[self.keys[i]]))
+        outputs = []
+        for i in range(len(self.keys)):
+            outputs.append(self.conv_list[i](tile_outputs[self.keys[i]]))
         
-#         tile_outputs = torch.cat(outputs, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
-#         tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 960]
+        tile_outputs = torch.cat(outputs, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
+        tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 960]
 
-#         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
-#         return tile_outputs, embeddings
+        return tile_outputs, embeddings
 
 class RawToTile_MobileNetFPN(nn.Module):
     """
@@ -847,12 +848,12 @@ class TileToImage_LinearEmbeddings(nn.Module):
 ## Object Detection Models
 ########################### 
     
-class RawToTile_MaskRCNN(nn.Module):
+class RawToTile_CustomMaskRCNN(nn.Module):
     def __init__(self, **kwargs):
-        print('- RawToTile_MaskRCNN')
+        print('- RawToTile_CustomMaskRCNN')
         super().__init__()
         
-        self.model = maskrcnn_resnet50_fpn(pretrained=False, num_classes=3, pretrained_backbone=True, trainable_backbone_layers=5)
+        self.model = custom_maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         
     def forward(self, x, bbox_labels, **kwargs):
         x = x.float()
@@ -865,8 +866,36 @@ class RawToTile_MaskRCNN(nn.Module):
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         losses, outputs = self.model(x, bbox_labels)
         
-        tile_outputs = torch.cat([output['masks'][output['labels']==1].sum(0) for output in outputs]) # [batch_size * series_length, height, width]
+        tile_outputs = torch.cat([output['masks'].sum(0) for output in outputs]) # [batch_size * series_length, height, width]
         tile_outputs = tile_outputs.view(batch_size, series_length, height*width) # [batch_size, series_length, height * width]
         tile_outputs = tile_outputs.swapaxes(1,2) # [batch_size, height * width, series_length]
         
         return tile_outputs, losses
+    
+class RawToTile_MaskRCNN(nn.Module):
+    def __init__(self, **kwargs):
+        print('- RawToTile_MaskRCNN')
+        super().__init__()
+        
+        self.model = maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        
+    def forward(self, x, bbox_labels, **kwargs):
+        x = x.float()
+        batch_size, series_length, num_channels, height, width = x.size()
+        
+        x = [item for sublist in x for item in sublist]
+        bbox_labels = [item for sublist in bbox_labels for item in sublist]
+                        
+        # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
+        # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
+        outputs = self.model(x, bbox_labels)
+        
+        # If training
+        if len(outputs) == 5:
+            return None, outputs
+        else:
+            tile_outputs = torch.cat([output['masks'].sum(0) for output in outputs]) # [batch_size * series_length, height, width]
+            tile_outputs = tile_outputs.view(batch_size, series_length, height*width) # [batch_size, series_length, height * width]
+            tile_outputs = tile_outputs.swapaxes(1,2) # [batch_size, height * width, series_length]
+
+            return tile_outputs, {}

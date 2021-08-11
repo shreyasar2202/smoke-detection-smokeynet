@@ -20,6 +20,20 @@ python3.9 src/main.py \
     --test-split-path './data/split1/test_images1.txt' \
     --backbone-size 'large' \
     
+python3.9 src/main.py \
+    --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds_Series4" \
+    --model-type-list "RawToTile_MobileNetFPNV2" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 1 \
+    --series-length 4 \
+    --accumulate-grad-batches 32 \
+    --num-workers 6 \
+    --train-split-path './data/split1/train_images1.txt' \
+    --val-split-path './data/split1/val_images1.txt' \
+    --test-split-path './data/split1/test_images1.txt' \
+    
 
 #####################
 ## Best Run

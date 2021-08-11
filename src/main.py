@@ -429,9 +429,9 @@ def main(# Debug args
 #         num_sanity_val_steps=0,
 #             fast_dev_run=True, 
 #             overfit_batches=100,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            limit_test_batches=2,
+#             limit_train_batches=2,
+#             limit_val_batches=2,
+#             limit_test_batches=2,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

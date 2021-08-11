@@ -176,7 +176,7 @@ class MainModel(nn.Module):
         if self.use_image_preds and image_outputs is not None:
             image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
         # Else, use tile_preds to determine image_preds
-        else:
+        elif tile_outputs is not None:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
 
         return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds

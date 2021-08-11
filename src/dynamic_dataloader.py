@@ -599,11 +599,6 @@ class DynamicDataloader(Dataset):
                     bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
                     bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
-                    # Create fake class for negative examples
-#                     masks = np.zeros((1, labels.shape[0], labels.shape[1]))
-#                     masks[0,0,0] = 1
-#                     bbox_label = {'boxes': [[0,0,1,1]], 'labels': [2], 'masks': masks}
-                    
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
                                   "labels": torch.zeros(0, dtype=torch.int64),
