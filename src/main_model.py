@@ -129,18 +129,25 @@ class MainModel(nn.Module):
             
             # If x is a dictionary of object detection losses...
             if type(x) is dict:
-                # Determine if there were any scores above confidence = 0.5
-                image_preds = torch.as_tensor([(output['scores'] > 0.5).sum() > 0 for output in outputs]).to(device)
-                
-                for loss in x:
-                    total_loss += x[loss]
+                # If training...
+                if len(x) > 0: 
+                    # Use losses from model
+                    for loss in x:
+                        total_loss += x[loss]
+                # Else for val/test loss...
+                else:
+                    # Determine if there were any scores above confidence = 0
+                    image_preds = torch.as_tensor([(output['scores'] > 0).sum() > 0 for output in outputs]).to(device)
+                    
+                    # Use number of errors as loss
+                    total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()
                     
                 return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
             
             # Else if model predicts images only...
             elif x is None:
                 image_outputs = outputs
-                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=self.image_pos_weight) 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=torch.as_tensor(self.image_pos_weight))
                 
                 # Always add image loss, even if no intermediate_supervision
                 loss = image_loss.mean()
@@ -169,7 +176,7 @@ class MainModel(nn.Module):
                     losses.append(loss)
                 
                 image_outputs = x
-                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=self.image_pos_weight) 
+                image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=torch.as_tensor(self.image_pos_weight))
                 
                 loss = image_loss.mean()
                 total_loss += loss

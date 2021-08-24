@@ -811,7 +811,7 @@ class TileToImage_LinearOutputs(nn.Module):
         self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
         self.fc1, = util_fns.init_weights_Xavier(self.fc1)
         
-    def forward(self, tile_embeddings, tile_outputs):
+    def forward(self, tile_embeddings, tile_outputs, **kwargs):
         batch_size, num_tiles, series_length = tile_outputs.size()
         tile_outputs = tile_outputs.view(batch_size, num_tiles)
         
@@ -834,7 +834,7 @@ class TileToImage_LinearEmbeddings(nn.Module):
         self.fc1 = nn.Linear(in_features=num_tiles, out_features=1)
         self.fc1, = util_fns.init_weights_Xavier(self.fc1)
         
-    def forward(self, tile_embeddings, tile_outputs):
+    def forward(self, tile_embeddings, tile_outputs, **kwargs):
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
         tile_outputs, _ = self.embeddings_to_output(tile_embeddings, batch_size, num_tiles, 1) # [batch_size, num_tiles, 1]
@@ -878,7 +878,7 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         losses, outputs = self.model(x, bbox_labels)
-                
+                        
         return outputs, losses
     
 class RawToTile_MaskRCNN(nn.Module):
@@ -903,8 +903,4 @@ class RawToTile_MaskRCNN(nn.Module):
         if len(outputs) == 5:
             return None, outputs
         else:
-            tile_outputs = torch.cat([output['masks'].sum(0) for output in outputs]) # [batch_size * series_length, height, width]
-            tile_outputs = tile_outputs.view(batch_size, series_length, height*width) # [batch_size, series_length, height * width]
-            tile_outputs = tile_outputs.swapaxes(1,2) # [batch_size, height * width, series_length]
-
-            return tile_outputs, {}
+            return outputs, {}
