@@ -89,6 +89,7 @@ class DynamicDataModule(pl.LightningDataModule):
                 - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
                 - omit_no_bbox (list of str): list of images that erroneously do not have bboxes. Does not include unlabeled fires.
                 - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled. Does not include unlabeled fires.
+                - omit_night (list of str): list of fires that are in nighttime
                 - unlabeled_fires (list of str): list of fires that have not been labelled at all
                 - train_only_fires (list of str): list of fires that should only be used for train (not 'mobo-c')
                 - eligible_fires (list of str): list of fires that can be used for test or train (not in train_only_fires)
@@ -269,6 +270,7 @@ class DynamicDataModule(pl.LightningDataModule):
                             self.metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
             
             self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
+            self.metadata['omit_night'] = np.loadtxt('./data/omit_night.txt', dtype=str)
         
             with open(f'./metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
