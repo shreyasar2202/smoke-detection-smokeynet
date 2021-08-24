@@ -189,18 +189,17 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path)
             self.metadata['ground_truth_label'] = {}
             self.metadata['has_xml_label'] = {}
-            self.metadata['num_fires'] = 0
-            self.metadata['num_images'] = 0
             
             self.metadata['omit_no_xml'] = []
             self.metadata['omit_no_contour'] = []
             self.metadata['omit_no_contour_or_bbox'] = []
-            self.metadata['omit_images_list'] = []
+            self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
             
             self.metadata['labeled_fires'] = [folder.stem for folder in filter(Path.is_dir, Path(self.labels_path).iterdir())]
             self.metadata['unlabeled_fires'] = []
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
+            self.metadata['night_fires'] = np.loadtxt('./data/night_fires.txt', dtype=str)
             
             self.metadata['bbox_labels'] = {}
             
@@ -209,8 +208,6 @@ class DynamicDataModule(pl.LightningDataModule):
             
             # Loop through all fires
             for fire in self.metadata['fire_to_images']:
-                self.metadata['num_fires'] += 1
-                
                 if fire not in labeled_fires:
                     self.metadata['unlabeled_fires'].append(fire)
                 elif 'mobo-c' not in fire:
@@ -223,8 +220,6 @@ class DynamicDataModule(pl.LightningDataModule):
                 # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
                     # Create metadata
-                    self.metadata['num_images'] += 1
-                    
                     self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
                     self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
                     
@@ -268,9 +263,6 @@ class DynamicDataModule(pl.LightningDataModule):
                         # If there is a bbox, save the array to 'bbox_labels'
                         if poly_bbox is not None:
                             self.metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
-            
-            self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
-            self.metadata['omit_night'] = np.loadtxt('./data/omit_night.txt', dtype=str)
         
             with open(f'./metadata.pkl', 'wb') as pkl_file:
                 pickle.dump(self.metadata, pkl_file)
