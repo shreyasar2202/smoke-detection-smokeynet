@@ -81,9 +81,6 @@ class DynamicDataModule(pl.LightningDataModule):
             - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
                 - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
-                - num_fires (int): total number of fires in dataset
-                - num_images (int): total number of images in dataset
-                - ground_truth_label (dict): dictionary with fires as keys and 1 if fire has "+" in its file name
                 - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels. Does not include unlabeled fires.
                 - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
@@ -187,7 +184,6 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata = {}
 
             self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path)
-            self.metadata['ground_truth_label'] = {}
             self.metadata['has_xml_label'] = {}
             
             self.metadata['omit_no_xml'] = []
@@ -220,14 +216,13 @@ class DynamicDataModule(pl.LightningDataModule):
                 # Loop through each image in the fire
                 for image in self.metadata['fire_to_images'][fire]:
                     # Create metadata
-                    self.metadata['ground_truth_label'][image] = util_fns.get_ground_truth_label(image)
                     self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
                     
                     # Skip the next steps if the fire has not been labeled
                     if fire not in labeled_fires: continue
                     
                     # If a positive image does not have an XML file associated with it, add it to omit_images_list
-                    if self.metadata['ground_truth_label'][image] != self.metadata['has_xml_label'][image]:
+                    if util_fns.get_ground_truth_label(image) != self.metadata['has_xml_label'][image]:
                         self.metadata['omit_no_xml'].append(image)
                     
                     # If a label file exists...
@@ -577,7 +572,7 @@ class DynamicDataloader(Dataset):
             x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
 
         ### Load Image Labels ###
-        ground_truth_label = self.metadata['ground_truth_label'][image_name]
+        ground_truth_label = util_fns.get_ground_truth_label(image_name)
         has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
         
         ### Load Object Detection Labels ###
