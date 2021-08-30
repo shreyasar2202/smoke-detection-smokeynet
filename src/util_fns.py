@@ -112,8 +112,10 @@ def generate_fire_to_images(raw_data_path):
         if fire[0] == '.' or 'mobo-m' in fire:
             continue
         
-        fire_to_images[fire] = [get_image_name(str(item)) for item in (raw_data_path/fire).glob('*.jpg')]
-        fire_to_images[fire].sort()
+        images = [get_image_name(str(item)) for item in (raw_data_path/fire).glob('*.jpg')]
+        if len(images) > 0:
+            fire_to_images[fire] = images
+            fire_to_images[fire].sort()
         
     return fire_to_images
 

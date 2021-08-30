@@ -5,6 +5,56 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
+python3.9 src/main.py \
+    --experiment-name "Final_FasterRCNN_NoEarlyStopping_OnlyPositives_LR1e2" \
+    --model-type-list "RawToTile_ObjectDetection" \
+    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+    --batch-size 2 \
+    --series-length 1 \
+    --accumulate-grad-batches 16 \
+    --num-workers 6 \
+    --train-split-path './data/final_split/train_images_final.txt' \
+    --val-split-path './data/final_split/val_images_final.txt' \
+    --test-split-path './data/final_split/test_images_final.txt' \
+    --is-object-detection \
+    --tile-size 1 \
+    --resize-height 1344 \
+    --resize-width 1792 \
+    --crop-height 1120 \
+    --tile-overlap 0 \
+    --backbone-size 'fasterrcnn' \
+    --no-early-stopping \
+    --learning-rate 1e-2 \
+    --gradient-clip-val 1e5 \
+    --time-range-min 0 \
+
+python3.9 src/main.py \
+    --experiment-name "Final_FasterRCNN_NoEarlyStopping_LR1e2" \
+    --model-type-list "RawToTile_ObjectDetection" \
+    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+    --batch-size 2 \
+    --series-length 1 \
+    --accumulate-grad-batches 16 \
+    --num-workers 6 \
+    --train-split-path './data/final_split/train_images_final.txt' \
+    --val-split-path './data/final_split/val_images_final.txt' \
+    --test-split-path './data/final_split/test_images_final.txt' \
+    --is-object-detection \
+    --tile-size 1 \
+    --resize-height 1344 \
+    --resize-width 1792 \
+    --crop-height 1120 \
+    --tile-overlap 0 \
+    --backbone-size 'fasterrcnn' \
+    --no-early-stopping \
+    --learning-rate 1e-2 \
+    --gradient-clip-val 1e5 \
+    
+
+#####################
+## Best Run
+#####################
+
 # python3.9 src/main.py \
 #     --experiment-name "Final_MobileNet_LSTM_SpatialViT_ImagePreds" \
 #     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
@@ -14,77 +64,10 @@
 #     --batch-size 4 \
 #     --series-length 2 \
 #     --accumulate-grad-batches 8 \
-#     --num-workers 4 \
-#     --train-split-path './data/final_split/train_images_final.txt' \
-#     --val-split-path './data/final_split/val_images_final.txt' \
-#     --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
-    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --mask-omit-images \
-    --use-image-preds \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_ResNetFPN_LSTM_SpatialViT_ImagePreds" \
-    --model-type-list "RawToTile_ResNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --mask-omit-images \
-    --use-image-preds \
-    --batch-size 1 \
-    --series-length 2 \
-    --accumulate-grad-batches 32 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --backbone-size 'large' \
-
-# python3.9 src/main.py \
-#     --experiment-name "Final_MaskRCNN" \
-#     --model-type-list "RawToTile_MaskRCNN" \
-#     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-#     --batch-size 2 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 16 \
 #     --num-workers 6 \
 #     --train-split-path './data/final_split/train_images_final.txt' \
 #     --val-split-path './data/final_split/val_images_final.txt' \
 #     --test-split-path './data/final_split/test_images_final.txt' \
-#     --is-object-detection \
-#     --tile-size 1 \
-#     --resize-height 1344 \
-#     --resize-width 1792 \
-#     --crop-height 1344 \
-#     --tile-overlap 0 \
-#     --learning-rate 0.01 \
-    
-
-#####################
-## Best Run
-#####################
-
-# python3.9 src/main.py \
-#     --experiment-name "1MobileNetFPN_LSTM_SpatialViT_ImagePreds" \
-#     --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --mask-omit-images \
-#     --use-image-preds \
-#     --batch-size 2 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 16 \
-#     --num-workers 6 \
-#     --train-split-path './data/split1/hem-train_images1.txt' \
-#     --val-split-path './data/split1/val_images1.txt' \
-#     --test-split-path './data/split1/test_images1.txt' \
 
 #####################
 ## Object Detection

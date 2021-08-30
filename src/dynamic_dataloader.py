@@ -327,7 +327,11 @@ class DynamicDataModule(pl.LightningDataModule):
             # Shorten fire_to_images to relevant time frame
             if not self.is_hem_training:
                 self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
+            if not self.is_object_detection:
+                self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
+            else:
+                # Shorten val only by series_length if object detection
+                self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             # Shorten test only by series_length
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             
@@ -589,13 +593,13 @@ class DynamicDataloader(Dataset):
                     # Append real positive image data
                     bbox_label['boxes'] = self.metadata['bbox_labels'][image_name]
                     bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
-                    bbox_label['masks'] = np.expand_dims(labels, 0)
+#                     bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
                                   "labels": torch.zeros(0, dtype=torch.int64),
-                                  "area": torch.zeros(0, dtype=torch.float32),
-                                  "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
+                                  "area": torch.zeros(0, dtype=torch.float32)}
+#                                   "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
                     
                 for key in bbox_label:
                     bbox_label[key] = torch.as_tensor(bbox_label[key])

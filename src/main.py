@@ -356,6 +356,8 @@ def main(# Debug args
                      backbone_size=backbone_size,
                      backbone_checkpoint_path=backbone_checkpoint_path,
 
+                     resize_dimensions=resize_dimensions,
+                     crop_height=crop_height,
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,

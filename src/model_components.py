@@ -22,8 +22,8 @@ import torchvision
 import transformers
 from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
-from torchvision.models.detection import maskrcnn_resnet50_fpn
-from rcnn.mask_rcnn import custom_maskrcnn_resnet50_fpn
+import torchvision.models.detection
+import rcnn.faster_rcnn_noresize
 
 # Other imports 
 import numpy as np
@@ -590,7 +590,7 @@ class TileToTile_ResNet3D(nn.Module):
         self.fc, = util_fns.init_weights_Xavier(self.fc)
         
         # Initialize ResNet3D
-        self.conv = resnet.resnet18()
+        self.conv = resnet.resnet10()
         
         # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
@@ -778,6 +778,43 @@ class TileToImage_LinearEmbeddings(nn.Module):
 ## Object Detection Models
 ########################### 
     
+class RawToTile_ObjectDetection(nn.Module):
+    def __init__(self, resize_dimensions=(1344, 1792), crop_height=1120, backbone_size='maskrcnn', **kwargs):
+        print('- RawToTile_ObjectDetection')
+        super().__init__()
+        
+        if backbone_size == 'maskrcnn':
+            self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'retinanet':
+            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'fasterrcnn':
+            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5, fixed_size=(crop_height,resize_dimensions[1]))
+        elif backbone_size == 'fasterrcnnmobile':
+            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+        elif backbone_size == 'ssd':
+            self.model = torchvision.models.detection.ssd300_vgg16(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'ssdlite':
+            self.model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+        else:
+            print('RawToTile_ObjectDetection: backbone_size not recognized.')
+        
+    def forward(self, x, bbox_labels, **kwargs):
+        x = x.float()
+        batch_size, series_length, num_channels, height, width = x.size()
+        
+        x = [item for sublist in x for item in sublist]
+        bbox_labels = [item for sublist in bbox_labels for item in sublist]
+                        
+        # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
+        # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
+        outputs = self.model(x, bbox_labels)
+        
+        # If training
+        if type(outputs) is dict:
+            return None, outputs
+        else:
+            return outputs, {}
+    
 class RawToTile_CustomMaskRCNN(nn.Module):
     def __init__(self, **kwargs):
         print('- RawToTile_CustomMaskRCNN')
@@ -810,27 +847,3 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         losses, outputs = self.model(x, bbox_labels)
                         
         return outputs, losses
-    
-class RawToTile_MaskRCNN(nn.Module):
-    def __init__(self, **kwargs):
-        print('- RawToTile_MaskRCNN')
-        super().__init__()
-        
-        self.model = maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
-        
-    def forward(self, x, bbox_labels, **kwargs):
-        x = x.float()
-        batch_size, series_length, num_channels, height, width = x.size()
-        
-        x = [item for sublist in x for item in sublist]
-        bbox_labels = [item for sublist in bbox_labels for item in sublist]
-                        
-        # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
-        # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
-        outputs = self.model(x, bbox_labels)
-        
-        # If training
-        if len(outputs) == 5:
-            return None, outputs
-        else:
-            return outputs, {}
