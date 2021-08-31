@@ -815,38 +815,3 @@ class RawToTile_ObjectDetection(nn.Module):
             return None, outputs
         else:
             return outputs, {}
-    
-class RawToTile_CustomMaskRCNN(nn.Module):
-    def __init__(self, **kwargs):
-        print('- RawToTile_CustomMaskRCNN')
-        super().__init__()
-        
-        pretrain_object_detection = False
-        
-        self.model = custom_maskrcnn_resnet50_fpn(pretrained=pretrain_object_detection, 
-                                                  num_classes=2, 
-                                                  pretrained_backbone=True, 
-                                                  trainable_backbone_layers=5)
-        
-        if pretrain_object_detection:
-        # Source: https://haochen23.github.io/2020/06/fine-tune-mask-rcnn-pytorch.html#.YRN4JdNKhUI
-            # Replace FastRCNN head
-            self.model.roi_heads.box_predictor = FastRCNNPredictor(self.model.roi_heads.box_predictor.cls_score.in_features, num_classes)
-            
-            # Replace MaskRCNN head with hidden_dim=256 and num_classes=2
-            self.model.roi_heads.mask_predictor = MaskRCNNPredictor(self.model.roi_heads.mask_predictor.conv5_mask.in_channels,256,2)
-        
-    def forward(self, x, bbox_labels, **kwargs):
-        x = x.float()
-        batch_size, series_length, num_channels, height, width = x.size()
-        
-        x = [item for sublist in x for item in sublist]
-        bbox_labels = [item for sublist in bbox_labels for item in sublist]
-        
-        import pdb; pdb.set_trace()
-                        
-        # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
-        # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
-        losses, outputs = self.model(x, bbox_labels)
-                        
-        return outputs, losses

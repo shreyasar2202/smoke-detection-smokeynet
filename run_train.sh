@@ -6,7 +6,7 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
+    --experiment-name "Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize" \
     --model-type-list "RawToTile_ObjectDetection" \
     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
     --batch-size 4 \
@@ -37,13 +37,13 @@ python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
 #     --model-type-list "RawToTile_ObjectDetection" \
 #     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-#     --batch-size 4 \
+#     --batch-size 2 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --num-workers 6 \
-#     --train-split-path './data/100pos.txt' \
-#     --val-split-path './data/100pos.txt' \
-#     --test-split-path './data/100pos.txt' \
+#     --accumulate-grad-batches 1 \
+#     --num-workers 0 \
+#     --train-split-path './data/1pos.txt' \
+#     --val-split-path './data/1pos.txt' \
+#     --test-split-path './data/1pos.txt' \
 #     --load-images-from-split \
 #     --is-object-detection \
 #     --tile-size 1 \
@@ -55,7 +55,36 @@ python3.9 src/main.py \
 #     --no-early-stopping \
 #     --learning-rate 1e-3 \
 #     --time-range-min 0 \
-#     --max-epochs 10 \
+#     --max-epochs 500 \
+#     --no-resize-crop-augment \
+#     --no-flip-augment \
+#     --no-blur-augment \
+#     --no-color-augment \
+#     --no-brightness-contrast-augment \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
+#     --model-type-list "RawToTile_ObjectDetection" \
+#     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+#     --batch-size 1 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 1 \
+#     --num-workers 6 \
+#     --train-split-path './data/1pos.txt' \
+#     --val-split-path './data/1pos.txt' \
+#     --test-split-path './data/1pos.txt' \
+#     --load-images-from-split \
+#     --is-object-detection \
+#     --tile-size 1 \
+#     --resize-height 1512 \
+#     --resize-width 2016 \
+#     --crop-height 1512 \
+#     --tile-overlap 0 \
+#     --backbone-size 'fasterrcnnmobile' \
+#     --no-early-stopping \
+#     --learning-rate 1e-6 \
+#     --time-range-min 0 \
+#     --max-epochs 500 \
 #     --no-resize-crop-augment \
 #     --no-flip-augment \
 #     --no-blur-augment \

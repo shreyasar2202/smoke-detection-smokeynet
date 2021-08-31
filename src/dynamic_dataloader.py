@@ -601,14 +601,15 @@ class DynamicDataloader(Dataset):
                 
                 if image_name in self.metadata['bbox_labels']: 
                     # Append real positive image data
-                    bboxes = self.metadata['bbox_labels'][image_name]
+                    bboxes = []
                     
                     # Resize bboxes to appropriate image resize factor
-                    for i in range(len(bboxes)):
-                        bboxes[i][0] *= resize_factor[1]
-                        bboxes[i][1] = bboxes[i][1]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
-                        bboxes[i][2] *= resize_factor[1]
-                        bboxes[i][3] = bboxes[i][3]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+                    for i in range(len(self.metadata['bbox_labels'][image_name])):
+                        bboxes.append([0,0,0,0])
+                        bboxes[i][0] = self.metadata['bbox_labels'][image_name][i][0]*resize_factor[1]
+                        bboxes[i][1] = self.metadata['bbox_labels'][image_name][i][1]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+                        bboxes[i][2] = self.metadata['bbox_labels'][image_name][i][2]*resize_factor[1]
+                        bboxes[i][3] = self.metadata['bbox_labels'][image_name][i][3]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
                     
                         # Make sure bbox isn't bigger than crop_height
 #                         bboxes[i][1] = np.minimum(bboxes[i][1], self.crop_height-1)
