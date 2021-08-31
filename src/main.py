@@ -356,8 +356,6 @@ def main(# Debug args
                      backbone_size=backbone_size,
                      backbone_checkpoint_path=backbone_checkpoint_path,
 
-                     resize_dimensions=resize_dimensions,
-                     crop_height=crop_height,
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,
@@ -438,10 +436,10 @@ def main(# Debug args
         # Dev args
 #         num_sanity_val_steps=0,
 #             fast_dev_run=True, 
-#             overfit_batches=100,
+            overfit_batches=100,
 #             limit_train_batches=2,
 #             limit_val_batches=2,
-#             limit_test_batches=2,
+#             limit_test_batches=100,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"

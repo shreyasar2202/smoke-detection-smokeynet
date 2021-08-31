@@ -6,49 +6,20 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNN_NoEarlyStopping_OnlyPositives_LR1e2" \
-    --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-    --batch-size 2 \
-    --series-length 1 \
-    --accumulate-grad-batches 16 \
+    --experiment-name "Final_MobileNet_LSTM_SpatialViT_ImagePreds_Easy_HEM-Train" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --use-image-preds \
+    --batch-size 4 \
+    --series-length 2 \
+    --accumulate-grad-batches 8 \
     --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
+    --train-split-path './data/final_split/hem-train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --tile-size 1 \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --backbone-size 'fasterrcnn' \
-    --no-early-stopping \
-    --learning-rate 1e-2 \
-    --gradient-clip-val 1e5 \
-    --time-range-min 0 \
-
-python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNN_NoEarlyStopping_LR1e2" \
-    --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-    --batch-size 2 \
-    --series-length 1 \
-    --accumulate-grad-batches 16 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --tile-size 1 \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --backbone-size 'fasterrcnn' \
-    --no-early-stopping \
-    --learning-rate 1e-2 \
-    --gradient-clip-val 1e5 \
+    --checkpoint-path './lightning_logs/Final_MobileNet_LSTM_SpatialViT_ImagePreds_Easy/version_0/checkpoints/epoch=3-step=1263.ckpt' \
+    --is-hem-training \
+    --learning-rate 1e-4 \
     
 
 #####################

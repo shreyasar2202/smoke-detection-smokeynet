@@ -525,10 +525,15 @@ class DynamicDataloader(Dataset):
         
         ### Load Images ###
         x = []
+        resize_factors = []
+        
         for file_name in self.metadata['image_series'][image_name]:
             # Load image
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+            
+            # Save resize factor for bbox_labels
+            resize_factors.append(np.array(self.resize_dimensions) / np.array(img.shape[:2]))
             
             # Apply data augmentations
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
@@ -565,33 +570,48 @@ class DynamicDataloader(Dataset):
             # labels.shape = [height, width]
             labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
 
-        # Tile labels
-        tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+        tiled_labels = np.array([0])
+        has_positive_tile = False
+        if not self.is_object_detection:
+            # Tile labels
+            tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-        # labels.shape = [num_tiles]
-        tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+            # labels.shape = [num_tiles]
+            tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
-        if self.num_tile_samples > 0:
-            # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
-            x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+            if self.num_tile_samples > 0:
+                # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
+                x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+                
+            has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
 
         ### Load Image Labels ###
         ground_truth_label = util_fns.get_ground_truth_label(image_name)
-        has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
         
         ### Load Object Detection Labels ###
         bbox_labels = []
         
         if self.is_object_detection:
             # Loop through each image in series
-            for image in x:
+            for image, resize_factor in zip(x, resize_factors):
                 bbox_label = {}
                 
-                if ground_truth_label == 1 \
-                and image_name not in self.metadata['omit_no_bbox']+self.metadata['omit_no_xml'] \
-                and util_fns.get_fire_name(image_name) not in self.metadata['unlabeled_fires']: 
+                if image_name in self.metadata['bbox_labels']: 
                     # Append real positive image data
-                    bbox_label['boxes'] = self.metadata['bbox_labels'][image_name]
+                    bboxes = self.metadata['bbox_labels'][image_name]
+                    
+                    # Resize bboxes to appropriate image resize factor
+                    for i in range(len(bboxes)):
+                        bboxes[i][0] *= resize_factor[1]
+                        bboxes[i][1] *= resize_factor[0]
+                        bboxes[i][2] *= resize_factor[1]
+                        bboxes[i][3] *= resize_factor[0]
+                    
+                        # Make sure bbox isn't bigger than crop_height
+                        bboxes[i][1] = np.minimum(bboxes[i][2], self.crop_height-1)
+                        bboxes[i][3] = np.minimum(bboxes[i][2], self.crop_height)
+                    
+                    bbox_label['boxes'] = bboxes
                     bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
 #                     bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
@@ -608,5 +628,5 @@ class DynamicDataloader(Dataset):
                 
         # Determine if tile predictions should be masked
         omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
-        
+                
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask

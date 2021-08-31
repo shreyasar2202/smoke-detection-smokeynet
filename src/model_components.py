@@ -24,6 +24,7 @@ from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
 import torchvision.models.detection
 import rcnn.faster_rcnn_noresize
+import rcnn.retinanet_noresize
 
 # Other imports 
 import numpy as np
@@ -779,22 +780,16 @@ class TileToImage_LinearEmbeddings(nn.Module):
 ########################### 
     
 class RawToTile_ObjectDetection(nn.Module):
-    def __init__(self, resize_dimensions=(1344, 1792), crop_height=1120, backbone_size='maskrcnn', **kwargs):
+    def __init__(self, backbone_size='maskrcnn', **kwargs):
         print('- RawToTile_ObjectDetection')
         super().__init__()
         
-        if backbone_size == 'maskrcnn':
-            self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
-        elif backbone_size == 'retinanet':
-            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        if backbone_size == 'retinanet':
+            self.model = rcnn.retinanet_noresize.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         elif backbone_size == 'fasterrcnn':
-            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5, fixed_size=(crop_height,resize_dimensions[1]))
+            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         elif backbone_size == 'fasterrcnnmobile':
-            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
-        elif backbone_size == 'ssd':
-            self.model = torchvision.models.detection.ssd300_vgg16(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
-        elif backbone_size == 'ssdlite':
-            self.model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
         else:
             print('RawToTile_ObjectDetection: backbone_size not recognized.')
         
@@ -804,11 +799,11 @@ class RawToTile_ObjectDetection(nn.Module):
         
         x = [item for sublist in x for item in sublist]
         bbox_labels = [item for sublist in bbox_labels for item in sublist]
-                        
+                                
         # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         outputs = self.model(x, bbox_labels)
-        
+                
         # If training
         if type(outputs) is dict:
             return None, outputs

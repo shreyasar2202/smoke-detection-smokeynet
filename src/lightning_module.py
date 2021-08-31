@@ -260,54 +260,55 @@ class LightningModule(pl.LightningModule):
                     corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
                     corrected_fire_preds_dict[fire_name].append(corrected_positive_pred)
         
-        if self.logger is not None: image_preds_csv.close()
+        if self.logger is not None: 
+            image_preds_csv.close()
         
-        # Log image metrics for both raw and corrected image predictions
-        for i, fire_preds_dict in enumerate([raw_fire_preds_dict, corrected_fire_preds_dict]):
-            # Don't calculate corrected metrics if not omitting images from test
-            if not self.omit_images_from_test and i ==1: break
-            s = 'corrected_' if i == 1 else ''
-                        
-            # Create data structure to store preds of all relevant fires
-            fire_preds = []
-            for fire in fire_preds_dict:
-                # ASSUMPTION: only calculate statistics for fires with 81 images
-                if len(fire_preds_dict[fire]) == 81-(self.series_length-1):
-                    fire_preds.append(fire_preds_dict[fire])
+            # Log image metrics for both raw and corrected image predictions
+            for i, fire_preds_dict in enumerate([raw_fire_preds_dict, corrected_fire_preds_dict]):
+                # Don't calculate corrected metrics if not omitting images from test
+                if not self.omit_images_from_test and i ==1: break
+                s = 'corrected_' if i == 1 else ''
 
-            fire_preds = torch.as_tensor(fire_preds, dtype=int)
+                # Create data structure to store preds of all relevant fires
+                fire_preds = []
+                for fire in fire_preds_dict:
+                    # ASSUMPTION: only calculate statistics for fires with 81 images
+                    if len(fire_preds_dict[fire]) == 81-(self.series_length-1):
+                        fire_preds.append(fire_preds_dict[fire])
 
-            if len(fire_preds) == 0:
-                print("Could not compute Test Evaluation Metrics.")
-                return
+                fire_preds = torch.as_tensor(fire_preds, dtype=int)
 
-            ### Compute & log metrics ###
-            if i == 0:
-                negative_preds = fire_preds[:,:fire_preds.shape[1]//2-(self.series_length-1)] 
-                self.log(self.metrics['split'][2]+s+'negative_accuracy',
-                         util_fns.calculate_negative_accuracy(negative_preds))
-                self.log(self.metrics['split'][2]+s+'negative_accuracy_by_fire',
-                         util_fns.calculate_negative_accuracy_by_fire(negative_preds))
-            
-            positive_preds = fire_preds[:,fire_preds.shape[1]//2-(self.series_length-1):]
-            self.log(self.metrics['split'][2]+s+'positive_accuracy',
-                     util_fns.calculate_positive_accuracy(positive_preds))
-            self.log(self.metrics['split'][2]+s+'positive_accuracy_by_fire',
-                     util_fns.calculate_positive_accuracy_by_fire(positive_preds))
+                if len(fire_preds) == 0:
+                    print("Could not compute Test Evaluation Metrics.")
+                    return
 
-            # Use 'global_step' to graph positive_accuracy_by_time and positive_cumulative_accuracy
-            positive_accuracy_by_time = util_fns.calculate_positive_accuracy_by_time(positive_preds)
-            positive_cumulative_accuracy = util_fns.calculate_positive_cumulative_accuracy(positive_preds)
+                ### Compute & log metrics ###
+                if i == 0:
+                    negative_preds = fire_preds[:,:fire_preds.shape[1]//2-(self.series_length-1)] 
+                    self.log(self.metrics['split'][2]+s+'negative_accuracy',
+                             util_fns.calculate_negative_accuracy(negative_preds))
+                    self.log(self.metrics['split'][2]+s+'negative_accuracy_by_fire',
+                             util_fns.calculate_negative_accuracy_by_fire(negative_preds))
 
-            for i in range(len(positive_accuracy_by_time)):
-                self.logger.experiment.add_scalar(self.metrics['split'][2]+s+'positive_accuracy_by_time',
-                                                 positive_accuracy_by_time[i], global_step=i)
-                self.logger.experiment.add_scalar(self.metrics['split'][2]+s+'positive_cumulative_accuracy',
-                                                 positive_cumulative_accuracy[i], global_step=i)
+                positive_preds = fire_preds[:,fire_preds.shape[1]//2-(self.series_length-1):]
+                self.log(self.metrics['split'][2]+s+'positive_accuracy',
+                         util_fns.calculate_positive_accuracy(positive_preds))
+                self.log(self.metrics['split'][2]+s+'positive_accuracy_by_fire',
+                         util_fns.calculate_positive_accuracy_by_fire(positive_preds))
 
-            average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds)
-            self.log(self.metrics['split'][2]+s+'average_time_to_detection', average_time_to_detection)
-            self.log(self.metrics['split'][2]+s+'median_time_to_detection', median_time_to_detection)
-            self.log(self.metrics['split'][2]+s+'std_time_to_detection', std_time_to_detection)
+                # Use 'global_step' to graph positive_accuracy_by_time and positive_cumulative_accuracy
+                positive_accuracy_by_time = util_fns.calculate_positive_accuracy_by_time(positive_preds)
+                positive_cumulative_accuracy = util_fns.calculate_positive_cumulative_accuracy(positive_preds)
+
+                for i in range(len(positive_accuracy_by_time)):
+                    self.logger.experiment.add_scalar(self.metrics['split'][2]+s+'positive_accuracy_by_time',
+                                                     positive_accuracy_by_time[i], global_step=i)
+                    self.logger.experiment.add_scalar(self.metrics['split'][2]+s+'positive_cumulative_accuracy',
+                                                     positive_cumulative_accuracy[i], global_step=i)
+
+                average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds)
+                self.log(self.metrics['split'][2]+s+'average_time_to_detection', average_time_to_detection)
+                self.log(self.metrics['split'][2]+s+'median_time_to_detection', median_time_to_detection)
+                self.log(self.metrics['split'][2]+s+'std_time_to_detection', std_time_to_detection)
         
         print("Computing Test Evaluation Metrics Complete.")
