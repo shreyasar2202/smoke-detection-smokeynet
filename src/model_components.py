@@ -784,7 +784,13 @@ class RawToTile_ObjectDetection(nn.Module):
         print('- RawToTile_ObjectDetection')
         super().__init__()
         
-        if backbone_size == 'retinanet':
+        if backbone_size == 'retinanet_original':
+            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'fasterrcnn_original':
+            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'fasterrcnnmobile_original':
+            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+        elif backbone_size == 'retinanet':
             self.model = rcnn.retinanet_noresize.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         elif backbone_size == 'fasterrcnn':
             self.model = rcnn.faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
@@ -796,10 +802,10 @@ class RawToTile_ObjectDetection(nn.Module):
     def forward(self, x, bbox_labels, **kwargs):
         x = x.float()
         batch_size, series_length, num_channels, height, width = x.size()
-        
+                
         x = [item for sublist in x for item in sublist]
         bbox_labels = [item for sublist in bbox_labels for item in sublist]
-                                
+                                                
         # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
         outputs = self.model(x, bbox_labels)
@@ -836,6 +842,8 @@ class RawToTile_CustomMaskRCNN(nn.Module):
         
         x = [item for sublist in x for item in sublist]
         bbox_labels = [item for sublist in bbox_labels for item in sublist]
+        
+        import pdb; pdb.set_trace()
                         
         # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
         # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']

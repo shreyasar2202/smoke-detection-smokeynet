@@ -126,9 +126,7 @@ class MainModel(nn.Module):
             
             # Compute forward pass
             outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
-            
-            print(bbox_labels)
-            
+                        
             # If x is a dictionary of object detection losses...
             if type(x) is dict:
                 # If training...
@@ -140,8 +138,9 @@ class MainModel(nn.Module):
                 else:
                     # Determine if there were any scores above confidence = 0
                     image_preds = torch.as_tensor([(output['scores'] > 0).sum() > 0 for output in outputs]).to(device)
-                    if image_preds.sum() > 0:
-                        import pdb; pdb.set_trace()
+#                     if image_preds.sum() > 0:
+#                         print(outputs)
+#                         import pdb; pdb.set_trace()
                     
                     # Use number of errors as loss
                     total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()

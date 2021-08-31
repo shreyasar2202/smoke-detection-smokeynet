@@ -545,7 +545,10 @@ class DynamicDataloader(Dataset):
                 img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
             # Rescale and normalize
-            img = util_fns.normalize_image(img)
+            if self.is_object_detection:
+                img = img / 255 
+            else:
+                img = util_fns.normalize_image(img)
 
             x.append(img)
         
@@ -603,16 +606,16 @@ class DynamicDataloader(Dataset):
                     # Resize bboxes to appropriate image resize factor
                     for i in range(len(bboxes)):
                         bboxes[i][0] *= resize_factor[1]
-                        bboxes[i][1] *= resize_factor[0]
+                        bboxes[i][1] = bboxes[i][1]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
                         bboxes[i][2] *= resize_factor[1]
-                        bboxes[i][3] *= resize_factor[0]
+                        bboxes[i][3] = bboxes[i][3]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
                     
                         # Make sure bbox isn't bigger than crop_height
-                        bboxes[i][1] = np.minimum(bboxes[i][2], self.crop_height-1)
-                        bboxes[i][3] = np.minimum(bboxes[i][2], self.crop_height)
+#                         bboxes[i][1] = np.minimum(bboxes[i][1], self.crop_height-1)
+#                         bboxes[i][3] = np.minimum(bboxes[i][3], self.crop_height)
                     
-                    bbox_label['boxes'] = bboxes
-                    bbox_label['labels'] = [1]*len(self.metadata['bbox_labels'][image_name])
+                    bbox_label['boxes'] = torch.as_tensor(bboxes, dtype=torch.float32)
+                    bbox_label['labels'] = torch.as_tensor([1]*len(self.metadata['bbox_labels'][image_name]), dtype=torch.int64)
 #                     bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
@@ -621,12 +624,13 @@ class DynamicDataloader(Dataset):
                                   "area": torch.zeros(0, dtype=torch.float32)}
 #                                   "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
                     
-                for key in bbox_label:
-                    bbox_label[key] = torch.as_tensor(bbox_label[key])
-                    
                 bbox_labels.append(bbox_label)
                 
         # Determine if tile predictions should be masked
         omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
-                
+        
+#         np.save('x.npy', x)
+#         np.save('y.npy', bbox_labels)
+#         import pdb; pdb.set_trace()
+                        
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask
