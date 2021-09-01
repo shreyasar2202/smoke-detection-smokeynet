@@ -6,7 +6,7 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_LR1e3" \
+    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50_LR1e3" \
     --model-type-list "RawToTile_ObjectDetection" \
     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
     --batch-size 4 \
@@ -30,7 +30,7 @@ python3.9 src/main.py \
     --confidence-threshold 0.5 \
     
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_LR1e5" \
+    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50_LR1e5" \
     --model-type-list "RawToTile_ObjectDetection" \
     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
     --batch-size 4 \
@@ -81,7 +81,7 @@ python3.9 src/main.py \
     
 
 #####################
-## Best Run
+## Baseline Model
 #####################
 
 # python3.9 src/main.py \
@@ -103,12 +103,12 @@ python3.9 src/main.py \
 #####################
 
 # python3.9 src/main.py \
-#     --experiment-name "Final_MaskRCNN" \
-#     --model-type-list "RawToTile_MaskRCNN" \
+#     --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50_LR1e3" \
+#     --model-type-list "RawToTile_ObjectDetection" \
 #     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-#     --batch-size 2 \
+#     --batch-size 4 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 16 \
+#     --accumulate-grad-batches 8 \
 #     --num-workers 6 \
 #     --train-split-path './data/final_split/train_images_final.txt' \
 #     --val-split-path './data/final_split/val_images_final.txt' \
@@ -117,9 +117,14 @@ python3.9 src/main.py \
 #     --tile-size 1 \
 #     --resize-height 1344 \
 #     --resize-width 1792 \
-#     --crop-height 1344 \
+#     --crop-height 1120 \
 #     --tile-overlap 0 \
-#     --learning-rate 0.01 \
+#     --backbone-size 'fasterrcnnmobile' \
+#     --no-early-stopping \
+#     --learning-rate 1e-3 \
+#     --time-range-min 0 \
+#     --max-epochs 25 \
+#     --confidence-threshold 0.5 \
 
 #########################
 ## Load from Checkpoint
@@ -139,6 +144,8 @@ python3.9 src/main.py \
 #     --resize-width 1792 \
 #     --crop-height 1344 \
 #     --tile-overlap 0 \
+
+### Old Stuff ###
 
 #########################
 ## HEM
@@ -178,8 +185,6 @@ python3.9 src/main.py \
 #     --test-split-path './data/split2/test_images2.txt' \
 #     --is-hem-training \
 #     --checkpoint-path './saved_logs_195-209/2MobileNet_LSTM_SpatialViT_90Resize_DataAugment_ImagePreds/version_0/checkpoints/epoch=16-step=4317.ckpt' \
-
-### Old Stuff ###
 
 #########################
 ## Load Backbone Checkpoint
