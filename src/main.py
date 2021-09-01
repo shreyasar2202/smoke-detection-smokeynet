@@ -36,8 +36,8 @@ parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
                     help='Skips training for testing only. Useful when checkpoint loading.')
-parser.add_argument('--is-hem-training', action='store_true',
-                    help='Enables hard example mining training. Prevents loading Trainer from checkpoint and loads train set exactly as is.')
+parser.add_argument('--is-extra-training', action='store_true',
+                    help='Enables extra training. Prevents loading Trainer from checkpoint.')
 parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
 parser.add_argument('--mask-omit-images', action='store_true',
@@ -196,7 +196,7 @@ parser.add_argument('--checkpoint-path', type=str, default=None,
 def main(# Debug args
         is_debug=False,
         is_test_only=False,
-        is_hem_training=False,
+        is_extra_training=False,
         omit_list=None,
         mask_omit_images=False,
         is_object_detection=False,
@@ -287,7 +287,6 @@ def main(# Debug args
 
     ### Initialize data_module ###
     data_module = DynamicDataModule(
-        is_hem_training=is_hem_training,
         omit_list=omit_list,
         mask_omit_images=mask_omit_images,
         is_object_detection=is_object_detection,
@@ -422,7 +421,7 @@ def main(# Debug args
         accumulate_grad_batches=accumulate_grad_batches,
 
         # Other args
-        resume_from_checkpoint=checkpoint_path if not is_hem_training else None,
+        resume_from_checkpoint=checkpoint_path if not is_extra_training else None,
         logger=logger if not is_debug else False,
         log_every_n_steps=512/(batch_size*accumulate_grad_batches),
 #             val_check_interval=0.5,
@@ -458,7 +457,7 @@ if __name__ == '__main__':
         checkpoint = None
     
     # Load args from checkpoint if it exists and not hem_training
-    if args['checkpoint_path'] is None or args['is_hem_training']:
+    if args['checkpoint_path'] is None or args['is_extra_training']:
         parsed_args = args
     else:
         parsed_args = checkpoint['hyper_parameters']
@@ -466,7 +465,7 @@ if __name__ == '__main__':
     main(# Debug args
         is_debug=args['is_debug'],
         is_test_only=args['is_test_only'],
-        is_hem_training=args['is_hem_training'],
+        is_extra_training=args['is_extra_training'],
         omit_list=parsed_args['omit_list'],
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
