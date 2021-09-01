@@ -5,47 +5,17 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
     
-python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5" \
-    --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --tile-size 1 \
-    --resize-height 1512 \
-    --resize-width 2016 \
-    --crop-height 1512 \
-    --tile-overlap 0 \
-    --backbone-size 'fasterrcnnmobile' \
-    --no-early-stopping \
-    --learning-rate 1e-5 \
-    --time-range-min 0 \
-    --max-epochs 10 \
-    --no-resize-crop-augment \
-    --no-flip-augment \
-    --no-blur-augment \
-    --no-color-augment \
-    --no-brightness-contrast-augment \
-    --checkpoint-path './lightning_logs/Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5/version_0/checkpoints/last.ckpt' \
-    
 # python3.9 src/main.py \
-#     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
+#     --experiment-name "Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5" \
 #     --model-type-list "RawToTile_ObjectDetection" \
 #     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-#     --batch-size 2 \
+#     --batch-size 4 \
 #     --series-length 1 \
-#     --accumulate-grad-batches 1 \
-#     --num-workers 0 \
-#     --train-split-path './data/1pos.txt' \
-#     --val-split-path './data/1pos.txt' \
-#     --test-split-path './data/1pos.txt' \
-#     --load-images-from-split \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
 #     --is-object-detection \
 #     --tile-size 1 \
 #     --resize-height 1512 \
@@ -54,14 +24,44 @@ python3.9 src/main.py \
 #     --tile-overlap 0 \
 #     --backbone-size 'fasterrcnnmobile' \
 #     --no-early-stopping \
-#     --learning-rate 1e-3 \
+#     --learning-rate 1e-5 \
 #     --time-range-min 0 \
-#     --max-epochs 500 \
+#     --max-epochs 10 \
 #     --no-resize-crop-augment \
 #     --no-flip-augment \
 #     --no-blur-augment \
 #     --no-color-augment \
 #     --no-brightness-contrast-augment \
+#     --checkpoint-path './lightning_logs/Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5/version_0/checkpoints/last.ckpt' \
+    
+python3.9 src/main.py \
+    --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
+    --model-type-list "RawToTile_ObjectDetection" \
+    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+    --batch-size 2 \
+    --series-length 1 \
+    --accumulate-grad-batches 1 \
+    --num-workers 0 \
+    --train-split-path './data/1pos.txt' \
+    --val-split-path './data/1pos.txt' \
+    --test-split-path './data/1pos.txt' \
+    --load-images-from-split \
+    --is-object-detection \
+    --tile-size 1 \
+    --resize-height 1512 \
+    --resize-width 2016 \
+    --crop-height 1512 \
+    --tile-overlap 0 \
+    --backbone-size 'fasterrcnnmobile' \
+    --no-early-stopping \
+    --learning-rate 1e-3 \
+    --time-range-min 0 \
+    --max-epochs 5 \
+    --no-resize-crop-augment \
+    --no-flip-augment \
+    --no-blur-augment \
+    --no-color-augment \
+    --no-brightness-contrast-augment \
     
 # python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \

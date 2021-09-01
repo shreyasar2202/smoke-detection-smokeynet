@@ -248,10 +248,10 @@ class LightningModule(pl.LightningModule):
 
         # Create data structure to store preds of all relevant fires
         fire_preds = []
-        for fire in fire_preds_dict:
+        for fire in raw_fire_preds_dict:
             # ASSUMPTION: only calculate statistics for fires with 81 images
-            if len(fire_preds_dict[fire]) == 81-(self.series_length-1):
-                fire_preds.append(fire_preds_dict[fire])
+            if len(raw_fire_preds_dict[fire]) == 81-(self.series_length-1):
+                fire_preds.append(raw_fire_preds_dict[fire])
 
         fire_preds = torch.as_tensor(fire_preds, dtype=int)
 

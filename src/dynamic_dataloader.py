@@ -308,12 +308,8 @@ class DynamicDataModule(pl.LightningDataModule):
             
             # Shorten fire_to_images to relevant time frame
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
-            if not self.is_object_detection:
-                self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
-            else:
-                # Shorten val only by series_length if object detection
-                self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
-            # Shorten test only by series_length
+            # Shorten val/test only by series_length
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length,  self.add_base_flow)
             self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
             
             # Create train/val/test split of Images
@@ -527,7 +523,7 @@ class DynamicDataloader(Dataset):
             
             # Rescale and normalize
             if self.is_object_detection:
-                img = img / 255 
+                img = img / 255 # torchvision object detection expects input [0,1]
             else:
                 img = util_fns.normalize_image(img)
 
@@ -553,26 +549,24 @@ class DynamicDataloader(Dataset):
                 # Repeat similar steps to images
                 labels = np.load(label_path)
 
-                if labels.shape[:2] != self.original_dimensions:
-                    labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
-
                 labels = data_augmentations(labels, is_labels=True)
             else:
                 # labels.shape = [height, width]
                 labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
 
-            # Tile labels
-            tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+            if not self.is_object_detection:
+                # Tile labels
+                tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-            # labels.shape = [num_tiles]
-            tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
+                # labels.shape = [num_tiles]
+                tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
-            if self.num_tile_samples > 0:
-                # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
-                x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+                if self.num_tile_samples > 0:
+                    # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
+                    x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
             
-            # Determine if tile predictions should be masked
-            omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
+                # Determine if tile predictions should be masked
+                omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
         
         ### Load Object Detection Labels ###
         else:
@@ -607,7 +601,8 @@ class DynamicDataloader(Dataset):
 #                                   "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
                     
                 bbox_labels.append(bbox_label)
-                
+               
+        # DEBUG: delete later
 #         np.save('x.npy', x)
 #         np.save('y.npy', bbox_labels)
 #         import pdb; pdb.set_trace()

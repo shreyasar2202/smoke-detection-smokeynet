@@ -316,7 +316,7 @@ class DataAugmentations():
         if self.should_blur:
             self.blur_size = np.maximum(int(np.random.randn()*3+10), 1)
         
-    def __call__(self, img, is_labels=False):
+    def process_image(self, img, is_labels=False):
         img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
         if self.resize_crop_augment:
             img = img[-(self.crop_height+self.tile_dimensions[0]):]
@@ -343,6 +343,8 @@ class DataAugmentations():
             img = cv2.blur(img, (self.blur_size,self.blur_size))
         
         return img
+    
+    
 
 def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
     """

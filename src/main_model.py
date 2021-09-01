@@ -134,10 +134,13 @@ class MainModel(nn.Module):
                     # Use losses from model
                     for loss in x:
                         total_loss += x[loss]
+                
                 # Else for val/test loss...
                 else:
                     # Determine if there were any scores above confidence = 0
                     image_preds = torch.as_tensor([(output['scores'] > 0).sum() > 0 for output in outputs]).to(device)
+                    
+                    # DEBUG: delete eventually
 #                     if image_preds.sum() > 0:
 #                         print(outputs)
 #                         import pdb; pdb.set_trace()
@@ -193,6 +196,7 @@ class MainModel(nn.Module):
         # If created image_outputs, predict directly
         if self.use_image_preds and image_outputs is not None:
             image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
+        
         # Else, use tile_preds to determine image_preds
         elif tile_outputs is not None:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
