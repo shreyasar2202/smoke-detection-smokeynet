@@ -316,7 +316,11 @@ class DataAugmentations():
         if self.should_blur:
             self.blur_size = np.maximum(int(np.random.randn()*3+10), 1)
         
-    def process_image(self, img, is_labels=False):
+    def __call__(self, img, is_labels=False):
+        # Save resize factor for bbox labels
+        self.resize_factor = np.array(self.resize_dimensions) / np.array(img.shape[:2])
+        
+        # Resize & crop
         img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
         if self.resize_crop_augment:
             img = img[-(self.crop_height+self.tile_dimensions[0]):]
@@ -325,10 +329,12 @@ class DataAugmentations():
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = img[-self.crop_height:]
 
+        # Flip
         if self.should_flip:
             img = cv2.flip(img, 1)
             
         if not is_labels:
+            # Color
             if self.should_color:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
                 img[:,:,0] = np.add(img[:,:,0], np.random.randn()*2, casting="unsafe")
@@ -336,15 +342,32 @@ class DataAugmentations():
             else:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+        # Brightness contrast
         if self.should_brightness and not is_labels:
             img = cv2.convertScaleAbs(img, alpha=np.random.uniform(0.95,1.05), beta=np.random.randint(-10,10))
 
+        # Blur
         if self.should_blur:
             img = cv2.blur(img, (self.blur_size,self.blur_size))
         
         return img
     
-    
+    def process_bboxes(self, gt_bboxes):
+        bboxes = []
+        
+        # Resize bboxes to appropriate image resize factor
+        for i in range(len(gt_bboxes)):
+            bboxes.append([0,0,0,0])
+            bboxes[i][0] = gt_bboxes[i][0]*self.resize_factor[1]
+            bboxes[i][1] = gt_bboxes[i][1]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+            bboxes[i][2] = gt_bboxes[i][2]*self.resize_factor[1]
+            bboxes[i][3] = gt_bboxes[i][3]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+
+            # Make sure bbox isn't bigger than crop_height
+#                         bboxes[i][1] = np.minimum(bboxes[i][1], self.crop_height-1)
+#                         bboxes[i][3] = np.minimum(bboxes[i][3], self.crop_height)
+
+        return bboxes
 
 def tile_image(img, num_tiles_height, num_tiles_width, resize_dimensions, tile_dimensions, tile_overlap):
     """

@@ -502,15 +502,11 @@ class DynamicDataloader(Dataset):
         
         ### Load Images ###
         x = []
-        resize_factors = []
         
         for file_name in self.metadata['image_series'][image_name]:
             # Load image
             # img.shape = [height, width, num_channels]
             img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-            
-            # Save resize factor for bbox_labels
-            resize_factors.append(np.array(self.resize_dimensions) / np.array(img.shape[:2]))
             
             # Apply data augmentations
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
@@ -571,29 +567,17 @@ class DynamicDataloader(Dataset):
         ### Load Object Detection Labels ###
         else:
             # Loop through each image in series
-            for image, resize_factor in zip(x, resize_factors):
+            for image in x:
                 bbox_label = {}
                 
                 if image_name in self.metadata['bbox_labels']: 
                     # Append real positive image data
-                    bboxes = []
-                    
-                    # Resize bboxes to appropriate image resize factor
-                    for i in range(len(self.metadata['bbox_labels'][image_name])):
-                        bboxes.append([0,0,0,0])
-                        bboxes[i][0] = self.metadata['bbox_labels'][image_name][i][0]*resize_factor[1]
-                        bboxes[i][1] = self.metadata['bbox_labels'][image_name][i][1]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
-                        bboxes[i][2] = self.metadata['bbox_labels'][image_name][i][2]*resize_factor[1]
-                        bboxes[i][3] = self.metadata['bbox_labels'][image_name][i][3]*resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
-                    
-                        # Make sure bbox isn't bigger than crop_height
-#                         bboxes[i][1] = np.minimum(bboxes[i][1], self.crop_height-1)
-#                         bboxes[i][3] = np.minimum(bboxes[i][3], self.crop_height)
-                    
+                    bboxes = data_augmentations.process_bboxes(self.metadata['bbox_labels'][image_name])
                     bbox_label['boxes'] = torch.as_tensor(bboxes, dtype=torch.float32)
                     bbox_label['labels'] = torch.as_tensor([1]*len(self.metadata['bbox_labels'][image_name]), dtype=torch.int64)
 #                     bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
+                    # Use negative data
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
                                   "labels": torch.zeros(0, dtype=torch.int64),
