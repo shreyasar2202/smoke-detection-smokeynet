@@ -45,6 +45,7 @@ class MainModel(nn.Module):
                  focal_gamma=2,
                  image_loss_only=False,
                  image_pos_weight=1,
+                 confidence_threshold=0,
                  
                  **kwargs):
         
@@ -68,6 +69,7 @@ class MainModel(nn.Module):
         self.use_image_preds = use_image_preds
         self.image_loss_only = image_loss_only
         self.image_pos_weight = image_pos_weight
+        self.confidence_threshold = confidence_threshold
 
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
@@ -138,7 +140,7 @@ class MainModel(nn.Module):
                 # Else for val/test loss...
                 else:
                     # Determine if there were any scores above confidence = 0
-                    image_preds = torch.as_tensor([(output['scores'] > 0).sum() > 0 for output in outputs]).to(device)
+                    image_preds = torch.as_tensor([(output['scores'] > self.confidence_threshold).sum() > 0 for output in outputs]).to(device)
                     
                     # DEBUG: delete eventually
 #                     if image_preds.sum() > 0:

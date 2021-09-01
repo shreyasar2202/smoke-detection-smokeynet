@@ -587,8 +587,8 @@ class DynamicDataloader(Dataset):
                 bbox_labels.append(bbox_label)
                
         # DEBUG: delete later
-        np.save('x.npy', x)
-        np.save('y.npy', bbox_labels)
-        import pdb; pdb.set_trace()
+#         np.save('x.npy', x)
+#         np.save('y.npy', bbox_labels)
+#         import pdb; pdb.set_trace()
                         
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, omit_mask

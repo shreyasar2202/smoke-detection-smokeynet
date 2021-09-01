@@ -155,6 +155,8 @@ parser.add_argument('--image-loss-only', action='store_true',
                     help='Only train on image loss, not tile loss.')
 parser.add_argument('--image-pos-weight', type=float, default=1,
                     help='Weight for positive class for BCE loss for images.')
+parser.add_argument('--confidence-threshold', type=float, default=0,
+                    help='Treshold for object detection confidence to consider positive label.')
 
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
@@ -260,6 +262,7 @@ def main(# Debug args
         focal_gamma=2,
         image_loss_only=False,
         image_pos_weight=1,
+        confidence_threshold=0,
 
         # Optimizer args
         optimizer_type='SGD',
@@ -345,6 +348,7 @@ def main(# Debug args
                      focal_gamma=focal_gamma,
                      image_loss_only=image_loss_only,
                      image_pos_weight=image_pos_weight,
+                     confidence_threshold=confidence_threshold,
 
                      freeze_backbone=freeze_backbone, 
                      pretrain_backbone=pretrain_backbone,
@@ -529,6 +533,7 @@ if __name__ == '__main__':
         focal_gamma=parsed_args['focal_gamma'],
         image_loss_only=parsed_args['image_loss_only'],
         image_pos_weight=parsed_args['image_pos_weight'],
+        confidence_threshold=parsed_args['confidence_threshold'],
         
         # Optimizer args
         optimizer_type=parsed_args['optimizer_type'],
