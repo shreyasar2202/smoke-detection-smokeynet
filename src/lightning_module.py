@@ -32,7 +32,6 @@ class LightningModule(pl.LightningModule):
 
     def __init__(self,
                  model,
-                 omit_images_from_test=False,
                  
                  optimizer_type='SGD',
                  optimizer_weight_decay=0.0001,
@@ -44,7 +43,6 @@ class LightningModule(pl.LightningModule):
         """
         Args:
             - model (torch.nn.Module): model to use for training/evaluation
-            - omit_images_from_test (bool): prevents logging of tile-related metrics
             
             - optimizer_type (str): type of optimizer to use. Options: [AdamW] [SGD]
             - optimizer_weight_decay (float): weight decay to use with optimizer
@@ -70,7 +68,6 @@ class LightningModule(pl.LightningModule):
         
         # Initialize model
         self.model = model
-        self.omit_images_from_test = omit_images_from_test
         self.series_length = series_length
         
         # Initialize optimizer params
@@ -157,7 +154,7 @@ class LightningModule(pl.LightningModule):
 
         # Calculate & log evaluation metrics
         # Don't log tile-related metrics if test and not omitting images from test
-        if split==self.metrics['split'][2] and not self.omit_images_from_test:
+        if split==self.metrics['split'][2]:
             for name in self.metrics['name']:
                 self.metrics['torchmetric'][split+self.metrics['category'][1]+name].to(self.device)(image_preds, ground_truth_labels)
                 self.log(split+self.metrics['category'][1]+name, 
@@ -255,10 +252,6 @@ class LightningModule(pl.LightningModule):
                     corrected_fire_preds_dict[fire_name] = []
 
                 raw_fire_preds_dict[fire_name].append(image_pred)
-                
-                if self.omit_images_from_test:
-                    corrected_positive_pred = ((tile_pred * tile_label).sum() > 0).int()
-                    corrected_fire_preds_dict[fire_name].append(corrected_positive_pred)
         
         if self.logger is not None: 
             image_preds_csv.close()
@@ -266,7 +259,7 @@ class LightningModule(pl.LightningModule):
             # Log image metrics for both raw and corrected image predictions
             for i, fire_preds_dict in enumerate([raw_fire_preds_dict, corrected_fire_preds_dict]):
                 # Don't calculate corrected metrics if not omitting images from test
-                if not self.omit_images_from_test and i ==1: break
+                if i ==1: break
                 s = 'corrected_' if i == 1 else ''
 
                 # Create data structure to store preds of all relevant fires

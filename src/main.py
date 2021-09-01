@@ -40,8 +40,6 @@ parser.add_argument('--is-hem-training', action='store_true',
                     help='Enables hard example mining training. Prevents loading Trainer from checkpoint and loads train set exactly as is.')
 parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
-parser.add_argument('--omit-images-from-test', action='store_true',
-                    help='Omits omit_list_images from the test set.')
 parser.add_argument('--mask-omit-images', action='store_true',
                     help='Masks tile predictions for images in omit_list_images.')
 parser.add_argument('--is-object-detection', action='store_true',
@@ -200,7 +198,6 @@ def main(# Debug args
         is_test_only=False,
         is_hem_training=False,
         omit_list=None,
-        omit_images_from_test=False,
         mask_omit_images=False,
         is_object_detection=False,
         
@@ -292,7 +289,6 @@ def main(# Debug args
     data_module = DynamicDataModule(
         is_hem_training=is_hem_training,
         omit_list=omit_list,
-        omit_images_from_test=omit_images_from_test,
         mask_omit_images=mask_omit_images,
         is_object_detection=is_object_detection,
         
@@ -367,7 +363,6 @@ def main(# Debug args
         lightning_module = LightningModule.load_from_checkpoint(
                                checkpoint_path,
                                model=main_model,
-                               omit_images_from_test=omit_images_from_test,
 
                                optimizer_type=optimizer_type,
                                optimizer_weight_decay=optimizer_weight_decay,
@@ -379,7 +374,6 @@ def main(# Debug args
     else:
         lightning_module = LightningModule(
                                model=main_model,
-                               omit_images_from_test=omit_images_from_test,
 
                                optimizer_type=optimizer_type,
                                optimizer_weight_decay=optimizer_weight_decay,
@@ -474,7 +468,6 @@ if __name__ == '__main__':
         is_test_only=args['is_test_only'],
         is_hem_training=args['is_hem_training'],
         omit_list=parsed_args['omit_list'],
-        omit_images_from_test=args['omit_images_from_test'],
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
         
