@@ -84,12 +84,12 @@ class LightningModule(pl.LightningModule):
         self.metrics = {}
         self.metrics['torchmetric'] = {}
         self.metrics['split']       = ['train/', 'val/', 'test/']
-        self.metrics['category']    = ['tile_', 'image-gt_', 'image-pos-tile_']
+        self.metrics['category']    = ['tile_', 'image-gt_']
         self.metrics['name']        = ['accuracy', 'precision', 'recall', 'f1']
         
         for split in self.metrics['split']:
-            # Use mdmc_average='global' for tile_preds only
             for i, category in enumerate(self.metrics['category']):
+                # Use mdmc_average='global' for tile_preds only
                 mdmc_average='global' if i == 0 else None
                 
                 self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average=mdmc_average)
@@ -118,7 +118,6 @@ class LightningModule(pl.LightningModule):
         
         if self.lr_schedule:
             # Includes learning rate scheduler
-#             scheduler = CosineAnnealingLR(optimizer,4,verbose=True)
             scheduler = ReduceLROnPlateau(optimizer, 
                                           min_lr=0, 
                                           factor=0.5,
@@ -141,7 +140,7 @@ class LightningModule(pl.LightningModule):
 
     def step(self, batch, split):
         """Description: Takes a batch, calculates forward pass, losses, and predictions, and logs metrics"""
-        image_names, x, tile_labels, bbox_labels, ground_truth_labels, has_positive_tiles, omit_masks = batch
+        image_names, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks = batch
 
         # Compute outputs, loss, and predictions
         losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, self.current_epoch, self.device)
@@ -153,30 +152,19 @@ class LightningModule(pl.LightningModule):
         self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
 
         # Calculate & log evaluation metrics
-        # Don't log tile-related metrics if test and not omitting images from test
-        if split==self.metrics['split'][2]:
+        for category, args in zip(self.metrics['category'], 
+                                  ((tile_preds, tile_labels.int()), 
+                                   (image_preds, ground_truth_labels))
+                                 ):
             for name in self.metrics['name']:
-                self.metrics['torchmetric'][split+self.metrics['category'][1]+name].to(self.device)(image_preds, ground_truth_labels)
-                self.log(split+self.metrics['category'][1]+name, 
-                         self.metrics['torchmetric'][split+self.metrics['category'][1]+name], 
-                         on_step=False, 
-                         on_epoch=True,
-                         metric_attribute=self.metrics['torchmetric'][split+self.metrics['category'][1]+name])
-        else:
-            for category, args in zip(self.metrics['category'], 
-                                      ((tile_preds, tile_labels.int()), 
-                                       (image_preds, ground_truth_labels), 
-                                       (image_preds, has_positive_tiles))
-                                     ):
-                for name in self.metrics['name']:
-                    if args[0] is not None:
-                        # Have to move the metric to self.device 
-                        self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
-                        self.log(split+category+name, 
-                                 self.metrics['torchmetric'][split+category+name], 
-                                 on_step=False, 
-                                 on_epoch=True, 
-                                 metric_attribute=self.metrics['torchmetric'][split+category+name])
+                if args[0] is not None:
+                    # Have to move the metric to self.device 
+                    self.metrics['torchmetric'][split+category+name].to(self.device)(args[0], args[1])
+                    self.log(split+category+name, 
+                             self.metrics['torchmetric'][split+category+name], 
+                             on_step=False, 
+                             on_epoch=True, 
+                             metric_attribute=self.metrics['torchmetric'][split+category+name])
         
         return image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels
 

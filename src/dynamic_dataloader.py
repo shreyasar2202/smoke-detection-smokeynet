@@ -544,7 +544,6 @@ class DynamicDataloader(Dataset):
         ground_truth_label = util_fns.get_ground_truth_label(image_name)
         tiled_labels = np.array([0])
         bbox_labels = []
-        has_positive_tile = False
         omit_mask = False
         
         ### Load Tile Labels ###
@@ -571,8 +570,6 @@ class DynamicDataloader(Dataset):
             if self.num_tile_samples > 0:
                 # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
                 x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
-
-            has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)    
             
             # Determine if tile predictions should be masked
             omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
@@ -615,4 +612,4 @@ class DynamicDataloader(Dataset):
 #         np.save('y.npy', bbox_labels)
 #         import pdb; pdb.set_trace()
                         
-        return image_name, x, tiled_labels, bbox_labels, ground_truth_label, has_positive_tile, omit_mask
+        return image_name, x, tiled_labels, bbox_labels, ground_truth_label, omit_mask
