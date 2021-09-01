@@ -33,6 +33,7 @@
 #     --no-color-augment \
 #     --no-brightness-contrast-augment \
 #     --checkpoint-path './lightning_logs/Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5/version_0/checkpoints/last.ckpt' \
+#     --is-extra-training \
     
 python3.9 src/main.py \
     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
@@ -42,9 +43,9 @@ python3.9 src/main.py \
     --series-length 1 \
     --accumulate-grad-batches 1 \
     --num-workers 0 \
-    --train-split-path './data/1pos.txt' \
-    --val-split-path './data/1pos.txt' \
-    --test-split-path './data/1pos.txt' \
+    --train-split-path './data/100pos.txt' \
+    --val-split-path './data/100pos.txt' \
+    --test-split-path './data/100pos.txt' \
     --load-images-from-split \
     --is-object-detection \
     --tile-size 1 \
@@ -57,11 +58,7 @@ python3.9 src/main.py \
     --learning-rate 1e-3 \
     --time-range-min 0 \
     --max-epochs 5 \
-    --no-resize-crop-augment \
-    --no-flip-augment \
-    --no-blur-augment \
-    --no-color-augment \
-    --no-brightness-contrast-augment \
+    --is-debug
     
 # python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \

@@ -284,7 +284,7 @@ def main(# Debug args
     print("Experiment: ", experiment_name)
     print("- IS_DEBUG: ",  is_debug)
     print("- IS_TEST_ONLY: ", is_test_only)
-
+    
     ### Initialize data_module ###
     data_module = DynamicDataModule(
         omit_list=omit_list,

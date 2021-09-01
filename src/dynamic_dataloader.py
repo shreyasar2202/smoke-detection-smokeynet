@@ -488,7 +488,7 @@ class DynamicDataloader(Dataset):
     def __getitem__(self, idx):
         image_name = self.data_split[idx]
         series_length = len(self.metadata['image_series'][image_name])
-        
+                
         data_augmentations = util_fns.DataAugmentations(self.original_dimensions,
                                                         self.resize_dimensions,
                                                         self.tile_dimensions,
@@ -587,8 +587,8 @@ class DynamicDataloader(Dataset):
                 bbox_labels.append(bbox_label)
                
         # DEBUG: delete later
-#         np.save('x.npy', x)
-#         np.save('y.npy', bbox_labels)
-#         import pdb; pdb.set_trace()
+        np.save('x.npy', x)
+        np.save('y.npy', bbox_labels)
+        import pdb; pdb.set_trace()
                         
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, omit_mask

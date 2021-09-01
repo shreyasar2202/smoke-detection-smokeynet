@@ -303,8 +303,7 @@ class DataAugmentations():
         self.brightness_contrast_augment = brightness_contrast_augment
         
         # Determine amount to jitter height
-        if self.resize_crop_augment:
-            self.jitter_amount = np.random.randint(tile_dimensions[0])
+        self.jitter_amount = np.random.randint(tile_dimensions[0]) if self.resize_crop_augment else 0
         
         # Determine if we should flip this time
         self.should_flip = np.random.rand() > 0.5 if flip_augment else False
@@ -320,14 +319,18 @@ class DataAugmentations():
         # Save resize factor for bbox labels
         self.resize_factor = np.array(self.resize_dimensions) / np.array(img.shape[:2])
         
-        # Resize & crop
+        # Resize
         img = cv2.resize(img, (self.resize_dimensions[1],self.resize_dimensions[0]))
-        if self.resize_crop_augment:
-            img = img[-(self.crop_height+self.tile_dimensions[0]):]
-            img = img[self.jitter_amount:self.crop_height+self.jitter_amount]
-        else:
-            # img.shape = [crop_height, resize_dimensions[1], num_channels]
+        
+        # Save image_center for flipping bboxes
+        self.img_center = np.array(img.shape[:2])[::-1]/2
+        self.img_center = np.hstack((self.img_center, self.img_center))
+        
+        # Crop
+        if self.jitter_amount == 0:
             img = img[-self.crop_height:]
+        else:
+            img = img[-(self.crop_height+self.jitter_amount):-self.jitter_amount]
 
         # Flip
         if self.should_flip:
@@ -358,14 +361,25 @@ class DataAugmentations():
         # Resize bboxes to appropriate image resize factor
         for i in range(len(gt_bboxes)):
             bboxes.append([0,0,0,0])
+            
+            # Scale bbox by resize_factor
             bboxes[i][0] = gt_bboxes[i][0]*self.resize_factor[1]
-            bboxes[i][1] = gt_bboxes[i][1]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+            # Move y-axis by crop_height & jitter_amount
+            bboxes[i][1] = gt_bboxes[i][1]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height-self.jitter_amount)
             bboxes[i][2] = gt_bboxes[i][2]*self.resize_factor[1]
-            bboxes[i][3] = gt_bboxes[i][3]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height)
+            bboxes[i][3] = gt_bboxes[i][3]*self.resize_factor[0] - (self.resize_dimensions[0]-self.crop_height-self.jitter_amount)
 
-            # Make sure bbox isn't bigger than crop_height
-#                         bboxes[i][1] = np.minimum(bboxes[i][1], self.crop_height-1)
-#                         bboxes[i][3] = np.minimum(bboxes[i][3], self.crop_height)
+            # Make sure bbox isn't off-image
+            bboxes[i][1] = np.maximum(bboxes[i][1], 0)
+            bboxes[i][3] = np.maximum(bboxes[i][3], 1)
+            
+            if self.should_flip:
+                # Source: https://blog.paperspace.com/data-augmentation-for-bounding-boxes/
+                bboxes[i][0] += 2*(self.img_center[0] - bboxes[i][0])
+                bboxes[i][2] += 2*(self.img_center[2] - bboxes[i][2])
+                box_w = abs(bboxes[i][0] - bboxes[i][2])
+                bboxes[i][0] -= box_w
+                bboxes[i][2] += box_w
 
         return bboxes
 
