@@ -44,6 +44,8 @@ parser.add_argument('--mask-omit-images', action='store_true',
                     help='Masks tile predictions for images in omit_list_images.')
 parser.add_argument('--is-object-detection', action='store_true',
                     help='Specifies data loader for object detection models.')
+parser.add_argument('--is-maskrcnn', action='store_true',
+                    help='Specifies data loader for mask rcnn models.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -202,6 +204,7 @@ def main(# Debug args
         omit_list=None,
         mask_omit_images=False,
         is_object_detection=False,
+        is_maskrcnn=False,
         
         # Path args
         raw_data_path=None, 
@@ -293,6 +296,7 @@ def main(# Debug args
         omit_list=omit_list,
         mask_omit_images=mask_omit_images,
         is_object_detection=is_object_detection,
+        is_maskrcnn=is_maskrcnn,
         
         # Path args
         raw_data_path=raw_data_path,
@@ -473,6 +477,7 @@ if __name__ == '__main__':
         omit_list=parsed_args['omit_list'],
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
+        is_maskrcnn=parsed_args['is_maskrcnn'],
         
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],

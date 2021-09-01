@@ -23,8 +23,7 @@ import transformers
 from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
 import torchvision.models.detection
-import rcnn.faster_rcnn_noresize
-import rcnn.retinanet_noresize
+from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize
 
 # Other imports 
 import numpy as np
@@ -791,11 +790,15 @@ class RawToTile_ObjectDetection(nn.Module):
         elif backbone_size == 'fasterrcnnmobile_original':
             self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
         elif backbone_size == 'retinanet':
-            self.model = rcnn.retinanet_noresize.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+            self.model = retinanet_noresize.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         elif backbone_size == 'fasterrcnn':
-            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+            self.model = faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         elif backbone_size == 'fasterrcnnmobile':
-            self.model = rcnn.faster_rcnn_noresize.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+            self.model = faster_rcnn_noresize.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+        elif backbone_size == 'ssd':
+            self.model = ssd_noresize.ssd300_vgg16(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        elif backbone_size == 'maskrcnn':
+            self.model = mask_rcnn_noresize.maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
         else:
             print('RawToTile_ObjectDetection: backbone_size not recognized.')
         

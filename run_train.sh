@@ -6,9 +6,9 @@
 #############################################
     
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50_LR1e3" \
+    --experiment-name "Final_FasterRCNNMobile_CT50" \
     --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+    --omit-list "omit_no_xml" "omit_no_bbox" \
     --batch-size 4 \
     --series-length 1 \
     --accumulate-grad-batches 8 \
@@ -24,15 +24,13 @@ python3.9 src/main.py \
     --tile-overlap 0 \
     --backbone-size 'fasterrcnnmobile' \
     --no-early-stopping \
-    --learning-rate 1e-3 \
-    --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
     
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50_LR1e5" \
+    --experiment-name "Final_SSD_OnlyPositives_CT50" \
     --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+    --omit-list "omit_no_xml" "omit_no_bbox" \
     --batch-size 4 \
     --series-length 1 \
     --accumulate-grad-batches 8 \
@@ -46,9 +44,8 @@ python3.9 src/main.py \
     --resize-width 1792 \
     --crop-height 1120 \
     --tile-overlap 0 \
-    --backbone-size 'fasterrcnnmobile' \
+    --backbone-size 'ssd' \
     --no-early-stopping \
-    --learning-rate 1e-5 \
     --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
@@ -56,7 +53,7 @@ python3.9 src/main.py \
 # python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
 #     --model-type-list "RawToTile_ObjectDetection" \
-#     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
+#     --omit-list "omit_no_xml" "omit_no_bbox" \
 #     --batch-size 2 \
 #     --series-length 1 \
 #     --accumulate-grad-batches 1 \

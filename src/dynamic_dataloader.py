@@ -31,6 +31,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  omit_list=None,
                  mask_omit_images=False,
                  is_object_detection=False,
+                 is_maskrcnn=False,
                  
                  raw_data_path=None, 
                  labels_path=None, 
@@ -71,6 +72,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - omit_list (list of str): list of metadata keys to omit from train/val sets
             - mask_omit_images (bool): masks tile predictions for images in omit_list_images
             - is_object_detection (bool): loads labels for use with object detection models
+            - is_maskrcnn (bool): loads both bbox and mask labels for maskrcnn model
             
             - raw_data_path (str): path to raw data
             - labels_path (str): path to Numpy labels
@@ -128,6 +130,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.omit_list = omit_list
         self.mask_omit_images = mask_omit_images
         self.is_object_detection = is_object_detection
+        self.is_maskrcnn = is_maskrcnn
            
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
@@ -340,6 +343,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.train_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
+                                          is_maskrcnn=self.is_maskrcnn,
                                           
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -372,6 +376,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.val_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
+                                          is_maskrcnn=self.is_maskrcnn,
                                         
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -403,6 +408,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           data_split=self.test_split,
                                           omit_images_list=None,
                                           is_object_detection=self.is_object_detection,
+                                          is_maskrcnn=self.is_maskrcnn,
                                          
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -441,6 +447,7 @@ class DynamicDataloader(Dataset):
                  data_split=None, 
                  omit_images_list=None,
                  is_object_detection=False,
+                 is_maskrcnn=False,
                  
                  original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
@@ -464,6 +471,7 @@ class DynamicDataloader(Dataset):
         self.data_split = data_split
         self.omit_images_list = omit_images_list
         self.is_object_detection = is_object_detection
+        self.is_maskrcnn = is_maskrcnn
         
         self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
@@ -539,7 +547,7 @@ class DynamicDataloader(Dataset):
         omit_mask = False
         
         ### Load Tile Labels ###
-        if not self.is_object_detection:
+        if self.is_maskrcnn or not self.is_object_detection:
             label_path = self.labels_path+'/'+image_name+'.npy'
             if Path(label_path).exists():
                 # Repeat similar steps to images
@@ -565,7 +573,7 @@ class DynamicDataloader(Dataset):
                 omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
         
         ### Load Object Detection Labels ###
-        else:
+        if self.is_object_detection:
             # Loop through each image in series
             for image in x:
                 bbox_label = {}
@@ -575,14 +583,16 @@ class DynamicDataloader(Dataset):
                     bboxes = data_augmentations.process_bboxes(self.metadata['bbox_labels'][image_name])
                     bbox_label['boxes'] = torch.as_tensor(bboxes, dtype=torch.float32)
                     bbox_label['labels'] = torch.as_tensor([1]*len(self.metadata['bbox_labels'][image_name]), dtype=torch.int64)
-#                     bbox_label['masks'] = np.expand_dims(labels, 0)
+                    if self.is_maskrcnn:
+                        bbox_label['masks'] = np.expand_dims(labels, 0)
                 else:
                     # Use negative data
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
                     bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
                                   "labels": torch.zeros(0, dtype=torch.int64),
                                   "area": torch.zeros(0, dtype=torch.float32)}
-#                                   "masks": torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)}
+                    if self.is_maskrcnn:
+                        bbox_label['masks'] = torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)
                     
                 bbox_labels.append(bbox_label)
                

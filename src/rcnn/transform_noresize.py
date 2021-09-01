@@ -110,7 +110,7 @@ class GeneralizedRCNNTransform(nn.Module):
             if image.dim() != 3:
                 raise ValueError("images is expected to be a list of 3d tensors "
                                  "of shape [C, H, W], got {}".format(image.shape))
-#             image = self.normalize(image)
+            image = self.normalize(image)
 #             image, target_index = self.resize(image, target_index)
             target_index['boxes'] = target_index['boxes'].float()
             images[i] = image
@@ -128,16 +128,16 @@ class GeneralizedRCNNTransform(nn.Module):
         
         return image_list, targets
 
-#     def normalize(self, image):
-#         if not image.is_floating_point():
-#             raise TypeError(
-#                 f"Expected input images to be of floating type (in range [0, 1]), "
-#                 f"but found type {image.dtype} instead"
-#             )
-#         dtype, device = image.dtype, image.device
-#         mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
-#         std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
-#         return (image - mean[:, None, None]) / std[:, None, None]
+    def normalize(self, image):
+        if not image.is_floating_point():
+            raise TypeError(
+                f"Expected input images to be of floating type (in range [0, 1]), "
+                f"but found type {image.dtype} instead"
+            )
+        dtype, device = image.dtype, image.device
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
+        return (image - mean[:, None, None]) / std[:, None, None]
 
     def torch_choice(self, k):
         # type: (List[int]) -> int
