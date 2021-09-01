@@ -51,6 +51,29 @@ python3.9 src/main.py \
     --confidence-threshold 0.5 \
     
 # python3.9 src/main.py \
+#     --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50" \
+#     --model-type-list "RawToTile_ObjectDetection" \
+#     --omit-list "omit_no_xml" "omit_no_bbox" \
+#     --batch-size 2 \
+#     --series-length 1 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --is-object-detection \
+#     --tile-size 1 \
+#     --resize-height 1344 \
+#     --resize-width 1792 \
+#     --crop-height 1120 \
+#     --tile-overlap 0 \
+#     --backbone-size 'fasterrcnnmobile' \
+#     --no-early-stopping \
+#     --time-range-min 0 \
+#     --max-epochs 25 \
+#     --confidence-threshold 0.5 \
+    
+# python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
 #     --model-type-list "RawToTile_ObjectDetection" \
 #     --omit-list "omit_no_xml" "omit_no_bbox" \

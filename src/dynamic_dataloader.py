@@ -584,7 +584,7 @@ class DynamicDataloader(Dataset):
                     bbox_label['boxes'] = torch.as_tensor(bboxes, dtype=torch.float32)
                     bbox_label['labels'] = torch.as_tensor([1]*len(self.metadata['bbox_labels'][image_name]), dtype=torch.int64)
                     if self.is_maskrcnn:
-                        bbox_label['masks'] = np.expand_dims(labels, 0)
+                        bbox_label['masks'] = torch.as_tensor(np.expand_dims(labels, 0), dtype=torch.uint8)
                 else:
                     # Use negative data
                     # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0

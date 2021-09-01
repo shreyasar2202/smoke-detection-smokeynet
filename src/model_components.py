@@ -24,6 +24,10 @@ from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
 import torchvision.models.detection
 from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.models.detection.ssd import SSDClassificationHead
+import math
 
 # Other imports 
 import numpy as np
@@ -779,26 +783,61 @@ class TileToImage_LinearEmbeddings(nn.Module):
 ########################### 
     
 class RawToTile_ObjectDetection(nn.Module):
-    def __init__(self, backbone_size='maskrcnn', **kwargs):
+    def __init__(self, backbone_size='maskrcnn', pretrain_backbone=True, **kwargs):
         print('- RawToTile_ObjectDetection')
         super().__init__()
         
-        if backbone_size == 'retinanet_original':
-            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
-        elif backbone_size == 'fasterrcnn_original':
-            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
-        elif backbone_size == 'fasterrcnnmobile_original':
-            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
-        elif backbone_size == 'retinanet':
-            self.model = retinanet_noresize.retinanet_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+        num_classes = 91 if pretrain_backbone else 2
+                
+        # RetinaNet
+        if backbone_size == 'retinanet':
+            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            
+            if pretrain_backbone:
+                # Source: https://datascience.stackexchange.com/questions/92724/fine-tune-the-retinanet-model-in-pytorch
+                in_features = self.model.head.classification_head.conv[0].in_channels
+                num_anchors = self.model.head.classification_head.num_anchors
+                self.model.head.classification_head.num_classes = 2
+
+                cls_logits = torch.nn.Conv2d(in_features, num_anchors * 2, kernel_size = 3, stride=1, padding=1)
+                torch.nn.init.normal_(cls_logits.weight, std=0.01)
+                torch.nn.init.constant_(cls_logits.bias, -math.log((1 - 0.01) / 0.01)) 
+                self.model.head.classification_head.cls_logits = cls_logits
+       
+        # FasterRCNN
         elif backbone_size == 'fasterrcnn':
-            self.model = faster_rcnn_noresize.fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            
+            if pretrain_backbone:
+                # Source: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+                self.model.roi_heads.box_predictor = FastRCNNPredictor(self.model.roi_heads.box_predictor.cls_score.in_features, 2)
+        
+        # Faster RCNN Mobile
         elif backbone_size == 'fasterrcnnmobile':
-            self.model = faster_rcnn_noresize.fasterrcnn_mobilenet_v3_large_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=6)
+            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=6)
+            
+            if pretrain_backbone:
+                # Source: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+                self.model.roi_heads.box_predictor = FastRCNNPredictor(self.model.roi_heads.box_predictor.cls_score.in_features, 2)
+        
+        # SSD
         elif backbone_size == 'ssd':
-            self.model = ssd_noresize.ssd300_vgg16(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.ssd300_vgg16(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            
+            if pretrain_backbone:
+                in_features = self.model.head.classification_head.cls_logits[0].in_channels
+                num_anchors = self.model.anchor_generator.num_anchors_per_location()
+                self.model.head.classification_head = SSDClassificationHead(in_features, num_anchors, 2)
+        
+        # MaskRCNN
         elif backbone_size == 'maskrcnn':
-            self.model = mask_rcnn_noresize.maskrcnn_resnet50_fpn(pretrained=False, num_classes=2, pretrained_backbone=True, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            
+            if pretrain_backbone:
+                # Source: https://haochen23.github.io/2020/06/fine-tune-mask-rcnn-pytorch.html#.YS_sUdNKhUI
+                self.model.roi_heads.box_predictor = FastRCNNPredictor(self.model.roi_heads.box_predictor.cls_score.in_features, 2)
+                self.model.roi_heads.mask_predictor = MaskRCNNPredictor(self.model.roi_heads.mask_predictor.conv5_mask.in_channels,256,2)
+        
         else:
             print('RawToTile_ObjectDetection: backbone_size not recognized.')
         
