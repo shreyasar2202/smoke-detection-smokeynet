@@ -560,22 +560,27 @@ class DynamicDataloader(Dataset):
             x = np.transpose(np.stack(x), (0, 3, 1, 2))
            
         ### Load Labels ###
-        label_path = self.labels_path+'/'+image_name+'.npy'
-        if Path(label_path).exists():
-            # Repeat similar steps to images
-            labels = np.load(label_path)
-            
-            if labels.shape[:2] != self.original_dimensions:
-                labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
-                
-            labels = data_augmentations(labels, is_labels=True)
-        else:
-            # labels.shape = [height, width]
-            labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
-
+        ground_truth_label = util_fns.get_ground_truth_label(image_name)
         tiled_labels = np.array([0])
+        bbox_labels = []
         has_positive_tile = False
+        omit_mask = False
+        
+        ### Load Tile Labels ###
         if not self.is_object_detection:
+            label_path = self.labels_path+'/'+image_name+'.npy'
+            if Path(label_path).exists():
+                # Repeat similar steps to images
+                labels = np.load(label_path)
+
+                if labels.shape[:2] != self.original_dimensions:
+                    labels = cv2.resize(labels, (self.original_dimensions[1], self.original_dimensions[0]))
+
+                labels = data_augmentations(labels, is_labels=True)
+            else:
+                # labels.shape = [height, width]
+                labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
+
             # Tile labels
             tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
@@ -585,16 +590,14 @@ class DynamicDataloader(Dataset):
             if self.num_tile_samples > 0:
                 # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
                 x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
-                
-            has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)
 
-        ### Load Image Labels ###
-        ground_truth_label = util_fns.get_ground_truth_label(image_name)
+            has_positive_tile = util_fns.get_has_positive_tile(tiled_labels)    
+            
+            # Determine if tile predictions should be masked
+            omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
         
         ### Load Object Detection Labels ###
-        bbox_labels = []
-        
-        if self.is_object_detection:
+        else:
             # Loop through each image in series
             for image, resize_factor in zip(x, resize_factors):
                 bbox_label = {}
@@ -627,9 +630,6 @@ class DynamicDataloader(Dataset):
                     
                 bbox_labels.append(bbox_label)
                 
-        # Determine if tile predictions should be masked
-        omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
-        
 #         np.save('x.npy', x)
 #         np.save('y.npy', bbox_labels)
 #         import pdb; pdb.set_trace()

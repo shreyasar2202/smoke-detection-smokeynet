@@ -4,9 +4,9 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-
+    
 python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize" \
+    --experiment-name "Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5" \
     --model-type-list "RawToTile_ObjectDetection" \
     --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
     --batch-size 4 \
@@ -24,7 +24,7 @@ python3.9 src/main.py \
     --tile-overlap 0 \
     --backbone-size 'fasterrcnnmobile' \
     --no-early-stopping \
-    --learning-rate 1e-3 \
+    --learning-rate 1e-5 \
     --time-range-min 0 \
     --max-epochs 10 \
     --no-resize-crop-augment \
@@ -32,6 +32,7 @@ python3.9 src/main.py \
     --no-blur-augment \
     --no-color-augment \
     --no-brightness-contrast-augment \
+    --checkpoint-path './lightning_logs/Final_FasterRCNNMobile_NoCropHeight_NoDataAugment_OnlyPositives_FullSize_LR1e5/version_0/checkpoints/last.ckpt' \
     
 # python3.9 src/main.py \
 #     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
