@@ -23,10 +23,10 @@ import transformers
 from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
 import torchvision.models.detection
-from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize
+from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
-from torchvision.models.detection.ssd import SSDClassificationHead
+from torchvision.models.detection.anchor_utils import AnchorGenerator
 import math
 
 # Other imports 
@@ -791,7 +791,7 @@ class RawToTile_ObjectDetection(nn.Module):
                 
         # RetinaNet
         if backbone_size == 'retinanet':
-            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=True, num_classes=num_classes, trainable_backbone_layers=5)
             
             if pretrain_backbone:
                 # Source: https://datascience.stackexchange.com/questions/92724/fine-tune-the-retinanet-model-in-pytorch
@@ -806,7 +806,7 @@ class RawToTile_ObjectDetection(nn.Module):
        
         # FasterRCNN
         elif backbone_size == 'fasterrcnn':
-            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=True, num_classes=num_classes, trainable_backbone_layers=5)
             
             if pretrain_backbone:
                 # Source: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
@@ -814,7 +814,7 @@ class RawToTile_ObjectDetection(nn.Module):
         
         # Faster RCNN Mobile
         elif backbone_size == 'fasterrcnnmobile':
-            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=6)
+            self.model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=pretrain_backbone, pretrained_backbone=True, num_classes=num_classes, trainable_backbone_layers=6)
             
             if pretrain_backbone:
                 # Source: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
@@ -822,16 +822,16 @@ class RawToTile_ObjectDetection(nn.Module):
         
         # SSD
         elif backbone_size == 'ssd':
-            self.model = torchvision.models.detection.ssd300_vgg16(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            self.model = ssd.ssd300_vgg16(pretrained=pretrain_backbone, pretrained_backbone=True, num_classes=num_classes, trainable_backbone_layers=5)
             
             if pretrain_backbone:
-                in_features = self.model.head.classification_head.cls_logits[0].in_channels
-                num_anchors = self.model.anchor_generator.num_anchors_per_location()
-                self.model.head.classification_head = SSDClassificationHead(in_features, num_anchors, 2)
+                in_features = self.model.head.classification_head.in_channels
+                num_anchors = self.model.head.classification_head.num_anchors
+                self.model.head.classification_head = ssd.SSDClassificationHead(in_features, num_anchors, 2)
         
         # MaskRCNN
         elif backbone_size == 'maskrcnn':
-            self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=pretrain_backbone, num_classes=num_classes, trainable_backbone_layers=5)
+            self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=pretrain_backbone, pretrained_backbone=True, num_classes=num_classes, trainable_backbone_layers=5)
             
             if pretrain_backbone:
                 # Source: https://haochen23.github.io/2020/06/fine-tune-mask-rcnn-pytorch.html#.YS_sUdNKhUI
@@ -844,6 +844,63 @@ class RawToTile_ObjectDetection(nn.Module):
     def forward(self, x, bbox_labels, **kwargs):
         x = x.float()
         batch_size, series_length, num_channels, height, width = x.size()
+                
+        x = [item for sublist in x for item in sublist]
+        bbox_labels = [item for sublist in bbox_labels for item in sublist]
+                                                
+        # losses: dict only returned when training, not during inference. Keys: ['loss_classifier', 'loss_box_reg', 'loss_mask', 'loss_objectness', 'loss_rpn_box_reg']
+        # outputs: list of dict of len batch_size. Keys: ['boxes', 'labels', 'scores', 'masks']
+        outputs = self.model(x, bbox_labels)
+                
+        # If training
+        if type(outputs) is dict:
+            return None, outputs
+        else:
+            return outputs, {}
+
+class CrazyBackbone(nn.Module):
+    def __init__(self, num_tiles_height=5, num_tiles_width=8, **kwargs):
+        super().__init__()
+        
+        self.num_tiles_height = num_tiles_height
+        self.num_tiles_width = num_tiles_width
+        self.out_channels = 516
+        
+        self.cnn = RawToTile_MobileNet_NoPreTile(num_tiles_height=num_tiles_height, num_tiles_width=num_tiles_width, **kwargs)
+        self.vit = TileToTile_ViT(num_tiles_height=num_tiles_height, num_tiles_width=num_tiles_width,**kwargs)
+        
+    def forward(self, x, **kwargs):
+        x = x.unsqueeze(1)
+        outputs1, x = self.cnn(x)
+        outputs2, x = self.vit(x) # [batch_size, num_tiles, series_length, tile_embedding_size]
+        
+        batch_size, num_tiles, series_length, tile_embedding_size = x.size()
+        x = x.squeeze(2) # [batch_size, num_tiles, tile_embedding_size]
+        x = torch.swapaxes(x, 1, 2) # [batch_size, tile_embedding_size, num_tiles]
+        x = x.reshape(batch_size, tile_embedding_size, self.num_tiles_height, self.num_tiles_width)
+        
+        return x, outputs1, outputs2
+        
+class CrazyFasterRCNN(nn.Module):
+    def __init__(self, **kwargs):
+        print('- CrazyFasterRCNN')
+        super().__init__()
+        
+        backbone = CrazyBackbone(**kwargs)
+        
+        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
+                                           aspect_ratios=((0.5, 1.0, 2.0),))
+        roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
+                                                        output_size=7,
+                                                        sampling_ratio=2)
+
+        self.model = faster_rcnn_noresize.FasterRCNN(backbone,
+                   num_classes=2,
+                   rpn_anchor_generator=anchor_generator,
+                   box_roi_pool=roi_pooler)
+        
+    def forward(self, x, bbox_labels, **kwargs):
+        x = x.float()
                 
         x = [item for sublist in x for item in sublist]
         bbox_labels = [item for sublist in bbox_labels for item in sublist]
