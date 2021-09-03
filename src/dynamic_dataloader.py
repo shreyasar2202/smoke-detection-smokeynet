@@ -547,7 +547,7 @@ class DynamicDataloader(Dataset):
         omit_mask = False
         
         ### Load Tile Labels ###
-        if True: #DEBUG: self.is_maskrcnn or not self.is_object_detection:
+        if self.is_maskrcnn or not self.is_object_detection:
             label_path = self.labels_path+'/'+image_name+'.npy'
             if Path(label_path).exists():
                 # Repeat similar steps to images
@@ -558,7 +558,7 @@ class DynamicDataloader(Dataset):
                 # labels.shape = [height, width]
                 labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
 
-            if True: #DEBUG: not self.is_object_detection:
+            if not self.is_object_detection:
                 # Tile labels
                 tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
