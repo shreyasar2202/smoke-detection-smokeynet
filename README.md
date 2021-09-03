@@ -4,6 +4,8 @@ Created: 2021 Anshuman Dewangan
 
 This repository uses [Pytorch Lightning](https://www.pytorchlightning.ai/) for wildfire smoke detection. Supports image classification and object detection models.
 
+![](wildfire-smoke-detection.mp4)
+
 # Setup & Usage
 ## Initial Setup
 1. Clone directory:
