@@ -193,6 +193,7 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['train_only_fires'] = []
             self.metadata['eligible_fires'] = []
             self.metadata['night_fires'] = np.loadtxt('./data/night_fires.txt', dtype=str)
+            self.metadata['mislabeled_fires'] = np.loadtxt('./data/mislabeled_fires.txt', dtype=str)
             
             self.metadata['bbox_labels'] = {}
             

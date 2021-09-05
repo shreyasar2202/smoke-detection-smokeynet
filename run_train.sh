@@ -5,182 +5,41 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
+python3.9 src/main.py \
+    --experiment-name "train" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --mask-omit-images \
+    --use-image-preds \
+    --batch-size 4 \
+    --series-length 2 \
+    --accumulate-grad-batches 8 \
+    --num-workers 6 \
+    --train-split-path './data/final_split/train_images_final.txt' \
+    --val-split-path './data/final_split/val_images_final.txt' \
+    --test-split-path './data/final_split/train_images_final.txt' \
+    --checkpoint-path './saved_logs/versions_246-263/version_260/checkpoints/last.ckpt' \
+    --is-test-only \
+    --is-extra-training \
 
-python3.9 src/main.py \
-    --experiment-name "MobileNet_ViT_FasterRCNN" \
-    --model-type-list "CrazyFasterRCNN" \
-    --omit-list "omit_no_xml" "omit_no_bbox" "omit_no_contour" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --no-early-stopping \
-    --time-range-min 0 \
-    --max-epochs 25 \
-    --confidence-threshold 0.5 \
-    --is-debug
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_ViT_FasterRCNN_NoIntSupervision" \
-    --model-type-list "CrazyFasterRCNN" \
-    --omit-list "omit_no_xml" "omit_no_bbox" "omit_no_contour" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --no-early-stopping \
-    --time-range-min 0 \
-    --max-epochs 25 \
-    --confidence-threshold 0.5 \
-    --no-intermediate-supervision \
-    
-python3.9 src/main.py \
-    --experiment-name "MobileNet_ViT_FasterRCNN_WithNegatives" \
-    --model-type-list "CrazyFasterRCNN" \
-    --omit-list "omit_no_xml" "omit_no_bbox" "omit_no_contour" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --no-early-stopping \
-    --max-epochs 25 \
-    --confidence-threshold 0.5 \
-    
+
 # python3.9 src/main.py \
-#     --experiment-name "Final_FasterRCNNMobile_CT50" \
-#     --model-type-list "RawToTile_ObjectDetection" \
-#     --omit-list "omit_no_xml" "omit_no_bbox" \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --num-workers 6 \
-#     --train-split-path './data/final_split/train_images_final.txt' \
-#     --val-split-path './data/final_split/val_images_final.txt' \
-#     --test-split-path './data/final_split/test_images_final.txt' \
-#     --is-object-detection \
-#     --tile-size 1 \
-#     --resize-height 1344 \
-#     --resize-width 1792 \
-#     --crop-height 1120 \
-#     --tile-overlap 0 \
-#     --backbone-size 'fasterrcnnmobile' \
-#     --no-early-stopping \
-#     --max-epochs 25 \
-#     --confidence-threshold 0.5 \
-    
-# python3.9 src/main.py \
-#     --experiment-name "Final_SSD_OnlyPositives_CT50" \
-#     --model-type-list "RawToTile_ObjectDetection" \
-#     --omit-list "omit_no_xml" "omit_no_bbox" \
-#     --batch-size 4 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 8 \
-#     --num-workers 6 \
-#     --train-split-path './data/final_split/train_images_final.txt' \
-#     --val-split-path './data/final_split/val_images_final.txt' \
-#     --test-split-path './data/final_split/test_images_final.txt' \
-#     --is-object-detection \
-#     --tile-size 1 \
-#     --resize-height 1344 \
-#     --resize-width 1792 \
-#     --crop-height 1120 \
-#     --tile-overlap 0 \
-#     --backbone-size 'ssd' \
-#     --no-early-stopping \
-#     --time-range-min 0 \
-#     --max-epochs 25 \
-#     --confidence-threshold 0.5 \
-    
-# python3.9 src/main.py \
-#     --experiment-name "Final_MobileNet_SpatialViT_ImagePreds_NoEarlyStopping" \
-#     --model-type-list "RawToTile_MobileNet" "TileToTileImage_SpatialViT" \
+#     --experiment-name "Final_ResNet50_LSTM_SpatialViT_ImagePreds" \
+#     --model-type-list "RawToTile_ResNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
 #     --omit-list "omit_no_xml" "omit_no_contour" \
 #     --mask-omit-images \
 #     --use-image-preds \
-#     --batch-size 8 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 4 \
-#     --num-workers 6 \
-#     --train-split-path './data/final_split/train_images_final.txt' \
-#     --val-split-path './data/final_split/val_images_final.txt' \
-#     --test-split-path './data/final_split/test_images_final.txt' \
-#     --checkpoint-path './lightning_logs/Final_MobileNet_SpatialViT_ImagePreds/version_0/checkpoints/last.ckpt' \
-#     --max-epochs 10 \
-#     --no-early-stopping \
-#     --is-extra-training \
-    
-# python3.9 src/main.py \
-#     --experiment-name "Final_FasterRCNNMobile_OnlyPositives_CT50" \
-#     --model-type-list "RawToTile_ObjectDetection" \
-#     --omit-list "omit_no_xml" "omit_no_bbox" \
 #     --batch-size 2 \
-#     --series-length 1 \
+#     --series-length 2 \
 #     --accumulate-grad-batches 16 \
 #     --num-workers 6 \
 #     --train-split-path './data/final_split/train_images_final.txt' \
 #     --val-split-path './data/final_split/val_images_final.txt' \
 #     --test-split-path './data/final_split/test_images_final.txt' \
-#     --is-object-detection \
-#     --tile-size 1 \
-#     --resize-height 1344 \
-#     --resize-width 1792 \
-#     --crop-height 1120 \
-#     --tile-overlap 0 \
-#     --backbone-size 'fasterrcnnmobile' \
-#     --no-early-stopping \
-#     --time-range-min 0 \
-#     --max-epochs 25 \
-#     --confidence-threshold 0.5 \
+#     --backbone-size 'medium' \
+#     --tile-embedding-size 1000 \
     
-# python3.9 src/main.py \
-#     --experiment-name "Final_FasterRCNNMobile_FixedBoxes" \
-#     --model-type-list "RawToTile_ObjectDetection" \
-#     --omit-list "omit_no_xml" "omit_no_bbox" \
-#     --batch-size 2 \
-#     --series-length 1 \
-#     --accumulate-grad-batches 1 \
-#     --num-workers 6 \
-#     --train-split-path './data/1pos.txt' \
-#     --val-split-path './data/1pos.txt' \
-#     --test-split-path './data/1pos.txt' \
-#     --load-images-from-split \
-#     --is-object-detection \
-#     --tile-size 1 \
-#     --resize-height 1344 \
-#     --resize-width 1792 \
-#     --crop-height 1120 \
-#     --tile-overlap 0 \
-#     --backbone-size 'fasterrcnnmobile' \
-#     --no-early-stopping \
-#     --learning-rate 1e-3 \
-#     --time-range-min 0 \
-#     --max-epochs 500 \
-#     --confidence-threshold 0.5 \
-#     --is-debug
+
     
 
 #####################
