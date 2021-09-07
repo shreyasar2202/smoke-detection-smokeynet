@@ -17,6 +17,7 @@ import numpy as np
 from torch._six import string_classes
 import collections
 import re
+import copy
 
 
 #############
@@ -544,94 +545,127 @@ def get_has_positive_tile(tile_labels):
 ## LightningModule
 #####################
 
-def calculate_negative_accuracy(negative_preds):
+def calculate_negative_accuracy(negative_preds_dict):
     """
     Description: Calculates accuracy on negative images
     Args:
-        - negative_preds (tensor): predictions on negatives. Shape = [num_fires, 40]
+        - negative_preds_dict (dict): predictions on negatives by fire
     Returns:
-        - negative_accuracy (tensor): Shape = [1]
+        - negative_accuracy (float)
     """
-    negative_accuracy = torchmetrics.functional.accuracy(negative_preds, torch.zeros(negative_preds.shape).int())
-    
-    return negative_accuracy
+    all_preds = []
+    for fire in negative_preds_dict:
+        all_preds.extend(negative_preds_dict[fire])
+            
+    return 1 - sum(all_preds) / len(all_preds)
 
-def calculate_negative_accuracy_by_fire(negative_preds):
+def calculate_negative_accuracy_by_fire(negative_preds_dict):
     """
     Description: Calculates % of fires that DID NOT have a false positive
     Args:
-        - negative_preds (tensor): predictions on negatives. Shape = [num_fires, 40]
+        - negative_preds_dict (dict): predictions on negatives by fire
     Returns:
-        - negative_accuracy_by_fire (tensor): Shape = [1]
+        - negative_accuracy_by_fire (float)
     """
-    negative_accuracy_by_fire = torchmetrics.functional.accuracy(negative_preds, torch.zeros(negative_preds.shape).int(), subset_accuracy=True)
+    fire_preds = []
     
-    return negative_accuracy_by_fire
+    for fire in negative_preds_dict:
+        if sum(negative_preds_dict[fire]) > 0:
+            fire_preds.append(0)
+        else:
+            fire_preds.append(1)
+    
+    return sum(fire_preds) / len(fire_preds)
 
-def calculate_positive_accuracy(positive_preds):
+def calculate_positive_accuracy(positive_preds_dict):
     """
     Description: Calculates accuracy on positive images
     Args:
-        - positive_preds (tensor): predictions on positives. Shape = [num_fires, 41]
+        - positive_preds_dict (dict): predictions on positives by fire
     Returns:
-        - positive_accuracy (tensor): Shape = [1]
+        - positive_accuracy (float)
     """
-    positive_accuracy = torchmetrics.functional.accuracy(positive_preds, torch.ones(positive_preds.shape).int())
-    
-    return positive_accuracy
+    all_preds = []
+    for fire in positive_preds_dict:
+        all_preds.extend(positive_preds_dict[fire])
+            
+    return sum(all_preds) / len(all_preds)
 
-def calculate_positive_accuracy_by_fire(positive_preds):
+def calculate_positive_accuracy_by_fire(positive_preds_dict):
     """
     Description: Calculates % of fires that DID NOT have a false negative
     Args:
-        - positive_preds (tensor): predictions on positives. Shape = [num_fires, 41]
+        - positive_preds_dict (dict): predictions on positives by fire
     Returns:
-        - positive_accuracy_by_fire (tensor): Shape = [1]
+        - positive_accuracy_by_fire (float)
     """
-    positive_accuracy_by_fire = torchmetrics.functional.accuracy(positive_preds, torch.ones(positive_preds.shape).int(), subset_accuracy=True)
+    fire_preds = []
     
-    return positive_accuracy_by_fire
+    for fire in positive_preds_dict:
+        if sum(positive_preds_dict[fire]) < len(positive_preds_dict[fire]):
+            fire_preds.append(0)
+        else:
+            fire_preds.append(1)
     
-def calculate_positive_accuracy_by_time(positive_preds):
+    return sum(fire_preds) / len(fire_preds)
+    
+def calculate_positive_accuracy_by_time(positive_preds_dict):
     """
     Description: Calculates accuracy per time step
     Args:
-        - positive_preds (tensor): predictions on positives. Shape = [num_fires, 41]
+        - positive_preds_dict (dict): predictions on positives
     Returns:
-        - positive_accuracy_by_time (tensor): Shape = [41]
+        - positive_accuracy_by_time (floata)
     """
-    positive_accuracy_by_time = positive_preds.sum(dim=0)/positive_preds.shape[0]
+    positive_preds_dict = copy.deepcopy(positive_preds_dict)
+    time_dict = {}
+    time_dict_cumulative = {}
     
-    return positive_accuracy_by_time
-
-def calculate_positive_cumulative_accuracy(positive_preds):
-    """
-    Description: Calculates % of fires predicted positive per time step
-    Args:
-        - positive_preds (tensor): predictions on positives. Shape = [num_fires, 41]
-    Returns:
-        - positive_cumulative_accuracy (tensor): Shape = [41]
-    """
-    cumulative_preds = (positive_preds.cumsum(dim=1) > 0).int()
-    positive_cumulative_accuracy = cumulative_preds.sum(dim=0)/cumulative_preds.shape[0]
+    for fire in positive_preds_dict:
+        for i in range(len(positive_preds_dict[fire])):
+            if str(i) not in time_dict:
+                time_dict[str(i)] = []
+                time_dict_cumulative[str(i)] = []
+            
+            time_dict[str(i)].append(positive_preds_dict[fire][i])
+            
+            if i != 0 and positive_preds_dict[fire][i-1] == 1:
+                positive_preds_dict[fire][i] = 1
+                
+            time_dict_cumulative[str(i)].append(positive_preds_dict[fire][i])
     
-    return positive_cumulative_accuracy
+    return_list = []
+    return_list_cumulative = []
+    for i in range(len(time_dict)):
+        return_list.append(sum(time_dict[str(i)]) / len(time_dict[str(i)]))
+        return_list_cumulative.append(sum(time_dict_cumulative[str(i)]) / len(time_dict_cumulative[str(i)]))
+    
+    return return_list, return_list_cumulative
 
-def calculate_time_to_detection_stats(positive_preds):
+def calculate_time_to_detection_stats(positive_preds_dict, positive_times_dict):
     """
     Description: Calculates average time to detection across all fires
     Args:
-        - positive_preds (tensor): predictions on positives. Shape = [num_fires, 41]
+        - positive_preds_dict (dict): predictions on positives
+        - positive_times_dict (dict): timestamps of positive predictions
     Returns:
-        - average_time_to_detection (tensor): Shape = [1]
+        - average_time_to_detection (float)
+        - median_time_to_detection (float)
+        - std_time_to_detection (float)
     """
-    cumulative_preds = (positive_preds.cumsum(dim=1) > 0).int()
-    indices = cumulative_preds * torch.arange(cumulative_preds.shape[1], 0, -1)
-    indices = torch.argmax(indices, 1, keepdim=True).float()
+    times_to_detection = []
     
-    average_time_to_detection = indices.mean()
-    median_time_to_detection = indices.median()
-    std_time_to_detection = indices.std()
+    for fire in positive_preds_dict:
+        for i in range(len(positive_preds_dict[fire])):
+            if positive_preds_dict[fire][i] == 1:
+                times_to_detection.append(positive_times_dict[fire][i])
+                break
+    
+    times_to_detection = np.array(times_to_detection) / 60
+    
+    average_time_to_detection = times_to_detection.mean()
+    median_time_to_detection = np.median(times_to_detection)
+    std_time_to_detection = times_to_detection.std()
     
     return average_time_to_detection, median_time_to_detection, std_time_to_detection
 

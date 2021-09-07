@@ -1,4 +1,3 @@
-# WARNING: CUDA v11 may lead to memory issues
 ARG cuda_version=11.3.1
 ARG cudnn_version=8
 FROM nvidia/cuda:${cuda_version}-cudnn${cudnn_version}-devel

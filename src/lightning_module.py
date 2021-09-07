@@ -193,7 +193,9 @@ class LightningModule(pl.LightningModule):
         """
         
         print("Computing Test Evaluation Metrics...")
-        raw_fire_preds_dict = {}
+        positive_preds_dict = {} # Holds positive predictions for each fire
+        negative_preds_dict = {} # Holds negative predictions for each fire
+        positive_times_dict = {} # Holds timestamps of positives for each fire
         
         ### Save predictions as .txt files ###
         if self.logger is not None:
@@ -233,12 +235,18 @@ class LightningModule(pl.LightningModule):
                                 image_name+\
                                 '.npy', tile_pred.cpu().numpy())
 
-                # Add prediction to raw_fire_preds_dict list
+                # Add prediction to positive_preds_dict or negative_preds_dict 
                 # ASSUMPTION: images are in order and test data has not been shuffled
-                if fire_name not in raw_fire_preds_dict:
-                    raw_fire_preds_dict[fire_name] = []
+                if fire_name not in positive_preds_dict:
+                    positive_preds_dict[fire_name] = []
+                    negative_preds_dict[fire_name] = []
+                    positive_times_dict[fire_name] = []
 
-                raw_fire_preds_dict[fire_name].append(image_pred)
+                if util_fns.get_ground_truth_label(image_name) == 0:
+                    negative_preds_dict[fire_name].append(image_pred)
+                else:
+                    positive_preds_dict[fire_name].append(image_pred)
+                    positive_times_dict[fire_name].append(util_fns.image_name_to_time_int(image_name))
         
         if self.logger is None: 
             print("No logger. Skipping calculating metrics.")
@@ -246,35 +254,19 @@ class LightningModule(pl.LightningModule):
             
         image_preds_csv.close()
 
-        # Create data structure to store preds of all relevant fires
-        fire_preds = []
-        for fire in raw_fire_preds_dict:
-            # ASSUMPTION: only calculate statistics for fires with 81 images
-            if len(raw_fire_preds_dict[fire]) == 81-(self.series_length-1):
-                fire_preds.append(raw_fire_preds_dict[fire])
-
-        fire_preds = torch.as_tensor(fire_preds, dtype=int)
-
-        if len(fire_preds) == 0:
-            print("Could not compute Test Evaluation Metrics.")
-            return
-
         ### Compute & log metrics ###
-        negative_preds = fire_preds[:,:fire_preds.shape[1]//2-(self.series_length-1)] 
         self.log(self.metrics['split'][2]+'negative_accuracy',
-                 util_fns.calculate_negative_accuracy(negative_preds))
+                 util_fns.calculate_negative_accuracy(negative_preds_dict))
         self.log(self.metrics['split'][2]+'negative_accuracy_by_fire',
-                 util_fns.calculate_negative_accuracy_by_fire(negative_preds))
+                 util_fns.calculate_negative_accuracy_by_fire(negative_preds_dict))
 
-        positive_preds = fire_preds[:,fire_preds.shape[1]//2-(self.series_length-1):]
         self.log(self.metrics['split'][2]+'positive_accuracy',
-                 util_fns.calculate_positive_accuracy(positive_preds))
+                 util_fns.calculate_positive_accuracy(positive_preds_dict))
         self.log(self.metrics['split'][2]+'positive_accuracy_by_fire',
-                 util_fns.calculate_positive_accuracy_by_fire(positive_preds))
+                 util_fns.calculate_positive_accuracy_by_fire(positive_preds_dict))
 
         # Use 'global_step' to graph positive_accuracy_by_time and positive_cumulative_accuracy
-        positive_accuracy_by_time = util_fns.calculate_positive_accuracy_by_time(positive_preds)
-        positive_cumulative_accuracy = util_fns.calculate_positive_cumulative_accuracy(positive_preds)
+        positive_accuracy_by_time, positive_cumulative_accuracy = util_fns.calculate_positive_accuracy_by_time(positive_preds_dict)
 
         for i in range(len(positive_accuracy_by_time)):
             self.logger.experiment.add_scalar(self.metrics['split'][2]+'positive_accuracy_by_time',
@@ -282,7 +274,7 @@ class LightningModule(pl.LightningModule):
             self.logger.experiment.add_scalar(self.metrics['split'][2]+'positive_cumulative_accuracy',
                                              positive_cumulative_accuracy[i], global_step=i)
 
-        average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds)
+        average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds_dict, positive_times_dict)
         self.log(self.metrics['split'][2]+'average_time_to_detection', average_time_to_detection)
         self.log(self.metrics['split'][2]+'median_time_to_detection', median_time_to_detection)
         self.log(self.metrics['split'][2]+'std_time_to_detection', std_time_to_detection)
