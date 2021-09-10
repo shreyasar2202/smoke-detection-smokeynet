@@ -38,6 +38,7 @@ class MainModel(nn.Module):
                  pretrain_epochs=None,
                  intermediate_supervision=True,
                  use_image_preds=False,
+                 error_as_eval_loss=False,
                  
                  tile_loss_type='bce',
                  bce_pos_weight=36,
@@ -66,6 +67,7 @@ class MainModel(nn.Module):
             self.pretrain_epochs = np.zeros(len(model_type_list)).astype(int)
             
         self.intermediate_supervision = intermediate_supervision
+        self.error_as_eval_loss = error_as_eval_loss
         self.use_image_preds = use_image_preds
         self.image_loss_only = image_loss_only
         self.image_pos_weight = image_pos_weight
@@ -88,7 +90,7 @@ class MainModel(nn.Module):
             
         return outputs
         
-    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, num_epoch, device):
+    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device):
         """
         Description: compute forward pass of all model_list models
         Args:
@@ -202,5 +204,9 @@ class MainModel(nn.Module):
         # Else, use tile_preds to determine image_preds
         elif tile_outputs is not None:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
+        
+        # If error_as_eval_loss, replace total_loss with number of errors
+        if self.error_as_eval_loss and split != 'train/':
+            total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()
 
         return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds

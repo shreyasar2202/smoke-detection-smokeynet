@@ -9,35 +9,17 @@ python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT_ImagePreds" \
     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
+    --error-as-eval-loss \
     --mask-omit-images \
     --use-image-preds \
     --batch-size 4 \
     --series-length 2 \
     --accumulate-grad-batches 8 \
-    --num-workers 6 \
+    --num-workers 0 \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
-    --checkpoint-path './saved_logs/versions_246-263/version_260/checkpoints/last.ckpt' \
-    --is-test-only \
-    --is-extra-training \
-
-
-# python3.9 src/main.py \
-#     --experiment-name "Final_ResNet50_LSTM_SpatialViT_ImagePreds" \
-#     --model-type-list "RawToTile_ResNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" "omit_no_contour" \
-#     --mask-omit-images \
-#     --use-image-preds \
-#     --batch-size 2 \
-#     --series-length 2 \
-#     --accumulate-grad-batches 16 \
-#     --num-workers 6 \
-#     --train-split-path './data/final_split/train_images_final.txt' \
-#     --val-split-path './data/final_split/val_images_final.txt' \
-#     --test-split-path './data/final_split/test_images_final.txt' \
-#     --backbone-size 'medium' \
-#     --tile-embedding-size 1000 \
+    --is-debug
     
 
     

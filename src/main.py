@@ -40,6 +40,8 @@ parser.add_argument('--is-extra-training', action='store_true',
                     help='Enables extra training. Prevents loading Trainer from checkpoint.')
 parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
+parser.add_argument('--error-as-eval-loss', action='store_true',
+                    help='Uses error rate (1 - acc) as validation and test loss. Useful when using unlabeled data as evaluation sets.')
 parser.add_argument('--mask-omit-images', action='store_true',
                     help='Masks tile predictions for images in omit_list_images.')
 parser.add_argument('--is-object-detection', action='store_true',
@@ -202,6 +204,7 @@ def main(# Debug args
         is_test_only=False,
         is_extra_training=False,
         omit_list=None,
+        error_as_eval_loss=False,
         mask_omit_images=False,
         is_object_detection=False,
         is_maskrcnn=False,
@@ -343,6 +346,7 @@ def main(# Debug args
                      model_type_list=model_type_list,
                      pretrain_epochs=pretrain_epochs,
                      intermediate_supervision=intermediate_supervision,
+                     error_as_eval_loss=error_as_eval_loss,
                      use_image_preds=use_image_preds,
                      tile_embedding_size=tile_embedding_size,
 
@@ -440,7 +444,7 @@ def main(# Debug args
 #             overfit_batches=100,
 #             limit_train_batches=2,
 #             limit_val_batches=2,
-#             limit_test_batches=100,
+#             limit_test_batches=2,
 #             track_grad_norm=2,
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
@@ -475,6 +479,7 @@ if __name__ == '__main__':
         is_test_only=args['is_test_only'],
         is_extra_training=args['is_extra_training'],
         omit_list=parsed_args['omit_list'],
+        error_as_eval_loss=parsed_args['error_as_eval_loss'],
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
         is_maskrcnn=parsed_args['is_maskrcnn'],
