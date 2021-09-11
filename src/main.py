@@ -84,7 +84,7 @@ parser.add_argument('--batch-size', type=int, default=1,
 parser.add_argument('--num-workers', type=int, default=4,
                     help='Number of workers for dataloader.')
 
-parser.add_argument('--series-length', type=int, default=4,
+parser.add_argument('--series-length', type=int, default=2,
                     help='Number of sequential video frames to process during training.')
 parser.add_argument('--add-base-flow', action='store_true',
                     help='If series_length > 1, sets the first image as the negative sample at time step -2400.')
