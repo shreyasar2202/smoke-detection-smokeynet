@@ -13,6 +13,7 @@ import torchvision
 
 # Other imports
 import numpy as np
+import collections
 
 # File imports
 from model_components import *
@@ -90,7 +91,7 @@ class MainModel(nn.Module):
             
         return outputs
         
-    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device):
+    def forward_pass(self, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device, outputs=None):
         """
         Description: compute forward pass of all model_list models
         Args:
@@ -109,8 +110,6 @@ class MainModel(nn.Module):
             - image_preds (tensor): final predictions for each image
         """
         
-        outputs = None
-        embeddings = None
         tile_outputs = None
         image_outputs = None
         
@@ -129,10 +128,23 @@ class MainModel(nn.Module):
                 break
             
             # Compute forward pass
-            outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
+            if outputs is None or i > 0:
+                outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
                         
+            # If outputs is a dictionary of FPN layers...
+            if type(outputs) is collections.OrderedDict:
+                returns = {}
+                for key in outputs:
+                    # (losses, image_loss, total_loss, tile_probs, tile_preds, image_preds)
+                    returns[key] = self.forward_pass(x[key], tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device, outputs[key])
+                    total_loss += returns[key][2]
+                    tile_preds = returns[key][4] if tile_preds is None else torch.logical_or(tile_preds, returns[key][4])
+                    
+                image_preds = (tile_preds.sum(dim=1) > 0).int()
+                return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
+                    
             # If x is a dictionary of object detection losses...
-            if type(x) is dict:
+            elif type(x) is dict:
                 # If training...
                 if len(x) > 0: 
                     # Use losses from model
@@ -167,7 +179,6 @@ class MainModel(nn.Module):
             # Else if model predicts tiles only...
             elif len(x.shape) > 2:
                 tile_outputs = outputs
-                embeddings = x
                 loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 
                 # Only add loss if intermediate_supervision

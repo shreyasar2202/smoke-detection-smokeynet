@@ -441,6 +441,45 @@ class RawToTile_MobileNetFPN(nn.Module):
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
+    
+class RawToTile_MobileNetFPN2(nn.Module):
+    """
+    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
+    Args:
+        - pretrain_backbone (bool): Pretrains backbone on ImageNet
+    """
+    def __init__(self, 
+                 pretrain_backbone=True, 
+                 **kwargs):
+        print('- RawToTile_MobileNetFPN')
+        super().__init__()
+        
+        self.keys = ['0', '1', 'pool']
+        
+        self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=pretrain_backbone,fpn=True, trainable_layers=6)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+
+        self.embeddings_to_output = TileEmbeddingsToOutput(256)
+        
+    def forward(self, x, **kwargs):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through conv model
+        tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
+        
+        # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
+        # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
+        tile_outputs = self.conv(tile_outputs) 
+        
+        embeddings = {}
+        for i in range(len(self.keys)):
+            tile_outputs[self.keys[i]] = self.avgpool(tile_outputs[self.keys[i]]) # [batch_size * num_tiles * series_length, 256, 1, 1]
+            tile_outputs[self.keys[i]] = tile_outputs[self.keys[i]].view(batch_size * num_tiles * series_length, -1) # [batch_size * num_tiles * series_length, 256]
+            tile_outputs[self.keys[i]], embeddings[self.keys[i]] = self.embeddings_to_output(tile_outputs[self.keys[i]], batch_size, num_tiles, series_length)
+        
+        return tile_outputs, embeddings
 
 class RawToTile_ResNetFPN(nn.Module):
     """
