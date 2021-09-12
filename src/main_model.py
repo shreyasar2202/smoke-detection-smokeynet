@@ -137,11 +137,18 @@ class MainModel(nn.Module):
                 for key in outputs:
                     # (losses, image_loss, total_loss, tile_probs, tile_preds, image_preds)
                     returns[key] = self.forward_pass(x[key], tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device, outputs[key])
-                    total_loss += returns[key][2]
-                    tile_preds = returns[key][4] if tile_preds is None else torch.logical_or(tile_preds, returns[key][4])
                     
-                image_preds = (tile_preds.sum(dim=1) > 0).int()
-                return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
+                    losses = returns[key][0] if len(losses)==0 else losses + returns[key][0]
+                    image_loss = returns[key][1] if image_loss is None else image_loss + returns[key][1]
+                    total_loss += returns[key][2] / len(outputs)
+                    tile_probs = returns[key][3] if tile_probs is None else tile_probs + returns[key][3]
+                    tile_preds = returns[key][4] if tile_preds is None else torch.logical_or(tile_preds, returns[key][4])
+                    image_preds = returns[key][5] if image_preds is None else torch.logical_or(image_preds, returns[key][5])
+                    
+                if tile_probs is not None:
+                    tile_probs = tile_probs / len(outputs)
+                    
+                break
                     
             # If x is a dictionary of object detection losses...
             elif type(x) is dict:

@@ -1,7 +1,3 @@
-#####################
-## Ablation
-#####################
-
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT" \
     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
@@ -58,10 +54,6 @@ python3.9 src/main.py \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
 
-#####################
-## Backbones
-#####################
-
 python3.9 src/main.py \
     --experiment-name "Final_ResNet34_LSTM_SpatialViT" \
     --model-type-list "RawToTile_ResNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
@@ -95,7 +87,7 @@ python3.9 src/main.py \
     --tile-embedding-size 1280 \
     
 python3.9 src/main.py \
-    --experiment-name "Final_DeiT_LSTM_SpatialViT" \
+    --experiment-name "Final_DeiTTiny_LSTM_SpatialViT" \
     --model-type-list "RawToTile_DeiT" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --error-as-eval-loss \
@@ -123,11 +115,6 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
-
-
-#####################
-## Object Detection
-#####################
 
 python3.9 src/main.py \
     --experiment-name "Final_FasterRCNN" \
@@ -222,10 +209,6 @@ python3.9 src/main.py \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
 
-#####################
-## Other
-#####################
-
 python3.9 src/main.py \
     --experiment-name "Final_ResNet50" \
     --model-type-list "RawToTile_ResNet" \
@@ -255,10 +238,6 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
-
-#####################
-## Training Tricks
-#####################
 
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT_Mask" \

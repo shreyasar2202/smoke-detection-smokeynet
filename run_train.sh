@@ -6,59 +6,8 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_ResNet3D" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_ResNet3D" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_FasterRCNN" \
-    --model-type-list "RawToTile_ObjectDetection" \
-    --omit-list "omit_no_xml" "omit_no_contour" "omit_no_bbox" \
-    --batch-size 4 \
-    --series-length 1 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --is-object-detection \
-    --tile-size 1 \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --backbone-size 'fasterrcnn' \
-    --no-early-stopping \
-    --time-range-min 0 \
-    --max-epochs 25 \
-    --confidence-threshold 0.5 \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT" \
-    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "Final_MobileNet_LSTM_SpatialViT_100Resize" \
+    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --error-as-eval-loss \
     --use-image-preds \
@@ -69,6 +18,9 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --resize-height 1546 \
+    --resize-width 2060 \
+    --crop-height 1244 \
     
 
 #####################
