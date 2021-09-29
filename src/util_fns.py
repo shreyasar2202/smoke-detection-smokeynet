@@ -164,7 +164,7 @@ def unpack_fire_images(fire_to_images, fires_list, omit_images_list=None):
                 
     return unpacked_images
 
-def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), series_length=1, add_base_flow=False):
+def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), series_length=1, add_base_flow=False, optical_flow_path=None):
     """
     Description: From lists of images per fire, returns list of images within specified time range
     Args:
@@ -173,11 +173,13 @@ def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), seri
         - time_range (int, int): the time range of images to consider for training by time stamp
         - series_length (int): length of series to cut off starting of fires
         - add_base_flow (bool): if True, adds image from t-5 for fire
+        - optical_flow_path (str): if not None, remove the first image
     Returns:
         - fire_to_images (dict): list of images for each fire
     """
     # Calculate effective time start
     effective_series_length = np.maximum(int(add_base_flow)*5, series_length)
+    effective_series_length = 2 if effective_series_length == 1 and optical_flow_path is not None else effective_series_length
     effective_start = np.maximum(time_range[0], -2400 + (effective_series_length - 1) * 60)
         
     if effective_start > -2400 or time_range[1] < 2400:

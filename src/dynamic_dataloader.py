@@ -37,6 +37,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  labels_path=None, 
                  raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
+                 optical_flow_path=None,
                  
                  train_split_path=None,
                  val_split_path=None,
@@ -88,6 +89,7 @@ class DynamicDataModule(pl.LightningDataModule):
                 - unlabeled_fires (list of str): list of fires that have not been labelled at all
                 - train_only_fires (list of str): list of fires that should only be used for train (not 'mobo-c')
                 - eligible_fires (list of str): list of fires that can be used for test or train (not in train_only_fires)
+            - optical_flow_path (str): path to optical flow npy files. Only use if you want to load optical flow.
             
             - train_split_path (str): path to existing train split .txt file
             - val_split_path (str): path to existing val split .txt file
@@ -136,6 +138,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.labels_path = labels_path
         self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
+        self.optical_flow_path = optical_flow_path
         
         self.train_split_path = train_split_path
         self.val_split_path = val_split_path
@@ -311,10 +314,10 @@ class DynamicDataModule(pl.LightningDataModule):
             self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow)
             
             # Shorten fire_to_images to relevant time frame
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length,  self.add_base_flow)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length, self.add_base_flow, self.optical_flow_path)
             # Shorten val/test only by series_length
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length,  self.add_base_flow)
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length,  self.add_base_flow, self.optical_flow_path)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow, self.optical_flow_path)
             
             # Create train/val/test split of Images
             # Only remove images from omit_images_list if not masking
@@ -339,6 +342,7 @@ class DynamicDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
                                           labels_path=self.labels_path, 
+                                          optical_flow_path=self.optical_flow_path,
                                           
                                           metadata=self.metadata, 
                                           data_split=self.train_split,
@@ -372,6 +376,7 @@ class DynamicDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
+                                          optical_flow_path=self.optical_flow_path,
                                         
                                           metadata=self.metadata,
                                           data_split=self.val_split,
@@ -404,6 +409,7 @@ class DynamicDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
+                                          optical_flow_path=self.optical_flow_path,
                                          
                                           metadata=self.metadata,
                                           data_split=self.test_split,
@@ -443,6 +449,7 @@ class DynamicDataloader(Dataset):
     def __init__(self, 
                  raw_data_path=None,
                  labels_path=None, 
+                 optical_flow_path=None,
                  
                  metadata=None,
                  data_split=None, 
@@ -467,6 +474,7 @@ class DynamicDataloader(Dataset):
         
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
+        self.optical_flow_path = optical_flow_path
         
         self.metadata = metadata
         self.data_split = data_split
@@ -596,7 +604,42 @@ class DynamicDataloader(Dataset):
                         bbox_label['masks'] = torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)
                     
                 bbox_labels.append(bbox_label)
-               
+        
+        ### Load Optical Flow ###
+        if self.optical_flow_path is not None:
+            flow_imgs = []
+            
+            for file_name in self.metadata['image_series'][image_name]:
+                # Load flow
+                # img.shape = [height, width, num_channels]
+                img = np.load(self.optical_flow_path+'/'+file_name+'.npy')
+
+                # Apply data augmentations
+                # img.shape = [crop_height, resize_dimensions[1], num_channels]
+                img = data_augmentations(img, is_labels=True)
+
+                # Tile image
+                # img.shape = [num_tiles, tile_height, tile_width, num_channels]
+                if self.pre_tile and not self.is_object_detection:
+                    img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+
+                # Rescale and normalize
+                if self.is_object_detection:
+                    img = img / 255 # torchvision object detection expects input [0,1]
+                else:
+                    img = util_fns.normalize_image(img)
+
+                flow_imgs.append(img)
+
+            if self.pre_tile and not self.is_object_detection:
+                # flow_imgs.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
+                flow_imgs = np.transpose(np.stack(flow_imgs), (1, 0, 4, 2, 3))
+                x = np.stack([x, flow_imgs], axis=2)
+            else:
+                # flow_imgs.shape = [series_length, num_channels, height, width]
+                flow_imgs = np.transpose(np.stack(flow_imgs), (0, 3, 1, 2))
+                x = np.stack([x, flow_imgs], axis=1)
+        
         # DEBUG: delete later
 #         np.save('x.npy', x)
 #         np.save('y.npy', bbox_labels)

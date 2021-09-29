@@ -64,6 +64,8 @@ parser.add_argument('--raw-labels-path', type=str, default='/userdata/kerasData/
                     help='Path to raw XML labels. Only used to generated processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
+parser.add_argument('--optical-flow-path', type=str, default=None,
+                    help='Path to optical flow npy files. Only use if you want to load optical flow data.')
 
 parser.add_argument('--train-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with train image paths. Only works if train, val, and test paths are provided.')
@@ -214,6 +216,7 @@ def main(# Debug args
         labels_path=None, 
         raw_labels_path=None,
         metadata_path=None,
+        optical_flow_path=None,
     
         train_split_path=None, 
         val_split_path=None, 
@@ -306,6 +309,7 @@ def main(# Debug args
         labels_path=labels_path,
         raw_labels_path=raw_labels_path,
         metadata_path=metadata_path,
+        optical_flow_path=optical_flow_path,
         
         train_split_path=train_split_path,
         val_split_path=val_split_path,
@@ -489,6 +493,7 @@ if __name__ == '__main__':
         labels_path=args['labels_path'], 
         raw_labels_path=args['raw_labels_path'],
         metadata_path=args['metadata_path'],
+        optical_flow_path=args['optical_flow_path'],
         
         train_split_path=args['train_split_path'], 
         val_split_path=args['val_split_path'], 
