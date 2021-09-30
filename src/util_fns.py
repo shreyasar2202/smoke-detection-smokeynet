@@ -180,7 +180,12 @@ def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), seri
     # Calculate effective time start
     effective_series_length = np.maximum(int(add_base_flow)*5, series_length)
     effective_series_length = 2 if effective_series_length == 1 and optical_flow_path is not None else effective_series_length
-    effective_start = np.maximum(time_range[0], -2400 + (effective_series_length - 1) * 60)
+    
+    for fire in fires_list:
+        for _ in range(effective_series_length-1):
+            fire_to_images[fire].pop(0)
+    
+    effective_start = np.maximum(time_range[0], -2400)
         
     if effective_start > -2400 or time_range[1] < 2400:
         for fire in fires_list:

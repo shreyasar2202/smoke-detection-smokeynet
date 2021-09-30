@@ -48,6 +48,8 @@ parser.add_argument('--is-object-detection', action='store_true',
                     help='Specifies data loader for object detection models.')
 parser.add_argument('--is-maskrcnn', action='store_true',
                     help='Specifies data loader for mask rcnn models.')
+parser.add_argument('--is-background-removal', action='store_true',
+                    help='Specifies if optical flow type is background removal.')
 
 # Experiment args = 2
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -210,6 +212,7 @@ def main(# Debug args
         mask_omit_images=False,
         is_object_detection=False,
         is_maskrcnn=False,
+        is_background_removal=False,
         
         # Path args
         raw_data_path=None, 
@@ -303,6 +306,7 @@ def main(# Debug args
         mask_omit_images=mask_omit_images,
         is_object_detection=is_object_detection,
         is_maskrcnn=is_maskrcnn,
+        is_background_removal=is_background_removal,
         
         # Path args
         raw_data_path=raw_data_path,
@@ -370,7 +374,8 @@ def main(# Debug args
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,
-                     series_length=series_length)
+                     series_length=series_length,
+                     is_background_removal=is_background_removal)
 
     ### Initialize LightningModule ###
     if checkpoint_path and checkpoint:
@@ -487,6 +492,7 @@ if __name__ == '__main__':
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
         is_maskrcnn=parsed_args['is_maskrcnn'],
+        is_background_removal=parsed_args['is_background_removal'],
         
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],

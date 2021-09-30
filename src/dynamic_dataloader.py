@@ -32,6 +32,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  mask_omit_images=False,
                  is_object_detection=False,
                  is_maskrcnn=False,
+                 is_background_removal=False,
                  
                  raw_data_path=None, 
                  labels_path=None, 
@@ -74,6 +75,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - mask_omit_images (bool): masks tile predictions for images in omit_list_images
             - is_object_detection (bool): loads labels for use with object detection models
             - is_maskrcnn (bool): loads both bbox and mask labels for maskrcnn model
+            - is_background_removal (bool): uses 1 channel instead of 3 for optical flow 
             
             - raw_data_path (str): path to raw data
             - labels_path (str): path to Numpy labels
@@ -133,6 +135,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.mask_omit_images = mask_omit_images
         self.is_object_detection = is_object_detection
         self.is_maskrcnn = is_maskrcnn
+        self.is_background_removal = is_background_removal
            
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
@@ -349,6 +352,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
                                           is_maskrcnn=self.is_maskrcnn,
+                                          is_background_removal=self.is_background_removal,
                                           
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -383,6 +387,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
                                           is_maskrcnn=self.is_maskrcnn,
+                                          is_background_removal=self.is_background_removal,
                                         
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -416,6 +421,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                           omit_images_list=None,
                                           is_object_detection=self.is_object_detection,
                                           is_maskrcnn=self.is_maskrcnn,
+                                          is_background_removal=self.is_background_removal,
                                          
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -456,6 +462,7 @@ class DynamicDataloader(Dataset):
                  omit_images_list=None,
                  is_object_detection=False,
                  is_maskrcnn=False,
+                 is_background_removal=False,
                  
                  original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
@@ -481,6 +488,7 @@ class DynamicDataloader(Dataset):
         self.omit_images_list = omit_images_list
         self.is_object_detection = is_object_detection
         self.is_maskrcnn = is_maskrcnn
+        self.is_background_removal = is_background_removal
         
         self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
@@ -617,11 +625,15 @@ class DynamicDataloader(Dataset):
                 # Apply data augmentations
                 # img.shape = [crop_height, resize_dimensions[1], num_channels]
                 img = data_augmentations(img, is_labels=True)
-
+                
                 # Tile image
                 # img.shape = [num_tiles, tile_height, tile_width, num_channels]
                 if self.pre_tile and not self.is_object_detection:
-                    img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+                    if self.is_background_removal:
+                        img = util_fns.tile_labels(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+                        img = np.expand_dims(img, 3)
+                    else:
+                        img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
                 # Rescale and normalize
                 if self.is_object_detection:
@@ -634,13 +646,13 @@ class DynamicDataloader(Dataset):
             if self.pre_tile and not self.is_object_detection:
                 # flow_imgs.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
                 flow_imgs = np.transpose(np.stack(flow_imgs), (1, 0, 4, 2, 3))
-                x = np.stack([x, flow_imgs], axis=2)
+                x = np.concatenate([x, flow_imgs], axis=2)
             else:
                 # flow_imgs.shape = [series_length, num_channels, height, width]
                 flow_imgs = np.transpose(np.stack(flow_imgs), (0, 3, 1, 2))
-                x = np.stack([x, flow_imgs], axis=1)
-        
-        # DEBUG: delete later
+                x = np.concatenate([x, flow_imgs], axis=1)
+
+          # DEBUG: delete later
 #         np.save('x.npy', x)
 #         np.save('y.npy', bbox_labels)
 #         import pdb; pdb.set_trace()

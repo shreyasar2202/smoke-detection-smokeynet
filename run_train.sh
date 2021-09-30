@@ -4,7 +4,7 @@
 #
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
-    
+
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT" \
     --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
@@ -24,7 +24,29 @@ python3.9 src/main.py \
     --crop-height 1120 \
     --tile-overlap 0 \
     --no-pre-tile \
-    --is-debug
+    --checkpoint-path './lightning_logs/Final_MobileNet_LSTM_SpatialViT/version_1/checkpoints/last.ckpt' \
+    --is-test-only \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT" \
+#     --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
+#     --resize-height 1512 \
+#     --resize-width 2016 \
+#     --crop-height 1120 \
+#     --tile-overlap 0 \
+#     --no-pre-tile \
+#     --is-debug
     
 
 #####################

@@ -11,6 +11,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet" \
@@ -25,6 +26,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_SpatialViT" \
@@ -39,6 +41,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
 
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM" \
@@ -53,6 +56,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
 
 python3.9 src/main.py \
     --experiment-name "Final_ResNet34_LSTM_SpatialViT" \
@@ -69,6 +73,7 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --backbone-size 'small' \
     --tile-embedding-size 1000 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_EfficientNet_LSTM_SpatialViT" \
@@ -85,6 +90,7 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --backbone-size 'small' \
     --tile-embedding-size 1280 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_DeiTTiny_LSTM_SpatialViT" \
@@ -101,6 +107,7 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --backbone-size 'small' \
     --tile-embedding-size 192 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT" \
@@ -115,6 +122,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
 
 python3.9 src/main.py \
     --experiment-name "Final_ResNet50" \
@@ -131,6 +139,7 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --backbone-size 'medium' \
     --tile-embedding-size 1000 \
+    --no-early-stopping \
 
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_ResNet3D" \
@@ -145,6 +154,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_FasterRCNN" \
@@ -168,6 +178,7 @@ python3.9 src/main.py \
     --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_RetinaNet" \
@@ -191,6 +202,7 @@ python3.9 src/main.py \
     --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_SSD" \
@@ -214,6 +226,7 @@ python3.9 src/main.py \
     --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MaskRCNN" \
@@ -238,168 +251,179 @@ python3.9 src/main.py \
     --time-range-min 0 \
     --max-epochs 25 \
     --confidence-threshold 0.5 \
-
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_Mask" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --mask-omit-images \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_ViT_NoImagePreds" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTile_ViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoIntSup" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --no-intermediate-supervision \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoOverlap" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoPreTile" \
-    --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --resize-height 1344 \
-    --resize-width 1792 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --no-pre-tile \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoAugment" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --no-flip-augment \
-    --no-resize-crop-augment \
-    --no-blur-augment \
-    --no-color-augment \
-    --no-brightness-contrast-augment \
-    
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoPretrain" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --no-pretrain-backbone \
     --no-early-stopping \
-    --max-epochs 15 \
+
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_Mask" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --mask-omit-images \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
     
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoCropHeight" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --crop-height 1244 \
-    --no-resize-crop-augment \
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_ViT_NoImagePreds" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTile_ViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
     
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoImagePreds" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoIntSup" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-intermediate-supervision \
+#     --no-early-stopping \
     
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_100Resize" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --num-workers 6 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --resize-height 1546 \
-    --resize-width 2060 \
-    --crop-height 1244 \
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoOverlap" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --resize-height 1344 \
+#     --resize-width 1792 \
+#     --crop-height 1120 \
+#     --tile-overlap 0 \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoPreTile" \
+#     --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --resize-height 1344 \
+#     --resize-width 1792 \
+#     --crop-height 1120 \
+#     --tile-overlap 0 \
+#     --no-pre-tile \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoAugment" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-flip-augment \
+#     --no-resize-crop-augment \
+#     --no-blur-augment \
+#     --no-color-augment \
+#     --no-brightness-contrast-augment \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoPretrain" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-pretrain-backbone \
+#     --no-early-stopping \
+#     --max-epochs 15 \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoCropHeight" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --crop-height 1244 \
+#     --no-resize-crop-augment \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_NoImagePreds" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --batch-size 4 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 8 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
+    
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_100Resize" \
+#     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 6 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --resize-height 1546 \
+#     --resize-width 2060 \
+#     --crop-height 1244 \
+#     --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT_Series3" \
@@ -414,6 +438,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT_Series4" \
@@ -428,6 +453,7 @@ python3.9 src/main.py \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
     
 
     
