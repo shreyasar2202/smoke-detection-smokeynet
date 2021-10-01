@@ -184,7 +184,7 @@ class MainModel(nn.Module):
                 losses.append(loss)
                                         
             # Else if model predicts tiles only...
-            elif len(x.shape) > 2:
+            elif type(x) is tuple or len(x.shape) > 2:
                 tile_outputs = outputs
                 loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 

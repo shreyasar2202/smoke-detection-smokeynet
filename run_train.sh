@@ -6,47 +6,38 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT" \
-    --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" \
+    --experiment-name "Final_MobileNet_SpatialViT_Mog_Crazy_Series3" \
+    --model-type-list "RawToTile_MobileNet_Flow1" "RawToTile_MobileNet_Flow2" "TileToTile_LSTM_Flow3" "TileToTile_LSTM_Flow4" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
     --error-as-eval-loss \
     --use-image-preds \
-    --batch-size 4 \
-    --series-length 2 \
-    --accumulate-grad-batches 8 \
-    --num-workers 6 \
+    --batch-size 1 \
+    --series-length 3 \
+    --accumulate-grad-batches 32 \
+    --num-workers 4 \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
-    --resize-height 1512 \
-    --resize-width 2016 \
-    --crop-height 1120 \
-    --tile-overlap 0 \
-    --no-pre-tile \
-    --checkpoint-path './lightning_logs/Final_MobileNet_LSTM_SpatialViT/version_1/checkpoints/last.ckpt' \
-    --is-test-only \
-    
+    --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
+    --is-background-removal \
+    --max-epochs 8 \
+
 # python3.9 src/main.py \
-#     --experiment-name "Final_MobileNet_LSTM_SpatialViT" \
-#     --model-type-list "RawToTile_MobileNet_NoPreTile" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-#     --omit-list "omit_no_xml" \
+#     --experiment-name "Final_MobileNet_SpatialViT_Flow" \
+#     --model-type-list "RawToTile_MobileNet_Flow" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
 #     --error-as-eval-loss \
 #     --use-image-preds \
 #     --batch-size 4 \
-#     --series-length 2 \
+#     --series-length 1 \
 #     --accumulate-grad-batches 8 \
-#     --num-workers 6 \
+#     --num-workers 4 \
 #     --train-split-path './data/final_split/train_images_final.txt' \
 #     --val-split-path './data/final_split/val_images_final.txt' \
 #     --test-split-path './data/final_split/test_images_final.txt' \
 #     --no-early-stopping \
-#     --resize-height 1512 \
-#     --resize-width 2016 \
-#     --crop-height 1120 \
-#     --tile-overlap 0 \
-#     --no-pre-tile \
-#     --is-debug
+#     --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_flow' \
     
 
 #####################
