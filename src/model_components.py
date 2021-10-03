@@ -535,50 +535,6 @@ class RawToTile_ResNetFPN(nn.Module):
 ## TileToTile Models - Optical Flow
 ########################### 
     
-class RawToTile_MobileNet_FlowOnly(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
-    def __init__(self, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True, 
-                 backbone_checkpoint_path=None,
-                 is_background_removal=False,
-                 **kwargs):
-        print('- RawToTile_MobileNet')
-        super().__init__()
-        
-        self.conv_flow = torchvision.models.mobilenet_v3_large(pretrained=False)
-        self.conv_flow.classifier = nn.Identity()
-        if is_background_removal:
-            self.conv_flow.features[0][0] = nn.Conv2d(1, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-
-        self.embeddings_to_output = TileEmbeddingsToOutput(960)
-        
-        if backbone_checkpoint_path is not None:
-            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
-        
-        if freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-        
-    def forward(self, x, **kwargs):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-        
-        # Run through conv model
-        tile_outputs_flow = x[:,:,:,3:]
-        tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
-        tile_outputs_flow = self.conv_flow(tile_outputs_flow) # [batch_size * num_tiles * series_length, tile_embedding_size]
-        
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs_flow, batch_size, num_tiles, series_length)
-        
-        return tile_outputs, embeddings
-    
 class RawToTile_MobileNet_Flow(nn.Module):
     """
     Description: MobileNetV3Large backbone with a few linear layers.

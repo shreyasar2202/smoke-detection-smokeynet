@@ -1,19 +1,19 @@
-python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_FlowCrazy" \
-    --model-type-list "RawToTile_MobileNet_Flow1" "RawToTile_MobileNet_Flow2" "TileToTile_LSTM_Flow3" "TileToTile_LSTM_Flow4" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --num-workers 4 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --no-early-stopping \
-    --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_flow' \
-    --max-epochs 10 \
+# python3.9 src/main.py \
+#     --experiment-name "Final_MobileNet_LSTM_SpatialViT_FlowCrazy" \
+#     --model-type-list "RawToTile_MobileNet_Flow1" "RawToTile_MobileNet_Flow2" "TileToTile_LSTM_Flow3" "TileToTile_LSTM_Flow4" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 4 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
+#     --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_flow' \
+#     --max-epochs 10 \
     
 python3.9 src/main.py \
     --experiment-name "Final_MobileNet_LSTM_SpatialViT_MogCrazy" \
