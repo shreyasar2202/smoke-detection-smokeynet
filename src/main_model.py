@@ -149,7 +149,20 @@ class MainModel(nn.Module):
                     tile_probs = tile_probs / len(outputs)
                     
                 break
-                    
+            
+            # If outputs is a tuple for both image and flow...
+            elif type(outputs) is tuple:
+                for output in outputs:
+                    tile_outputs = output
+                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
+
+                    # Only add loss if intermediate_supervision
+                    if self.intermediate_supervision and not self.image_loss_only:
+                        total_loss += loss
+                        losses.append(loss)
+                    else:
+                        total_loss = loss
+            
             # If x is a dictionary of object detection losses...
             elif type(x) is dict:
                 # If training...
@@ -184,7 +197,7 @@ class MainModel(nn.Module):
                 losses.append(loss)
                                         
             # Else if model predicts tiles only...
-            elif type(x) is tuple or len(x.shape) > 2:
+            elif len(x.shape) > 2:
                 tile_outputs = outputs
                 loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
                 

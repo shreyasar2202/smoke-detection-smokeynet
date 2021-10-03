@@ -535,7 +535,7 @@ class RawToTile_ResNetFPN(nn.Module):
 ## TileToTile Models - Optical Flow
 ########################### 
     
-class RawToTile_MobileNet_Flow(nn.Module):
+class RawToTile_MobileNet_FlowSimple(nn.Module):
     """
     Description: MobileNetV3Large backbone with a few linear layers.
     Args:
@@ -549,7 +549,7 @@ class RawToTile_MobileNet_Flow(nn.Module):
                  backbone_checkpoint_path=None,
                  is_background_removal=False,
                  **kwargs):
-        print('- RawToTile_MobileNet')
+        print('- RawToTile_MobileNet_FlowSimple')
         super().__init__()
         
         self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
@@ -590,7 +590,7 @@ class RawToTile_MobileNet_Flow(nn.Module):
         
         return tile_outputs, embeddings
     
-class RawToTile_MobileNet_Flow1(nn.Module):
+class RawToTile_MobileNet_Flow(nn.Module):
     """
     Description: MobileNetV3Large backbone with a few linear layers.
     Args:
@@ -604,14 +604,20 @@ class RawToTile_MobileNet_Flow1(nn.Module):
                  backbone_checkpoint_path=None,
                  is_background_removal=False,
                  **kwargs):
-        print('- RawToTile_MobileNet')
+        print('- RawToTile_MobileNet_Flow')
         super().__init__()
         
         self.conv = torchvision.models.mobilenet_v3_large(pretrained=pretrain_backbone)
         self.conv.classifier = nn.Identity()
+        
+        self.conv_flow = torchvision.models.mobilenet_v3_large(pretrained=False)
+        self.conv_flow.classifier = nn.Identity()
+        if is_background_removal:
+            self.conv_flow.features[0][0] = nn.Conv2d(1, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
 
         self.embeddings_to_output = TileEmbeddingsToOutput(960)
-        
+        self.embeddings_to_output_flow = TileEmbeddingsToOutput(960)
+                
         if backbone_checkpoint_path is not None:
             self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
         
@@ -627,62 +633,21 @@ class RawToTile_MobileNet_Flow1(nn.Module):
         tile_outputs = x[:,:,:,:3]
         tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
         tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
-        
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
         
-        return tile_outputs, (x, embeddings)
+        # Run flow through conv model
+        tile_outputs_flow = x[:,:,:,3:]
+        tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
+        tile_outputs_flow = self.conv_flow(tile_outputs_flow) # [batch_size * num_tiles * series_length, tile_embedding_size]
+        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
+        
+        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
     
-class RawToTile_MobileNet_Flow2(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
-    def __init__(self, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True, 
-                 backbone_checkpoint_path=None,
-                 is_background_removal=False,
-                 **kwargs):
-        print('- RawToTile_MobileNet')
-        super().__init__()
-        
-        self.conv_flow = torchvision.models.mobilenet_v3_large(pretrained=False)
-        self.conv_flow.classifier = nn.Identity()
-        if is_background_removal:
-            self.conv_flow.features[0][0] = nn.Conv2d(1, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-        
-        self.embeddings_to_output = TileEmbeddingsToOutput(960)
-        
-        if backbone_checkpoint_path is not None:
-            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
-        
-        if freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-        
-    def forward(self, x, **kwargs):
-        x, prev_embeddings = x
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through conv model
-        tile_outputs = x[:,:,:,3:]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
-        tile_outputs = self.conv_flow(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
-        
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        embeddings = torch.stack([prev_embeddings, embeddings], dim=0)
-
-        return tile_outputs, embeddings
-    
-class TileToTile_LSTM_Flow3(nn.Module):
+class TileToTile_LSTM_Flow(nn.Module):
     """Description: LSTM that takes tile embeddings and outputs tile predictions"""
     
     def __init__(self, tile_embedding_size=960, **kwargs):
-        print('- TileToTile_LSTM')
+        print('- TileToTile_LSTM_Flow')
         super().__init__()
         
         self.lstm = torch.nn.LSTM(input_size=tile_embedding_size, 
@@ -691,34 +656,7 @@ class TileToTile_LSTM_Flow3(nn.Module):
                                   bidirectional=False, 
                                   batch_first=True)
         
-        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
-                
-    def forward(self, tile_embeddings, **kwargs):
-        tile_embeddings = tile_embeddings.float()
-        two, batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-                
-        # Run through LSTM
-        tile_outputs = tile_embeddings[0]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
-        tile_outputs, (hidden, cell) = self.lstm(tile_outputs) # [batch_size * num_tiles, series_length, lstm_num_hidden]
-        
-        # Only save the last time step's outputs
-        tile_outputs = tile_outputs[:,-1] # [batch_size * num_tiles, embedding_size]
-        # Avoid contiguous error
-        tile_outputs = tile_outputs.contiguous()
-        
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
-        
-        return tile_outputs, (tile_embeddings, embeddings)
-    
-class TileToTile_LSTM_Flow4(nn.Module):
-    """Description: LSTM that takes tile embeddings and outputs tile predictions"""
-    
-    def __init__(self, tile_embedding_size=960, **kwargs):
-        print('- TileToTile_LSTM')
-        super().__init__()
-        
-        self.lstm = torch.nn.LSTM(input_size=tile_embedding_size, 
+        self.lstm_flow = torch.nn.LSTM(input_size=tile_embedding_size, 
                                   hidden_size=tile_embedding_size, 
                                   num_layers=2, 
                                   bidirectional=False, 
@@ -726,27 +664,30 @@ class TileToTile_LSTM_Flow4(nn.Module):
         
         self.fc = nn.Linear(in_features=960*2, out_features=960)
         self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+        self.embeddings_to_output_flow = TileEmbeddingsToOutput(tile_embedding_size)
                 
     def forward(self, tile_embeddings, **kwargs):
-        tile_embeddings, prev_embeddings = tile_embeddings
-        tile_embeddings = tile_embeddings.float()
-        two, batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-                
+        tile_embeddings, tile_embeddings_flow = tile_embeddings[0].float(), tile_embeddings[1].float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+        
         # Run through LSTM
-        tile_outputs = tile_embeddings[1]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
+        tile_outputs = tile_embeddings.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
         tile_outputs, (hidden, cell) = self.lstm(tile_outputs) # [batch_size * num_tiles, series_length, lstm_num_hidden]
-        
-        # Only save the last time step's outputs
         tile_outputs = tile_outputs[:,-1] # [batch_size * num_tiles, embedding_size]
-        # Avoid contiguous error
         tile_outputs = tile_outputs.contiguous()
-        
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
-        embeddings = torch.cat([prev_embeddings, embeddings], dim=3)
-        embeddings = F.relu(self.fc(embeddings))
+                
+        # Run flow through LSTM
+        tile_outputs_flow = tile_embeddings_flow.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
+        tile_outputs_flow, (hidden, cell) = self.lstm(tile_outputs_flow) # [batch_size * num_tiles, series_length, lstm_num_hidden]
+        tile_outputs_flow = tile_outputs_flow[:,-1] # [batch_size * num_tiles, embedding_size]
+        tile_outputs_flow = tile_outputs_flow.contiguous()
+        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, 1)
         
-        return tile_outputs, embeddings
+        embeddings = torch.cat([embeddings, embeddings_flow], dim=3) # [batch_size, num_tiles, series_length, tile_embedding_size * 2]
+        embeddings = F.relu(self.fc(embeddings)) # [batch_size, num_tiles, series_length, tile_embedding_size]
+        
+        return (tile_outputs, tile_outputs_flow), embeddings
     
 ###########################
 ## TileToTile Models
