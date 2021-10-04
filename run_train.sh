@@ -5,24 +5,24 @@
 # Description: Used to easily start training from main.py with command line arguments.
 #############################################
 
-python3.9 src/main.py \
-    --experiment-name "Final_ResNet_LSTM_SpatialViT_Mog" \
-    --model-type-list "RawToTile_ResNet_Flow" "TileToTile_LSTM_Flow" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
-    --error-as-eval-loss \
-    --use-image-preds \
-    --batch-size 2 \
-    --series-length 2 \
-    --accumulate-grad-batches 16 \
-    --num-workers 4 \
-    --train-split-path './data/final_split/train_images_final.txt' \
-    --val-split-path './data/final_split/val_images_final.txt' \
-    --test-split-path './data/final_split/test_images_final.txt' \
-    --no-early-stopping \
-    --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
-    --max-epochs 15 \
-    --is-background-removal \
-    --tile-embedding-size 1000 \
+# python3.9 src/main.py \
+#     --experiment-name "Final_ResNet_LSTM_SpatialViT_Mog" \
+#     --model-type-list "RawToTile_ResNet_Flow" "TileToTile_LSTM_Flow" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" "omit_no_contour" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 4 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
+#     --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
+#     --max-epochs 15 \
+#     --is-background-removal \
+#     --tile-embedding-size 1000 \
 
 python3.9 src/main.py \
     --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT_Mog" \
@@ -39,7 +39,7 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
     --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
-    --max-epochs 10 \
+    --max-epochs 15 \
     --is-background-removal \
     
 python3.9 src/main.py \
@@ -57,9 +57,28 @@ python3.9 src/main.py \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
     --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
-    --max-epochs 10 \
+    --max-epochs 15 \
     --is-background-removal \
     --tile-embedding-size 1280 \
+    
+python3.9 src/main.py \
+    --experiment-name "Final_DeiT_LSTM_SpatialViT_Mog" \
+    --model-type-list "RawToTile_DeiT_Flow" "TileToTile_LSTM_Flow" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" "omit_no_contour" \
+    --error-as-eval-loss \
+    --use-image-preds \
+    --batch-size 1 \
+    --series-length 2 \
+    --accumulate-grad-batches 32 \
+    --num-workers 4 \
+    --train-split-path './data/final_split/train_images_final.txt' \
+    --val-split-path './data/final_split/val_images_final.txt' \
+    --test-split-path './data/final_split/test_images_final.txt' \
+    --no-early-stopping \
+    --optical-flow-path '/userdata/kerasData/data/new_data/raw_images_mog' \
+    --max-epochs 15 \
+    --is-background-removal \
+    --tile-embedding-size 192 \
     
 
 #####################

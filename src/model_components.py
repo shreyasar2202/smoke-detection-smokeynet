@@ -875,6 +875,60 @@ class RawToTile_EfficientNet_Flow(nn.Module):
         
         return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
     
+class RawToTile_DeiT_Flow(nn.Module):
+    """
+    Description: Vision Transformer operating on raw inputs to produce tile predictions
+    Args:
+        - freeze_backbone (bool): Freezes layers of pretrained backbone
+        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
+        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
+        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
+    """
+    def __init__(self, 
+                 freeze_backbone=True, 
+                 pretrain_backbone=True, 
+                 backbone_checkpoint_path=None,  
+                 is_background_removal=False,
+                 backbone_size='small', 
+                 **kwargs):
+        print('- RawToTile_DeiT_'+backbone_size)
+        super().__init__()
+        
+        self.backbone_size = backbone_size
+        self.size_to_embeddings = {'small': 192, 'medium': 384, 'large': 768}
+        size_to_name = {'small': 'tiny', 'medium': 'small', 'large': 'base'}
+
+        if pretrain_backbone:
+            self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+        else:
+            deit_config = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
+            self.deit_model = transformers.DeiTModel(deit_config)
+        
+        if is_background_removal:
+            deit_config_flow = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224', num_channels=1)
+        self.deit_model_flow = transformers.DeiTModel(deit_config_flow)
+        
+        self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
+        self.embeddings_to_output_flow = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
+
+    def forward(self, x, **kwargs):
+        x = x.float()
+        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
+
+        # Run through DeiT
+        tile_outputs = x[:,:,:,:3]
+        tile_outputs = tile_outputs.view(batch_size * series_length * num_tiles, 3, height, width)
+        tile_outputs = self.deit_model(tile_outputs).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
+        
+        # Run flow through DeiT
+        tile_outputs_flow = x[:,:,:,3:]
+        tile_outputs_flow = tile_outputs_flow.view(batch_size * series_length * num_tiles, num_channels-3, height, width)
+        tile_outputs_flow = self.deit_model_flow(tile_outputs_flow).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
+        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
+        
+        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
+    
 ###########################
 ## TileToTile Models
 ########################### 
