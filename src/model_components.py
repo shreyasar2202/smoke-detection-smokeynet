@@ -65,10 +65,12 @@ class TileLoss():
             print('-- Tile Loss: Focal Loss')
         elif self.tile_loss_type == 'bce':
             print('-- Tile Loss: BCE Loss')
+        elif self.tile_loss_type == 'weighted-sensitivity':
+            print('-- Tile Loss: Weighted Sensitivity Loss')
         else:
             raise ValueError('Tile Loss Type not recognized.')
             
-    def __call__(self, tile_outputs, tile_labels):
+    def __call__(self, tile_outputs, tile_labels, num_epoch=0):
         if self.tile_loss_type == 'focal':
             tile_loss = torchvision.ops.focal_loss.sigmoid_focal_loss(
                      tile_outputs, 
@@ -92,6 +94,26 @@ class TileLoss():
             # Prevent divide by 0 error
             # Also divide by pos_weight+1 to normalize weights
             tile_loss = tile_loss / (torch.maximum(torch.as_tensor(1), tile_labels.sum()) * (self.bce_pos_weight+1) )
+            
+        elif self.tile_loss_type == 'weighted-sensitivity':
+            outputs = torch.sigmoid(tile_outputs)
+            eps = .001
+            sensitivity_weight = 1
+            specificity_weight = 1
+            
+            if num_epoch > 8:
+                sensitivity_weight = 2
+            if num_epoch > 18:
+                sensitivity_weight = 3
+            
+            outputs = outputs.view(-1)
+            labels = tile_labels.view(-1)
+            true_positives = (outputs * labels).sum()
+            
+            sensitivity_loss = 1 - ((true_positives) / (labels.sum() + eps))
+            precision_loss = 1 - ((true_positives) / (outputs.sum() + eps))
+            
+            tile_loss = sensitivity_weight * sensitivity_loss + specificity_weight * precision_loss
         
         return tile_loss
 

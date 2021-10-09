@@ -154,7 +154,7 @@ class MainModel(nn.Module):
             elif type(outputs) is tuple:
                 for output in outputs:
                     tile_outputs = output
-                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
+                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
 
                     # Only add loss if intermediate_supervision
                     if self.intermediate_supervision and not self.image_loss_only:
@@ -199,7 +199,7 @@ class MainModel(nn.Module):
             # Else if model predicts tiles only...
             elif len(x.shape) > 2:
                 tile_outputs = outputs
-                loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
+                loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
                 
                 # Only add loss if intermediate_supervision
                 if self.intermediate_supervision and not self.image_loss_only:
@@ -212,7 +212,7 @@ class MainModel(nn.Module):
             else:
                 tile_outputs = outputs
                 if not self.image_loss_only:
-                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks]) 
+                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
                     total_loss += loss
                     losses.append(loss)
                 
