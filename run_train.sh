@@ -6,7 +6,7 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_WeightRecall" \
+    --experiment-name "Final_MobileNet_LSTM_SpatialViT_03Thresh_Test" \
     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --error-as-eval-loss \
@@ -14,12 +14,13 @@ python3.9 src/main.py \
     --batch-size 4 \
     --series-length 2 \
     --accumulate-grad-batches 8 \
-    --num-workers 6 \
+    --num-workers 4 \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
-    --tile-loss-type 'weighted-sensitivity' \
+    --checkpoint-path './lightning_logs/Final_MobileNet_LSTM_SpatialViT/version_0/checkpoints/last.ckpt' \
+    --is-test-only \
     
 
 #####################
