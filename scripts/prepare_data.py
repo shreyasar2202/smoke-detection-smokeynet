@@ -1,3 +1,10 @@
+"""
+Created by: Anshuman Dewangan
+Date: 2021
+
+Description: Generates .npy files for all the labels and metadata.pkl file for easy dataloading.
+"""
+
 # Other package imports
 import pickle
 import os
@@ -9,14 +16,15 @@ from pathlib import Path
 import util_fns
 
 
-# TODO: Define correct paths here
+# TODO: Make sure these have correct paths
 raw_data_path = '/userdata/kerasData/data/new_data/raw_images'
 labels_path = '/userdata/kerasData/data/new_data/drive_clone'
 labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy_new'
 
+
 print("Preparing Data...")
 
-### Create metadata.pkl ###
+### Initialize metadata.pkl ###
 metadata = {}
 
 metadata['fire_to_images'] = util_fns.generate_fire_to_images(raw_data_path)
@@ -50,25 +58,24 @@ for i, fire in enumerate(metadata['fire_to_images']):
 
     # Loop through each image in the fire
     for image in metadata['fire_to_images'][fire]:
-        # Create metadata
-        metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, labels_path)
-
         # Skip the next steps if the fire has not been labeled
         if fire not in metadata['labeled_fires']: continue
+        
+        label_path = labels_path+'/'+\
+                util_fns.get_fire_name(image)+'/xml/'+\
+                util_fns.get_only_image_name(image)+'.xml'
+        
+        has_xml_label = os.path.isfile(label_path)
 
         # If a positive image does not have an XML file associated with it, add it to omit_images_list
-        if util_fns.get_ground_truth_label(image) != metadata['has_xml_label'][image]:
+        if util_fns.get_ground_truth_label(image) != has_xml_label:
             metadata['omit_no_xml'].append(image)
 
         # If a label file exists...
-        if metadata['has_xml_label'][image]:
-            label_path = raw_labels_path+'/'+\
-                get_fire_name(image_name)+'/xml/'+\
-                get_only_image_name(image_name)+'.xml'
-
+        if has_xml_label:
             # Convert XML file into poly arrays
-            poly_contour = xml_to_contour(label_path)
-            poly_bbox = xml_to_bbox(label_path)
+            poly_contour = util_fns.xml_to_contour(label_path)
+            poly_bbox = util_fns.xml_to_bbox(label_path)
 
             if poly_contour is not None:
                 # If there is a contour, use that to fill labels
@@ -77,7 +84,6 @@ for i, fire in enumerate(metadata['fire_to_images']):
                 cv2.fillPoly(labels, poly_contour, 1)
                 os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                 np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
-                import pdb; pdb.set_trace()
             else:
                 metadata['omit_no_contour'].append(image)
 

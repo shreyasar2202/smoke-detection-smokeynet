@@ -29,13 +29,13 @@ spec:
         resources:
           limits:
             nvidia.com/gpu: 1
-            memory: "12Gi"
-            cpu: "4"
+            memory: "16Gi"
+            cpu: "10"
             ephemeral-storage: 64Gi
           requests:
             nvidia.com/gpu: 1
-            memory: "12Gi"
-            cpu: "4"
+            memory: "16Gi"
+            cpu: "10"
             ephemeral-storage: 64Gi
         volumeMounts:
           - mountPath: /userdata/kerasData
@@ -60,5 +60,4 @@ spec:
                operator: In
                # Specifies GPU types
                values:
-               - 1080Ti
                - 2080Ti

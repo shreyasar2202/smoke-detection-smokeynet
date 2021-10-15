@@ -100,12 +100,14 @@ class MainModel(nn.Module):
             - bbox_labels: (list): labels for bboxes
             - ground_truth_labels (tensor): labels for images for image_loss
             - omit_masks (tensor): determines if tile predictions should be masked
+            - split (str): if this is the train/val/test split for determining correct loss calculation
             - num_epoch (int): current epoch number (for pretrain_epochs)
+            - device: current device being used to create new torch objects without getting errors
         Outputs:
-            - x (tensor): final outputs of model
-            - tile_losses (list of tensor): all tile-level losses (for logging purposes)
-            - image_losses (list of tensor): all image-level losses (for logging purposes)
+            - losses (list of tensor): all tile-level or image-level losses (for logging purposes)
+            - image_loss (list of tensor): all image-level losses (for logging purposes)
             - total_loss (tensor): overall loss (sum of all losses)
+            - tile_probs (tensor): probabilities predicted for each tile
             - tile_preds (tensor): final predictions for each tile
             - image_preds (tensor): final predictions for each image
         """
@@ -131,13 +133,15 @@ class MainModel(nn.Module):
             if outputs is None or i > 0:
                 outputs, x = model(x, bbox_labels=bbox_labels, tile_outputs=outputs)
                         
-            # If outputs is a dictionary of FPN layers...
+            # FPN ONLY: If outputs is a dictionary of FPN layers...
             if type(outputs) is collections.OrderedDict:
                 returns = {}
                 for key in outputs:
-                    # (losses, image_loss, total_loss, tile_probs, tile_preds, image_preds)
+                    # Run through forward pass for each layer of FPN
+                    # Outputs: (losses, image_loss, total_loss, tile_probs, tile_preds, image_preds)
                     returns[key] = self.forward_pass(x[key], tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, num_epoch, device, outputs[key])
                     
+                    # Compute correct statistics
                     losses = returns[key][0] if len(losses)==0 else losses + returns[key][0]
                     image_loss = returns[key][1] if image_loss is None else image_loss + returns[key][1]
                     total_loss += returns[key][2] / len(outputs)
@@ -150,8 +154,9 @@ class MainModel(nn.Module):
                     
                 break
             
-            # If outputs is a tuple for both image and flow...
+            # FLOW ONLY: If outputs is a tuple for both image and flow...
             elif type(outputs) is tuple:
+                # Loop through outputs for image and flow
                 for output in outputs:
                     tile_outputs = output
                     loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
@@ -163,7 +168,7 @@ class MainModel(nn.Module):
                     else:
                         total_loss = loss
             
-            # If x is a dictionary of object detection losses...
+            # OBJECT DETECTION ONLY: If x is a dictionary of object detection losses...
             elif type(x) is dict:
                 # If training...
                 if len(x) > 0: 
@@ -176,18 +181,14 @@ class MainModel(nn.Module):
                     # Determine if there were any scores above confidence = 0
                     image_preds = torch.as_tensor([(output['scores'] > self.confidence_threshold).sum() > 0 for output in outputs]).to(device)
                     
-                    # DEBUG: delete eventually
-#                     if image_preds.sum() > 0:
-#                         print(outputs)
-#                         import pdb; pdb.set_trace()
-                    
                     # Use number of errors as loss
                     total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()
                     
                 return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
             
-            # Else if model predicts images only...
+            # IMAGE ONLY: Else if model predicts images only...
             elif x is None:
+                # Calculate image loss
                 image_outputs = outputs
                 image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=torch.as_tensor(self.image_pos_weight))
                 
@@ -196,8 +197,9 @@ class MainModel(nn.Module):
                 total_loss += loss
                 losses.append(loss)
                                         
-            # Else if model predicts tiles only...
+            # TILE ONLY: Else if model predicts tiles only...
             elif len(x.shape) > 2:
+                # Calculate tile loss
                 tile_outputs = outputs
                 loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
                 
@@ -208,14 +210,16 @@ class MainModel(nn.Module):
                 else:
                     total_loss = loss
                 
-            # Else if model predicts tiles and images...
+            # TILE & IMAGES: Else if model predicts tiles and images...
             else:
+                # Calculate tile loss
                 tile_outputs = outputs
                 if not self.image_loss_only:
                     loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
                     total_loss += loss
                     losses.append(loss)
                 
+                # Calculate image loss
                 image_outputs = x
                 image_loss = F.binary_cross_entropy_with_logits(image_outputs[:,-1], ground_truth_labels.float(), reduction='none', pos_weight=torch.as_tensor(self.image_pos_weight))
                 
@@ -223,7 +227,7 @@ class MainModel(nn.Module):
                 total_loss += loss
                 losses.append(loss)
             
-        # Compute predictions for tiles and images 
+        # Compute predictions for tiles
         if tile_outputs is not None:
             tile_probs = torch.sigmoid(tile_outputs[:,:,-1])
             tile_preds = (tile_probs > 0.5).int()
@@ -231,7 +235,6 @@ class MainModel(nn.Module):
         # If created image_outputs, predict directly
         if self.use_image_preds and image_outputs is not None:
             image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
-        
         # Else, use tile_preds to determine image_preds
         elif tile_outputs is not None:
             image_preds = (tile_preds.sum(dim=1) > 0).int()

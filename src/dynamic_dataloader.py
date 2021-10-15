@@ -36,7 +36,6 @@ class DynamicDataModule(pl.LightningDataModule):
                  
                  raw_data_path=None, 
                  labels_path=None, 
-                 raw_labels_path=None,
                  metadata_path='./data/metadata.pkl',
                  optical_flow_path=None,
                  
@@ -77,7 +76,6 @@ class DynamicDataModule(pl.LightningDataModule):
             
             - raw_data_path (str): path to raw data
             - labels_path (str): path to Numpy labels
-            - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
                 - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels. Does not include unlabeled fires.
@@ -134,7 +132,6 @@ class DynamicDataModule(pl.LightningDataModule):
            
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
-        self.raw_labels_path = raw_labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
         self.optical_flow_path = optical_flow_path
         

@@ -29,60 +29,58 @@ import util_fns
 #####################
 
 # All args recorded as hyperparams
-parser = ArgumentParser(description='Takes raw wildfire images and saves tiled images')
+parser = ArgumentParser(description='Wildfire smoke detection model training')
 
-# Debug args = 5
+# Debug args
 parser.add_argument('--is-debug', action='store_true',
                     help='Turns off logging and checkpointing.')
 parser.add_argument('--is-test-only', action='store_true',
-                    help='Skips training for testing only. Useful when checkpoint loading.')
+                    help='Skips training in order to run testing only. Useful when combined with checkpoint loading.')
 parser.add_argument('--is-extra-training', action='store_true',
-                    help='Enables extra training. Prevents loading Trainer from checkpoint.')
+                    help='Enables training for more epochs. Useful when combined with checkpoint loading.')
 parser.add_argument('--omit-list', nargs='*',
                     help='List of metadata keys to omit from train/val sets. Options: [omit_mislabeled] [omit_no_xml] [omit_no_bbox] [omit_no_contour]')
 parser.add_argument('--error-as-eval-loss', action='store_true',
-                    help='Uses error rate (1 - acc) as validation and test loss. Useful when using unlabeled data as evaluation sets.')
+                    help='Uses error rate (ie. 1 - acc) as validation and test loss. Useful when using unlabeled data as evaluation sets.')
 parser.add_argument('--mask-omit-images', action='store_true',
-                    help='Masks tile predictions for images in omit_list_images.')
+                    help='Masks tile predictions for images in omit_list_images. Useful when using images without bbox / contour annotations for training.')
 parser.add_argument('--is-object-detection', action='store_true',
                     help='Specifies data loader for object detection models.')
 parser.add_argument('--is-maskrcnn', action='store_true',
-                    help='Specifies data loader for mask rcnn models.')
+                    help='Specifies data loader for specifically for mask rcnn models. Use with is_object_detection.')
 parser.add_argument('--is-background-removal', action='store_true',
-                    help='Specifies if optical flow type is background removal.')
+                    help='Specifies if optical flow type is background removal. Used with optical_flow_path.')
 
-# Experiment args = 2
+# Experiment args
 parser.add_argument('--experiment-name', type=str, default=None,
-                    help='(Optional) Name for experiment')
+                    help='Name for experiment and title of logging directory.')
 parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
-# Path args = 4 + 4
+# Path args
 parser.add_argument('--raw-data-path', type=str, default='/root/raw_images',
                     help='Path to raw images.')
 parser.add_argument('--labels-path', type=str, default='/root/pytorch_lightning_data/drive_clone_numpy',
                     help='Path to processed XML labels.')
-parser.add_argument('--raw-labels-path', type=str, default='/userdata/kerasData/data/new_data/drive_clone',
-                    help='Path to raw XML labels. Only used to generated processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
 parser.add_argument('--optical-flow-path', type=str, default=None,
                     help='Path to optical flow npy files. Only use if you want to load optical flow data.')
 
 parser.add_argument('--train-split-path', type=str, default=None,
-                    help='(Optional) Path to txt file with train image paths. Only works if train, val, and test paths are provided.')
+                    help='(Optional) Path to txt file with train image paths. Only works if train, val, and test paths are all provided. Otherwise, randomly generates splits.')
 parser.add_argument('--val-split-path', type=str, default=None,
-                    help='(Optional) Path to txt file with val image paths. Only works if train, val, and test paths are provided.')
+                    help='(Optional) Path to txt file with val image paths. Only works if train, val, and test paths are all provided. Otherwise, randomly generates splits.')
 parser.add_argument('--test-split-path', type=str, default=None,
-                    help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are provided.')
+                    help='(Optional) Path to txt file with test image paths. Only works if train, val, and test paths are all provided. Otherwise, randomly generates splits.')
 parser.add_argument('--load-images-from-split', action='store_true',
                     help='If images should be loaded exactly from split (as opposed to fires)')
 
-# Dataloader args = 4 + 4 + 5 + 5 + 5
+# Dataloader args
 parser.add_argument('--train-split-size', type=int, default=0.7,
-                    help='% of data to split for train.')
+                    help='% of data to split for train. Only used when not loading pre-created splits.')
 parser.add_argument('--test-split-size', type=int, default=0.15,
-                    help='% of data to split for test.')
+                    help='% of data to split for test. Only used when not loading pre-created splits.')
 parser.add_argument('--batch-size', type=int, default=1,
                     help='Batch size for training.')
 parser.add_argument('--num-workers', type=int, default=4,
@@ -91,7 +89,7 @@ parser.add_argument('--num-workers', type=int, default=4,
 parser.add_argument('--series-length', type=int, default=2,
                     help='Number of sequential video frames to process during training.')
 parser.add_argument('--add-base-flow', action='store_true',
-                    help='If series_length > 1, sets the first image as the negative sample at time step -2400.')
+                    help='Adds a contextual frame of t-5 in series. Useful only when series_length > 1.')
 parser.add_argument('--time-range-min', type=int, default=-2400,
                     help='Start time of fire images to consider during training. ')
 parser.add_argument('--time-range-max', type=int, default=2400,
@@ -106,7 +104,7 @@ parser.add_argument('--resize-height', type=int, default=1392,
 parser.add_argument('--resize-width', type=int, default=1856,
                     help='Desired resize width of image.')
 parser.add_argument('--crop-height', type=int, default=1040,
-                    help='Desired height after cropping.')
+                    help='Desired height after cropping the top of the image.')
 
 parser.add_argument('--tile-size', type=int, default=224,
                     help='Height and width of tile.')
@@ -130,7 +128,7 @@ parser.add_argument('--no-color-augment', action='store_false',
 parser.add_argument('--no-brightness-contrast-augment', action='store_false',
                     help='Disables data augmentation with brightness and contrast jitter.')
 
-# Model args = 5 + 4 + 4
+# Model args
 parser.add_argument('--model-type-list', nargs='*',
                     help='Specify the model type through multiple model components.')
 parser.add_argument('--pretrain-epochs', nargs='*',
@@ -138,7 +136,7 @@ parser.add_argument('--pretrain-epochs', nargs='*',
 parser.add_argument('--no-intermediate-supervision', action='store_false',
                     help='Disables intermediate supervision for chained models.')
 parser.add_argument('--use-image-preds', action='store_true',
-                    help='Uses image predictions from linear layers instead of tile preds.')
+                    help='Uses image predictions from linear layers for final prediction instead of tile preds.')
 parser.add_argument('--tile-embedding-size', type=int, default=960,
                     help='Target embedding size to use for tile predictions.')
 
@@ -147,12 +145,12 @@ parser.add_argument('--no-pretrain-backbone', action='store_false',
 parser.add_argument('--freeze-backbone', action='store_true',
                     help='Freezes layers on pre-trained backbone.')
 parser.add_argument('--backbone-size',  type=str, default='small',
-                    help='how big a model to train. Options: [small] [medium] [large]')
+                    help='Determines how big a model to train. Options: [small] [medium] [large]')
 parser.add_argument('--backbone-checkpoint-path', type=str, default=None,
                     help='Loads pretrained weights for the backbone from a checkpoint.')
 
 parser.add_argument('--tile-loss-type', type=str, default='bce',
-                    help='Type of loss to use for training. Options: [bce], [focal]')
+                    help='Type of loss to use for training. Options: [bce], [focal], [weighted-sensitivity]')
 parser.add_argument('--bce-pos-weight', type=float, default=40,
                     help='Weight for positive class for BCE loss for tiles.')
 parser.add_argument('--focal-alpha', type=float, default=0.25,
@@ -160,7 +158,7 @@ parser.add_argument('--focal-alpha', type=float, default=0.25,
 parser.add_argument('--focal-gamma', type=float, default=2,
                     help='Gamma for focal loss.')
 parser.add_argument('--image-loss-only', action='store_true',
-                    help='Only train on image loss, not tile loss.')
+                    help='Only train using image loss, not tile losses.')
 parser.add_argument('--image-pos-weight', type=float, default=1,
                     help='Weight for positive class for BCE loss for images.')
 parser.add_argument('--confidence-threshold', type=float, default=0,
@@ -217,7 +215,6 @@ def main(# Debug args
         # Path args
         raw_data_path=None, 
         labels_path=None, 
-        raw_labels_path=None,
         metadata_path=None,
         optical_flow_path=None,
     
@@ -311,7 +308,6 @@ def main(# Debug args
         # Path args
         raw_data_path=raw_data_path,
         labels_path=labels_path,
-        raw_labels_path=raw_labels_path,
         metadata_path=metadata_path,
         optical_flow_path=optical_flow_path,
         
