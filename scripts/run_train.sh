@@ -6,7 +6,7 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_MobileNet_LSTM_SpatialViT_03Thresh_Test" \
+    --experiment-name "DEBUG" \
     --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" "omit_no_contour" \
     --error-as-eval-loss \
@@ -19,8 +19,6 @@ python3.9 src/main.py \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
-    --checkpoint-path './lightning_logs/Final_MobileNet_LSTM_SpatialViT/version_0/checkpoints/last.ckpt' \
-    --is-test-only \
     
 
 #####################

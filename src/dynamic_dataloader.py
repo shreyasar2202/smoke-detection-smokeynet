@@ -6,7 +6,6 @@ Description: Loads data from raw image and XML files
 """
 # Torch imports
 import pytorch_lightning as pl
-import pickle
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 
@@ -14,6 +13,7 @@ from torch.utils.data import DataLoader
 import os
 import cv2
 import numpy as np
+import pickle
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 import torch
@@ -66,9 +66,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  resize_crop_augment = True,
                  blur_augment = True,
                  color_augment = True,
-                 brightness_contrast_augment = True,
-                 
-                 create_data = False):
+                 brightness_contrast_augment = True):
         """
         Args:
             - omit_list (list of str): list of metadata keys to omit from train/val sets
@@ -82,7 +80,6 @@ class DynamicDataModule(pl.LightningDataModule):
             - raw_labels_path (str): path to XML labels
             - metadata_path (str): path to metadata.pkl
                 - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
-                - has_xml_label (dict): dictionary with fires as keys and 1 if fire has a .xml file associated with it
                 - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels. Does not include unlabeled fires.
                 - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
                 - omit_no_bbox (list of str): list of images that erroneously do not have bboxes. Does not include unlabeled fires.
@@ -120,9 +117,7 @@ class DynamicDataModule(pl.LightningDataModule):
             - blur_augment (bool): enables data augmentation with Gaussian blur
             - color_augment (bool): enables data augmentation with color jitter
             - brightness_contrast_augment (bool): enables data augmentation with brightness contrast adjustment
-            
-            - create_data (bool): should prepare_data be run?
-        
+                    
         Other Attributes:
             - self.train_split (list): list of image names to be used for train dataloader
             - self.val_split (list): list of image names to be used for val dataloader
@@ -172,102 +167,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.color_augment = color_augment
         self.brightness_contrast_augment = brightness_contrast_augment
         
-        self.create_data = create_data
         self.has_setup = False
-        
-        
-    def prepare_data(self):
-        """
-        Description: Creates metadata.pkl and saved labels for easier loading. Only needs to be run once.
-        """
-        if self.create_data:
-            print("Preparing Data...")
-            
-            ### Create metadata.pkl ###
-            self.metadata = {}
-
-            self.metadata['fire_to_images'] = util_fns.generate_fire_to_images(self.raw_data_path)
-            self.metadata['has_xml_label'] = {}
-            
-            self.metadata['omit_no_xml'] = []
-            self.metadata['omit_no_contour'] = []
-            self.metadata['omit_no_contour_or_bbox'] = []
-            self.metadata['omit_mislabeled'] = np.loadtxt('./data/omit_mislabeled.txt', dtype=str)
-            
-            self.metadata['labeled_fires'] = [folder.stem for folder in filter(Path.is_dir, Path(self.labels_path).iterdir())]
-            self.metadata['unlabeled_fires'] = []
-            self.metadata['train_only_fires'] = []
-            self.metadata['eligible_fires'] = []
-            self.metadata['night_fires'] = np.loadtxt('./data/night_fires.txt', dtype=str)
-            self.metadata['mislabeled_fires'] = np.loadtxt('./data/mislabeled_fires.txt', dtype=str)
-            
-            self.metadata['bbox_labels'] = {}
-            
-            images_output_path = '/userdata/kerasData/data/new_data/raw_images_numpy'
-            labels_output_path = '/userdata/kerasData/data/new_data/drive_clone_numpy'
-            
-            # Loop through all fires
-            for fire in self.metadata['fire_to_images']:
-                if fire not in labeled_fires:
-                    self.metadata['unlabeled_fires'].append(fire)
-                elif 'mobo-c' not in fire:
-                    self.metadata['train_only_fires'].append(fire)
-                else:
-                    self.metadata['eligible_fires'].append(fire)
-                
-                print('Preparing Folder ', self.metadata['num_fires'])
-                
-                # Loop through each image in the fire
-                for image in self.metadata['fire_to_images'][fire]:
-                    # Create metadata
-                    self.metadata['has_xml_label'][image] = util_fns.get_has_xml_label(image, self.labels_path)
-                    
-                    # Skip the next steps if the fire has not been labeled
-                    if fire not in labeled_fires: continue
-                    
-                    # If a positive image does not have an XML file associated with it, add it to omit_images_list
-                    if util_fns.get_ground_truth_label(image) != self.metadata['has_xml_label'][image]:
-                        self.metadata['omit_no_xml'].append(image)
-                    
-                    # If a label file exists...
-                    if self.metadata['has_xml_label'][image]:
-                        label_path = raw_labels_path+'/'+\
-                            get_fire_name(image_name)+'/xml/'+\
-                            get_only_image_name(image_name)+'.xml'
-
-                        # Convert XML file into poly arrays
-                        poly_contour = xml_to_contour(label_path)
-                        poly_bbox = xml_to_bbox(label_path)
-                        
-                        if poly_contour is not None:
-                            # If there is a contour, use that to fill labels
-                            x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
-                            labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                            cv2.fillPoly(labels, poly_contour, 1)
-                            os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
-                            np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
-                        else:
-                            self.metadata['omit_no_contour'].append(image)
-                                                        
-                            if poly_bbox is not None:
-                                # If there isn't a contour but there is a bbox, use that to fill labels
-                                x = cv2.imread(self.raw_data_path + '/' + image + '.jpg')
-                                labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                                cv2.rectangle(labels, *poly_bbox, 1, -1)
-                                os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
-                                np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
-                            else:
-                                self.metadata['omit_no_contour_or_bbox'].append(image)
-                        
-                        # If there is a bbox, save the array to 'bbox_labels'
-                        if poly_bbox is not None:
-                            self.metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
-        
-            with open(f'./metadata.pkl', 'wb') as pkl_file:
-                pickle.dump(self.metadata, pkl_file)
-                
-            print("Preparing Data Complete.")
-        
         
     def setup(self, stage=None, log_dir=None):
         """

@@ -8,7 +8,7 @@ Visualization of model performance:
 
 ![](wildfire-smoke-detection.mp4)
 
-# Setup & Usage
+# Quick Setup & Usage
 ## Initial Setup
 1. Clone directory:
 ```bash
@@ -94,3 +94,9 @@ The following steps can increase training speed by 2-5x:
 1. Copy the dataset to your home directory (```/root/``` for admin and ```/home/``` for user)
 2. Add ```dshm``` volume to YAML file. Also recommended to specify GPU type to ```1080Ti``` or ```2080Ti```, use 4 CPUs, aand set memory=12GB. See torch-gpu.yaml for an example.
 3. Set num_workers=4 (equal to the # of CPUs and 4x # of GPUs) in dataloader
+
+# Data Download & Preparation
+
+## Download Data
+1. Run ```./scripts/download_raw_data.sh``` to download raw images from the [HPWREN website](http://hpwren.ucsd.edu/HPWREN-FIgLib/HPWREN-FIgLib-Data/) to ```/userdata/kerasData/data/new_data/raw_images_new/``` directory
+2. Follow the instructions at the bottom of this [Google Doc](https://docs.google.com/document/d/14cnRoZ9VkYk8y0Wf3__uGAvDXWaGv1dwGrWtTYe75q0/edit?usp=sharing) to download the bounding box and contour annotation labels
