@@ -6,19 +6,20 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "DEBUG" \
-    --model-type-list "RawToTile_MobileNet" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
-    --omit-list "omit_no_xml" "omit_no_contour" \
+    --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT" \
+    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --omit-list "omit_no_xml" \
     --error-as-eval-loss \
     --use-image-preds \
-    --batch-size 4 \
+    --batch-size 2 \
     --series-length 2 \
-    --accumulate-grad-batches 8 \
+    --accumulate-grad-batches 16 \
     --num-workers 4 \
     --train-split-path './data/final_split/train_images_final.txt' \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
+    --is-debug \
     
 
 #####################

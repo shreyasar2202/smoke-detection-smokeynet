@@ -27,10 +27,10 @@ from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinan
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from torchvision.models.detection.anchor_utils import AnchorGenerator
-import math
 
 # Other imports 
 import numpy as np
+import math
 
 # File imports
 import resnet

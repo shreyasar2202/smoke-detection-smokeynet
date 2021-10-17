@@ -4,6 +4,7 @@ Date: 2021
 
 Description: Utility and helper functions used in all files.
 """
+
 # Torch imports
 import torch
 import torchmetrics
@@ -90,6 +91,12 @@ def calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_ov
     
     return num_tiles_height, num_tiles_width
 
+def get_ground_truth_label(image_name):
+    """
+    Description: Returns 1 if image_name has a + in it (ie. is a positive) or 0 otherwise
+    """
+    ground_truth_label = 1 if "+" in image_name else 0
+    return ground_truth_label
 
 ###############
 ## DataModule
@@ -521,32 +528,6 @@ def default_collate(batch):
         return [default_collate(samples) for samples in transposed]
 
     raise TypeError(default_collate_err_msg_format.format(elem_type))
-
-#########################
-## Labels & Predictions
-#########################
-
-def get_ground_truth_label(image_name):
-    """
-    Description: Returns 1 if image_name has a + in it (ie. is a positive) or 0 otherwise
-    """
-    ground_truth_label = 1 if "+" in image_name else 0
-    return ground_truth_label
-
-def get_has_xml_label(image_name, labels_path):
-    """
-    Description: Returns 1 if image_name has an XML file associated with it or 0 otherwise
-    """
-    has_xml_label = os.path.isfile(labels_path+'/'+image_name+'.npy')
-    return has_xml_label
-
-def get_has_positive_tile(tile_labels):
-    """
-    Description: Returns 1 if tile_labels has a positive tile
-    """
-    has_positive_tile = 1 if tile_labels.sum() > 0 else 0
-    return has_positive_tile
-
 
 #####################
 ## LightningModule

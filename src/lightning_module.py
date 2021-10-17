@@ -41,15 +41,7 @@ class LightningModule(pl.LightningModule):
                  series_length=1,
                  parsed_args=None):
         """
-        Args:
-            - model (torch.nn.Module): model to use for training/evaluation
-            
-            - optimizer_type (str): type of optimizer to use. Options: [AdamW] [SGD]
-            - optimizer_weight_decay (float): weight decay to use with optimizer
-            - learning_rate (float): learning rate for optimizer
-            - lr_schedule (bool): should ReduceLROnPlateau learning rate schedule be used?
-            
-            - series_length (int): number of sequential video frames to process during training
+        Args (see arg descriptions in main.py):
             - parsed_args (dict): full dict of parsed args to log as hyperparameters
 
         Other Attributes:
@@ -59,8 +51,6 @@ class LightningModule(pl.LightningModule):
                 - category (list of str): metric subcategories
                     - 'tile_': metrics on per-tile basis
                     - 'image-gt': labels based on if image name has '+' in it)
-                    - 'image-pos-tile': labels based on if image has at least one positive tile 
-                    - 'corrected-image': predictions for image based on true positive tiles only (omit false positive predictions)
                 - name (list of str): name of metric e.g. ['accuracy', 'precision', ...]
         """
         print("Initializing LightningModule...")
@@ -145,10 +135,11 @@ class LightningModule(pl.LightningModule):
         # Compute outputs, loss, and predictions
         losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, self.current_epoch, self.device)
         
-        # Log losses (on_step only if split='train')
+        # Log intermediate losses (on_step only if split='train')
         for i, loss in enumerate(losses):
             self.log(split+'loss_'+str(i), loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
         
+        # Log overall loss
         self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
 
         # Calculate & log evaluation metrics
@@ -204,7 +195,7 @@ class LightningModule(pl.LightningModule):
 
         # Loop through batch
         for image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
-            # Account for if we predicted images directly
+            # Account for missing predictions (depending on which model is used)
             if tile_probs is None: tile_probs = [None] * len(image_names)
             if tile_preds is None: tile_preds = [None] * len(image_names)
             if image_losses is None: image_losses = [None] * len(image_names)
@@ -219,7 +210,7 @@ class LightningModule(pl.LightningModule):
                     # Save image predictions and image_loss
                     image_preds_csv_writer.writerow([image_name, image_pred, image_loss])
                     
-                    # Save tile probabilities
+                    # Save tile probabilities - useful when visualizing model performance
                     if tile_prob is not None:
                         tile_probs_path = self.logger.log_dir+'/tile_probs/'+fire_name
                         Path(tile_probs_path).mkdir(parents=True, exist_ok=True)
@@ -227,7 +218,7 @@ class LightningModule(pl.LightningModule):
                                 image_name+\
                                 '.npy', tile_prob.cpu().numpy())
 
-                    # Save tile predictions
+                    # Save tile predictions - useful when visualizing model performance
                     if tile_pred is not None:
                         tile_preds_path = self.logger.log_dir+'/tile_preds/'+fire_name
                         Path(tile_preds_path).mkdir(parents=True, exist_ok=True)

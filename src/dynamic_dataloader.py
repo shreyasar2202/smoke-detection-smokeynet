@@ -4,6 +4,7 @@ Date: 2021
 
 Description: Loads data from raw image and XML files
 """
+
 # Torch imports
 import pytorch_lightning as pl
 from torch.utils.data.dataset import Dataset
@@ -67,56 +68,8 @@ class DynamicDataModule(pl.LightningDataModule):
                  color_augment = True,
                  brightness_contrast_augment = True):
         """
-        Args:
-            - omit_list (list of str): list of metadata keys to omit from train/val sets
-            - mask_omit_images (bool): masks tile predictions for images in omit_list_images
-            - is_object_detection (bool): loads labels for use with object detection models
-            - is_maskrcnn (bool): loads both bbox and mask labels for maskrcnn model
-            - is_background_removal (bool): uses 1 channel instead of 3 for optical flow 
-            
-            - raw_data_path (str): path to raw data
-            - labels_path (str): path to Numpy labels
-            - metadata_path (str): path to metadata.pkl
-                - fire_to_images (dict): dictionary with fires as keys and list of corresponding images as values
-                - omit_no_xml (list of str): list of images that erroneously do not have XML files for labels. Does not include unlabeled fires.
-                - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
-                - omit_no_bbox (list of str): list of images that erroneously do not have bboxes. Does not include unlabeled fires.
-                - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled. Does not include unlabeled fires.
-                - omit_night (list of str): list of fires that are in nighttime
-                - unlabeled_fires (list of str): list of fires that have not been labelled at all
-                - train_only_fires (list of str): list of fires that should only be used for train (not 'mobo-c')
-                - eligible_fires (list of str): list of fires that can be used for test or train (not in train_only_fires)
-            - optical_flow_path (str): path to optical flow npy files. Only use if you want to load optical flow.
-            
-            - train_split_path (str): path to existing train split .txt file
-            - val_split_path (str): path to existing val split .txt file
-            - test_split_path (str): path to existing test split .txt file
-            - load_images_from_split (bool): if images should be loaded exactly from split (as opposed to fires)
-            
-            - train_split_size (float): % of data to split for train
-            - test_split_size (float): % of data to split for test
-            - batch_size (int): batch_size for training
-            - num_workers (int): number of workers for dataloader
-            - series_length (int): how many sequential images should be used for training
-            - add_base_flow (bool): if True, adds image from t=0 for fire
-            - time_range (int, int): The time range of images to consider for training by time stamp
-            
-            - original_dimensions (int, int): original dimensions of image
-            - resize_dimensions (int, int): desired dimensions of image before cropping
-            - crop_height (int): height to crop image to
-            - tile_dimensions (int, int): desired size of tiles
-            - tile_overlap (int): amount to overlap each tile
-            - pre_tile (bool): determines if image should be tiled in dataloader or not
-            - smoke_threshold (int): # of pixels of smoke to consider tile positive
-            - num_tile_samples (int): number of random tile samples per batch. If < 1, then turned off
-
-            - flip_augment (bool): enables data augmentation with horizontal flip
-            - resize_crop_augment (bool): enables data augmentation with random resize cropping
-            - blur_augment (bool): enables data augmentation with Gaussian blur
-            - color_augment (bool): enables data augmentation with color jitter
-            - brightness_contrast_augment (bool): enables data augmentation with brightness contrast adjustment
-                    
-        Other Attributes:
+        Args: (see arg descriptions in main.py)
+        Attributes:
             - self.train_split (list): list of image names to be used for train dataloader
             - self.val_split (list): list of image names to be used for val dataloader
             - self.test_split (list): list of image names to be used for test dataloader
@@ -469,6 +422,7 @@ class DynamicDataloader(Dataset):
 
                 labels = data_augmentations(labels, is_labels=True)
             else:
+                # Load all 0s
                 # labels.shape = [height, width]
                 labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
 
@@ -476,9 +430,11 @@ class DynamicDataloader(Dataset):
                 # Tile labels
                 tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
+                # Generate binary labels basaed on smoke_threshold
                 # labels.shape = [num_tiles]
                 tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
+                # Random upsampling
                 if self.num_tile_samples > 0:
                     # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
                     x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
@@ -548,10 +504,5 @@ class DynamicDataloader(Dataset):
                 # flow_imgs.shape = [series_length, num_channels, height, width]
                 flow_imgs = np.transpose(np.stack(flow_imgs), (0, 3, 1, 2))
                 x = np.concatenate([x, flow_imgs], axis=1)
-
-          # DEBUG: delete later
-#         np.save('x.npy', x)
-#         np.save('y.npy', bbox_labels)
-#         import pdb; pdb.set_trace()
                         
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, omit_mask

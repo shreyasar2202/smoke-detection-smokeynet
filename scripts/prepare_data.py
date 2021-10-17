@@ -28,7 +28,6 @@ print("Preparing Data...")
 metadata = {}
 
 metadata['fire_to_images'] = util_fns.generate_fire_to_images(raw_data_path)
-metadata['has_xml_label'] = {}
 
 metadata['omit_no_xml'] = []
 metadata['omit_no_contour'] = []

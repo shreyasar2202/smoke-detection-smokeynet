@@ -27,11 +27,7 @@ import util_fns
 class MainModel(nn.Module):
     """
     Description: Simple model with ResNet backbone and a few linear layers
-    Args:
-        - model_type_list (list of str): a sequential list of model_components to use to make up full model
-        - pretrain_epochs (list of int): a sequential list of epochs to pretrain each model part for
-        - intermediate_supervision (bool): whether or not to provide intermediate supervision between model components
-        - use_image_preds (bool): uses image predictions from linear layers instead of tile preds.
+    Args (see arg descriptions in main.py):
         - kwargs: any other args used in the models
     """
     def __init__(self, 
