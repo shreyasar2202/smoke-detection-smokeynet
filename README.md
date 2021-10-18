@@ -12,7 +12,7 @@ Visualization of model performance:
 # Getting Started
 ## Quick Start
 0. Follow the directions on [Nautilus](https://ucsd-prp.gitlab.io/userdocs/start/quickstart/) to set up kubernetes
-1. Download ```torch-gpu.yaml``` from the [GitLab repository](https://gitlab.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection/-/raw/master/torch-gpu.yaml) to your local working directory and replace instances of ```anshumand``` to ```<your_username>```
+1. Download ```torch-gpu.yaml``` from the [GitLab repository](https://gitlab.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection/-/raw/master/torch-gpu.yaml) to your local working directory and replace instances of ```username``` with a username (e.g. ```anshumand```)
 2. From the working directory containing ```torch-gpu.yaml```, create a Kubernetes container: ```kubectl create -f torch-gpu.yaml```
 3. Confirm pod is running: ```kubectl get pods```
 4. Forward port to local machine: ```kubectl port-forward deployment/torch-gpu-anshumand 8888:8888```
@@ -23,7 +23,7 @@ Visualization of model performance:
 8. In a different terminal window, it is recommend to start Tensorboard to access logs: ```tensorboard --logdir ./lightning_logs```
 9. Once files are setup, run the following command to start an experiment: ```./scripts/run_train.sh```
 10. Once the experiment is running, feel free to cancel using ```ctrl+C```
-11. Please DELETE the kubernetes pod from your local machine when not in use: ```kubectl delete -f torch-gpu.yaml```
+11. Please DELETE the kubernetes pod from your local machine when not in use to allow other UCSD students to access resources: ```kubectl delete -f torch-gpu.yaml```
 
 ## Kubernetes
 **Relevant Files:**

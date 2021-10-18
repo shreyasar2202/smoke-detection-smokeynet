@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pytorch-gpu-anshumand
+  name: pytorch-gpu-username
   namespace: digits
 spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: pytorch-gpu-anshumand
+      k8s-app: pytorch-gpu-username
   template:
     metadata:
       labels:
-        k8s-app: pytorch-gpu-anshumand
+        k8s-app: pytorch-gpu-username
     spec:
       tolerations:
       - key: "region"
