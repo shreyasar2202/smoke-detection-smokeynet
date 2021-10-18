@@ -23,6 +23,7 @@ Visualization of model performance:
 8. In a different terminal window, it is recommend to start Tensorboard to access logs: ```tensorboard --logdir ./lightning_logs```
 9. Once files are setup, run the following command to start an experiment: ```./scripts/run_train.sh```
 10. Once the experiment is running, feel free to cancel using ```ctrl+C```
+11. Please DELETE the kubernetes pod from your local machine when not in use: ```kubectl delete -f torch-gpu.yaml```
 
 ## Kubernetes
 **Relevant Files:**
