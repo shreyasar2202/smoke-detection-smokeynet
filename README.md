@@ -73,6 +73,7 @@ Note: If the disk runs out of storage, enter ```kubectl edit pvc modeltraining``
 - omit_no_contour (list of str): list of images that erroneously do not have loaded contours for labels. Does not include unlabeled fires.
 - omit_no_contour_or_bbox (list of str): list of images that erroneously do not have contours or bboxes. Does not include unlabeled fires.
 - omit_mislabeled (list of str): list of images that erroneously have no XML files and are manually selected as mislabeled. Does not include unlabeled fires.
+- monochrome_fires (list of str): list of fires that are monochrome
 - night_fires (list of str): list of fires that are in nighttime
 - mislabeled_fires (list of str): list of fires in which the ground truth has erroneous labels and thus should be removed
 - labeled_fires (list of str): list of fires that have at least some labels

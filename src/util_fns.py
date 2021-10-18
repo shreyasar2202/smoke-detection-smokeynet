@@ -92,9 +92,7 @@ def calculate_num_tiles(resize_dimensions, crop_height, tile_dimensions, tile_ov
     return num_tiles_height, num_tiles_width
 
 def get_ground_truth_label(image_name):
-    """
-    Description: Returns 1 if image_name has a + in it (ie. is a positive) or 0 otherwise
-    """
+    """Description: Returns 1 if image_name has a + in it (ie. is a positive) or 0 otherwise"""
     ground_truth_label = 1 if "+" in image_name else 0
     return ground_truth_label
 
@@ -116,8 +114,8 @@ def generate_fire_to_images(raw_data_path):
     all_fires = [folder.stem for folder in filter(Path.is_dir, raw_data_path.iterdir())]
 
     for fire in all_fires:
-        # Skip if first character is '.' or if fire is monochrome
-        if fire[0] == '.' or 'mobo-m' in fire:
+        # Skip if first character is '.'
+        if fire[0] == '.':
             continue
         
         images = [get_image_name(str(item)) for item in (raw_data_path/fire).glob('*.jpg')]
@@ -538,8 +536,6 @@ def calculate_negative_accuracy(negative_preds_dict):
     Description: Calculates accuracy on negative images
     Args:
         - negative_preds_dict (dict): predictions on negatives by fire
-    Returns:
-        - negative_accuracy (float)
     """
     all_preds = []
     for fire in negative_preds_dict:
@@ -552,8 +548,6 @@ def calculate_negative_accuracy_by_fire(negative_preds_dict):
     Description: Calculates % of fires that DID NOT have a false positive
     Args:
         - negative_preds_dict (dict): predictions on negatives by fire
-    Returns:
-        - negative_accuracy_by_fire (float)
     """
     fire_preds = []
     
@@ -570,8 +564,6 @@ def calculate_positive_accuracy(positive_preds_dict):
     Description: Calculates accuracy on positive images
     Args:
         - positive_preds_dict (dict): predictions on positives by fire
-    Returns:
-        - positive_accuracy (float)
     """
     all_preds = []
     for fire in positive_preds_dict:
@@ -584,8 +576,6 @@ def calculate_positive_accuracy_by_fire(positive_preds_dict):
     Description: Calculates % of fires that DID NOT have a false negative
     Args:
         - positive_preds_dict (dict): predictions on positives by fire
-    Returns:
-        - positive_accuracy_by_fire (float)
     """
     fire_preds = []
     
@@ -602,8 +592,6 @@ def calculate_positive_accuracy_by_time(positive_preds_dict):
     Description: Calculates accuracy per time step
     Args:
         - positive_preds_dict (dict): predictions on positives
-    Returns:
-        - positive_accuracy_by_time (floata)
     """
     positive_preds_dict = copy.deepcopy(positive_preds_dict)
     time_dict = {}

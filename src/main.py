@@ -159,7 +159,7 @@ parser.add_argument('--focal-gamma', type=float, default=2,
                     help='Gamma for focal loss.')
 parser.add_argument('--image-loss-only', action='store_true',
                     help='Only train using image loss, not tile losses.')
-parser.add_argument('--image-pos-weight', type=float, default=1,
+parser.add_argument('--image-pos-weight', type=float, default=5,
                     help='Weight for positive class for BCE loss for images.')
 parser.add_argument('--confidence-threshold', type=float, default=0,
                     help='Treshold for object detection confidence to consider positive label.')

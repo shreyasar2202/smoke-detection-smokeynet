@@ -23,7 +23,6 @@ import transformers
 from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.backbone_utils import mobilenet_backbone, resnet_fpn_backbone
 import torchvision.models.detection
-from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from torchvision.models.detection.anchor_utils import AnchorGenerator
@@ -35,6 +34,7 @@ import math
 # File imports
 import resnet
 import util_fns
+from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
 
 
 #####################
@@ -45,7 +45,7 @@ class TileLoss():
     """
     Description: Class to calculate loss for tiles
     Args:
-        - tile_loss_type: type of loss to use. Options: [bce] [focal]
+        - tile_loss_type: type of loss to use. Options: [bce] [focal] [weighted-sensitivity]
         - bce_pos_weight: how much to weight the positive class in BCE Loss
         - focal_alpha: focal loss, lower alpha -> more importance of positive class vs. negative class
         - focal_gamma: focal loss, higher gamma -> more importance of hard examples vs. easy examples
@@ -96,6 +96,7 @@ class TileLoss():
             tile_loss = tile_loss / (torch.maximum(torch.as_tensor(1), tile_labels.sum()) * (self.bce_pos_weight+1) )
             
         elif self.tile_loss_type == 'weighted-sensitivity':
+            # Source: Yash Pande
             outputs = torch.sigmoid(tile_outputs)
             eps = .001
             sensitivity_weight = 1
@@ -168,13 +169,8 @@ class FPNToEmbeddings(nn.Module):
 #####################
             
 class RawToTile_MobileNet(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
+    """Description: MobileNetV3Large backbone with a few linear layers."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -208,13 +204,8 @@ class RawToTile_MobileNet(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_MobileNet_NoPreTile(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers. Inputs should not be pre-tiled
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
+    """Description: MobileNetV3Large backbone with a few linear layers. Inputs should not be pre-tiled. Outputs are tiled."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -222,7 +213,7 @@ class RawToTile_MobileNet_NoPreTile(nn.Module):
                  num_tiles_height=5,
                  num_tiles_width=9,
                  **kwargs):
-        print('- RawToTile_MobileNetNoTile')
+        print('- RawToTile_MobileNet_NoPreTile')
         super().__init__()
         
         self.tile_embedding_size = 960
@@ -270,14 +261,8 @@ class RawToTile_MobileNet_NoPreTile(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_ResNet(nn.Module):
-    """
-    Description: ResNet backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
+    """Description: ResNet backbone with a few linear layers."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -323,14 +308,8 @@ class RawToTile_ResNet(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_EfficientNet(nn.Module):
-    """
-    Description: EfficientNet backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
-        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
+    """Description: EfficientNet backbone with a few linear layers."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -372,14 +351,8 @@ class RawToTile_EfficientNet(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_DeiT(nn.Module):
-    """
-    Description: Vision Transformer operating on raw inputs to produce tile predictions
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
-        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
+    """Description: Vision Transformer (Data Efficient Image Transformer) backbone with a few linear layers."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -418,11 +391,8 @@ class RawToTile_DeiT(nn.Module):
 ########################### 
     
 class RawToTile_MobileNetFPN(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
-    Args:
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-    """
+    """Description: MobileNetV3Large backbone with a Feature Pyramid Network in which the layers of the FPN are concatenated and passed through linear layers."""
+    
     def __init__(self, 
                  pretrain_backbone=True, 
                  **kwargs):
@@ -444,15 +414,18 @@ class RawToTile_MobileNetFPN(nn.Module):
         # Run through conv model
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
         
+        # Results in dictionary with 3 keys:
         # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
         # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
         # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
         tile_outputs = self.conv(tile_outputs) 
         
+        # Run each layer through conv independently
         outputs = []
         for i in range(len(self.keys)):
             outputs.append(self.conv_list[i](tile_outputs[self.keys[i]]))
         
+        # Concatenate outputs and run through linear layers
         tile_outputs = torch.cat(outputs, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
         tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 960]
 
@@ -461,19 +434,14 @@ class RawToTile_MobileNetFPN(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_MobileNetFPN_Real(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
-    Args:
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-    """
+    """Description: MobileNetV3Large backbone with a Feature Pyramid Network in which predictions are generated on each layer of the FPN."""
+    
     def __init__(self, 
                  pretrain_backbone=True, 
                  **kwargs):
-        print('- RawToTile_MobileNetFPN')
+        print('- RawToTile_MobileNetFPN_Real')
         super().__init__()
-        
-        self.keys = ['0', '1', 'pool']
-        
+                
         self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=pretrain_backbone,fpn=True, trainable_layers=6)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
@@ -486,26 +454,24 @@ class RawToTile_MobileNetFPN_Real(nn.Module):
         # Run through conv model
         tile_outputs = x.view(batch_size * num_tiles * series_length, num_channels, height, width)
         
+        # Results in dictionary with 3 keys:
         # tile_outputs['0'] = [batch_size * num_tiles * series_length, 256, 7, 7]
         # tile_outputs['1'] = [batch_size * num_tiles * series_length, 256, 7, 7]
         # tile_outputs['pool'] = [batch_size * num_tiles * series_length, 256, 4, 4]
         tile_outputs = self.conv(tile_outputs) 
         
+        # Run each FPN layer through linear layers independently
         embeddings = {}
-        for i in range(len(self.keys)):
-            tile_outputs[self.keys[i]] = self.avgpool(tile_outputs[self.keys[i]]) # [batch_size * num_tiles * series_length, 256, 1, 1]
-            tile_outputs[self.keys[i]] = tile_outputs[self.keys[i]].view(batch_size * num_tiles * series_length, -1) # [batch_size * num_tiles * series_length, 256]
-            tile_outputs[self.keys[i]], embeddings[self.keys[i]] = self.embeddings_to_output(tile_outputs[self.keys[i]], batch_size, num_tiles, series_length)
+        for key in tile_outputs:
+            tile_outputs[key] = self.avgpool(tile_outputs[key]) # [batch_size * num_tiles * series_length, 256, 1, 1]
+            tile_outputs[key] = tile_outputs[key].view(batch_size * num_tiles * series_length, -1) # [batch_size * num_tiles * series_length, 256]
+            tile_outputs[key], embeddings[key] = self.embeddings_to_output(tile_outputs[key], batch_size, num_tiles, series_length)
         
         return tile_outputs, embeddings
 
 class RawToTile_ResNetFPN(nn.Module):
-    """
-    Description: ResNet backbone with a Feature Pyramid Network a few linear layers.
-    Args:
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
+    """Description: ResNet backbone with a Feature Pyramid Network in which the layers of the FPN are concatenated and passed through linear layers."""
+    
     def __init__(self, 
                  pretrain_backbone=True, 
                  backbone_size='small',
@@ -538,10 +504,12 @@ class RawToTile_ResNetFPN(nn.Module):
         tile_outputs = self.conv(tile_outputs) 
         tile_outputs['0'] = self.avgpool(tile_outputs['0']) # [batch_size * num_tiles * series_length, 256, 28, 28]
         
+        # Run each layer through conv independently
         outputs = []
         for i in range(len(self.keys)):
             outputs.append(self.conv_list[i](tile_outputs[self.keys[i]]))
         
+        # Concatenate outputs and run through linear layers
         tile_outputs = torch.cat(outputs, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
         tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 960]
 
@@ -554,13 +522,8 @@ class RawToTile_ResNetFPN(nn.Module):
 ########################### 
     
 class RawToTile_MobileNet_FlowSimple(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
+    """Description: Two MobileNetV3Large backbones, one for the raw image and one for optical flow, in which outputs are concatenated and passed through linear layers."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -592,16 +555,17 @@ class RawToTile_MobileNet_FlowSimple(nn.Module):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        # Run through conv model
+        # Run raw image through conv model
         tile_outputs = x[:,:,:,:3]
         tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
         tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
         
-        # Run through conv model
+        # Run flow through conv model
         tile_outputs_flow = x[:,:,:,3:]
         tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
         tile_outputs_flow = self.conv_flow(tile_outputs_flow) # [batch_size * num_tiles * series_length, tile_embedding_size]
         
+        # Concatenate outputs and run through linear layers
         tile_outputs = torch.cat([tile_outputs, tile_outputs_flow], dim=1) # [batch_size * num_tiles * series_length, tile_embedding_size * 2]
         tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, tile_embedding_size]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
@@ -609,13 +573,8 @@ class RawToTile_MobileNet_FlowSimple(nn.Module):
         return tile_outputs, embeddings
     
 class RawToTile_MobileNet_Flow(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
+    """Description: Two MobileNetV3Large backbones, one for the raw image and one for optical flow, in which outputs are kept separate."""
+    
     def __init__(self, 
                  freeze_backbone=True, 
                  pretrain_backbone=True, 
@@ -647,7 +606,7 @@ class RawToTile_MobileNet_Flow(nn.Module):
         x = x.float()
         batch_size, num_tiles, series_length, num_channels, height, width = x.size()
 
-        # Run through conv model
+        # Run raw image through conv model
         tile_outputs = x[:,:,:,:3]
         tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
         tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
@@ -659,10 +618,11 @@ class RawToTile_MobileNet_Flow(nn.Module):
         tile_outputs_flow = self.conv_flow(tile_outputs_flow) # [batch_size * num_tiles * series_length, tile_embedding_size]
         tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
         
+        # Return raw image outputs and flow outputs separately
         return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
     
 class TileToTile_LSTM_Flow(nn.Module):
-    """Description: LSTM that takes tile embeddings and outputs tile predictions"""
+    """Description: LSTM that takes tile embeddings for the raw image and flow separately and outputs tile predictions. For use with RawToTile_MobileNet_Flow."""
     
     def __init__(self, tile_embedding_size=960, **kwargs):
         print('- TileToTile_LSTM_Flow')
@@ -688,321 +648,29 @@ class TileToTile_LSTM_Flow(nn.Module):
         tile_embeddings, tile_embeddings_flow = tile_embeddings[0].float(), tile_embeddings[1].float()
         batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
         
-        # Run through LSTM
+        # Run raw image outputs through LSTM
         tile_outputs = tile_embeddings.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
         tile_outputs, (hidden, cell) = self.lstm(tile_outputs) # [batch_size * num_tiles, series_length, lstm_num_hidden]
         tile_outputs = tile_outputs[:,-1] # [batch_size * num_tiles, embedding_size]
         tile_outputs = tile_outputs.contiguous()
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
                 
-        # Run flow through LSTM
+        # Run flow outputs through LSTM
         tile_outputs_flow = tile_embeddings_flow.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
         tile_outputs_flow, (hidden, cell) = self.lstm(tile_outputs_flow) # [batch_size * num_tiles, series_length, lstm_num_hidden]
         tile_outputs_flow = tile_outputs_flow[:,-1] # [batch_size * num_tiles, embedding_size]
         tile_outputs_flow = tile_outputs_flow.contiguous()
         tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, 1)
         
+        # Concatenate outputs and run through linear layers
         embeddings = torch.cat([embeddings, embeddings_flow], dim=3) # [batch_size, num_tiles, series_length, tile_embedding_size * 2]
         embeddings = F.relu(self.fc(embeddings)) # [batch_size, num_tiles, series_length, tile_embedding_size]
         
         return (tile_outputs, tile_outputs_flow), embeddings
-
-###########################
-## Optical Flow - Alternate Models
-########################### 
-    
-class RawToTile_ResNet_Flow(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-        - backbone_checkpoint_path (str): path to pretrained checkpoint of the model
-    """
-    def __init__(self, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True, 
-                 backbone_checkpoint_path=None,
-                 is_background_removal=False,
-                 backbone_size='small',
-                 **kwargs):
-        print('- RawToTile_ResNet_Flow')
-        super().__init__()
-        
-        self.backbone_size = backbone_size
-        self.size_to_embeddings = {'small': 1000, 'medium': 1000, 'large': 1000}
-
-        if backbone_size == 'small':
-            self.conv = torchvision.models.resnet34(pretrained=pretrain_backbone)
-            self.conv_flow = torchvision.models.resnet34(pretrained=False)
-        elif backbone_size == 'medium':
-            self.conv = torchvision.models.resnet50(pretrained=pretrain_backbone)
-            self.conv_flow = torchvision.models.resnet50(pretrained=False)
-        elif backbone_size == 'large':
-            self.conv = torchvision.models.resnet152(pretrained=pretrain_backbone)
-            self.conv_flow = torchvision.models.resnet152(pretrained=False)
-        else:
-            print('RawToTile_ResNet: backbone_size not recognized')
-        
-        self.conv.classifier = nn.Identity()
-        self.conv_flow.classifier = nn.Identity()
-        if is_background_removal:
-            self.conv_flow.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-
-        self.embeddings_to_output = TileEmbeddingsToOutput(1000)
-        self.embeddings_to_output_flow = TileEmbeddingsToOutput(1000)
-                
-        if backbone_checkpoint_path is not None:
-            self.load_state_dict(util_fns.get_state_dict(backbone_checkpoint_path))
-        
-        if freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-        
-    def forward(self, x, **kwargs):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through conv model
-        tile_outputs = x[:,:,:,:3]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
-        tile_outputs = self.conv(tile_outputs) # [batch_size * num_tiles * series_length, tile_embedding_size]
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        
-        # Run flow through conv model
-        tile_outputs_flow = x[:,:,:,3:]
-        tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
-        tile_outputs_flow = self.conv_flow(tile_outputs_flow) # [batch_size * num_tiles * series_length, tile_embedding_size]
-        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
-        
-        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
-    
-class RawToTile_MobileNetFPN_Flow(nn.Module):
-    """
-    Description: MobileNetV3Large backbone with a Feature Pyramid Network a few linear layers.
-    Args:
-        - pretrain_backbone (bool): Pretrains backbone on ImageNet
-    """
-    def __init__(self, 
-                 pretrain_backbone=True, 
-                 is_background_removal=False,
-                 **kwargs):
-        print('- RawToTile_MobileNetFPN_Flow')
-        super().__init__()
-        
-        self.keys = ['0', '1', 'pool']
-        
-        self.conv = mobilenet_backbone('mobilenet_v3_large',pretrained=pretrain_backbone,fpn=True, trainable_layers=6)
-        self.conv_list = nn.ModuleList([FPNToEmbeddings(16), FPNToEmbeddings(16), FPNToEmbeddings(49)])
-        self.fc = nn.Linear(in_features=49*16*3, out_features=960)
-        
-        self.conv_flow = mobilenet_backbone('mobilenet_v3_large',pretrained=False,fpn=True, trainable_layers=6)
-        if is_background_removal:
-            self.conv_flow.body['0'][0] = nn.Conv2d(1, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-        self.conv_list_flow = nn.ModuleList([FPNToEmbeddings(16), FPNToEmbeddings(16), FPNToEmbeddings(49)])
-        self.fc_flow = nn.Linear(in_features=49*16*3, out_features=960)
-
-        self.embeddings_to_output = TileEmbeddingsToOutput(960)
-        self.embeddings_to_output_flow = TileEmbeddingsToOutput(960)
-        
-    def forward(self, x, **kwargs):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through conv model
-        tile_outputs = x[:,:,:,:3]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
-        tile_outputs = self.conv(tile_outputs) 
-        
-        outputs = []
-        for i in range(len(self.keys)):
-            outputs.append(self.conv_list[i](tile_outputs[self.keys[i]]))
-        
-        tile_outputs = torch.cat(outputs, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
-        tile_outputs = F.relu(self.fc(tile_outputs)) # [batch_size * num_tiles * series_length, 960]
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        
-        # Run flow through conv model
-        tile_outputs_flow = x[:,:,:,3:]
-        tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
-        tile_outputs_flow = self.conv_flow(tile_outputs_flow) 
-        
-        outputs_flow = []
-        for i in range(len(self.keys)):
-            outputs_flow.append(self.conv_list_flow[i](tile_outputs_flow[self.keys[i]]))
-        
-        tile_outputs_flow = torch.cat(outputs_flow, dim=1) # [batch_size * num_tiles * series_length, 49*16*3]
-        tile_outputs_flow = F.relu(self.fc_flow(tile_outputs_flow)) # [batch_size * num_tiles * series_length, 960]
-        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
-        
-        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
-    
-class RawToTile_EfficientNet_Flow(nn.Module):
-    """
-    Description: EfficientNet backbone with a few linear layers.
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
-        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
-    def __init__(self, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True, 
-                 backbone_checkpoint_path=None, 
-                 is_background_removal=False,
-                 backbone_size='small', 
-                 **kwargs):
-        print('- RawToTile_EfficientNet_Flow_'+backbone_size)
-        super().__init__()
-        
-        self.backbone_size = backbone_size
-        self.size_to_embeddings = {'small': 1280, 'medium': 1408, 'large': 1792}
-        size_to_name = {'small': 'b0', 'medium': 'b2', 'large': 'b4'}
-        
-        if pretrain_backbone:
-            self.conv = EfficientNet.from_pretrained("efficientnet-"+size_to_name[backbone_size])
-        else:
-            self.conv = EfficientNet.from_name("efficientnet-"+size_to_name[backbone_size])
-            
-        self.conv_flow = EfficientNet.from_name("efficientnet-"+size_to_name[backbone_size], in_channels=1 if is_background_removal else 3)
-
-        self.avg_pooling = nn.AdaptiveAvgPool2d(1)
-
-        if pretrain_backbone and freeze_backbone:
-            for param in self.conv.parameters():
-                param.requires_grad = False
-
-        # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
-        self.embeddings_to_output_flow = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
-        
-    def forward(self, x, **kwargs):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through conv model
-        tile_outputs = x[:,:,:,:3]
-        tile_outputs = tile_outputs.view(batch_size * num_tiles * series_length, 3, height, width)
-        tile_outputs = self.conv.extract_features(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 7, 7]
-        tile_outputs = self.avg_pooling(tile_outputs) # [batch_size * num_tiles * series_length, embedding_size, 1, 1]
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        
-        # Run through conv model
-        tile_outputs_flow = x[:,:,:,3:]
-        tile_outputs_flow = tile_outputs_flow.view(batch_size * num_tiles * series_length, num_channels-3, height, width)
-        tile_outputs_flow = self.conv_flow.extract_features(tile_outputs_flow) # [batch_size * num_tiles * series_length, embedding_size, 7, 7]
-        tile_outputs_flow = self.avg_pooling(tile_outputs_flow) # [batch_size * num_tiles * series_length, embedding_size, 1, 1]
-        tile_outputs_flow, embeddings_flow = self.embeddings_to_output(tile_outputs_flow, batch_size, num_tiles, series_length)
-        
-        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
-    
-class RawToTile_DeiT_Flow(nn.Module):
-    """
-    Description: Vision Transformer operating on raw inputs to produce tile predictions
-    Args:
-        - freeze_backbone (bool): Freezes layers of pretrained backbone
-        - pretrain_backbone (bool): Loads pretrained backbone on ImageNet
-        - backbone_checkpoint_path (str): path to self-pretrained checkpoint of the model
-        - backbone_size (str): how big a model to train. Options: ['small'] ['medium'] ['large']
-    """
-    def __init__(self, 
-                 freeze_backbone=True, 
-                 pretrain_backbone=True, 
-                 backbone_checkpoint_path=None,  
-                 is_background_removal=False,
-                 backbone_size='small', 
-                 **kwargs):
-        print('- RawToTile_DeiT_'+backbone_size)
-        super().__init__()
-        
-        self.backbone_size = backbone_size
-        self.size_to_embeddings = {'small': 192, 'medium': 384, 'large': 768}
-        size_to_name = {'small': 'tiny', 'medium': 'small', 'large': 'base'}
-
-        if pretrain_backbone:
-            self.deit_model = transformers.DeiTModel.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
-        else:
-            deit_config = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224')
-            self.deit_model = transformers.DeiTModel(deit_config)
-        
-        if is_background_removal:
-            deit_config_flow = transformers.DeiTConfig.from_pretrained('facebook/deit-'+size_to_name[backbone_size]+'-distilled-patch16-224', num_channels=1)
-        self.deit_model_flow = transformers.DeiTModel(deit_config_flow)
-        
-        self.embeddings_to_output = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
-        self.embeddings_to_output_flow = TileEmbeddingsToOutput(self.size_to_embeddings[self.backbone_size])
-
-    def forward(self, x, **kwargs):
-        x = x.float()
-        batch_size, num_tiles, series_length, num_channels, height, width = x.size()
-
-        # Run through DeiT
-        tile_outputs = x[:,:,:,:3]
-        tile_outputs = tile_outputs.view(batch_size * series_length * num_tiles, 3, height, width)
-        tile_outputs = self.deit_model(tile_outputs).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        
-        # Run flow through DeiT
-        tile_outputs_flow = x[:,:,:,3:]
-        tile_outputs_flow = tile_outputs_flow.view(batch_size * series_length * num_tiles, num_channels-3, height, width)
-        tile_outputs_flow = self.deit_model_flow(tile_outputs_flow).pooler_output # [batch_size * series_length * num_tiles, embedding_size]
-        tile_outputs_flow, embeddings_flow = self.embeddings_to_output_flow(tile_outputs_flow, batch_size, num_tiles, series_length)
-        
-        return (tile_outputs, tile_outputs_flow), (embeddings, embeddings_flow)
     
 ###########################
 ## TileToTile Models
 ########################### 
-
-class TileToTile_ViT(nn.Module):
-    """Description: Vision Transformer operating on tiles to produce tile predictions"""
-    
-    def __init__(self, num_tiles_height=5, num_tiles_width=9, tile_embedding_size=960, **kwargs):
-        print('- TileToTile_ViT')
-        super().__init__()
-                        
-        # Initialize initial linear layers
-        patch_size = int(np.floor(np.sqrt(tile_embedding_size)))
-        self.fc1 = nn.Linear(in_features=tile_embedding_size, out_features=patch_size*patch_size)
-        self.fc1, = util_fns.init_weights_Xavier(self.fc1)
-
-        # Initialize ViT
-        self.embeddings_height = num_tiles_height * patch_size
-        self.embeddings_width = num_tiles_width * patch_size
-        
-        ViT_config = transformers.ViTConfig(image_size=(self.embeddings_height,self.embeddings_width), 
-                                            patch_size=patch_size, 
-                                            num_channels=1, 
-                                            num_labels=1,
-                                            hidden_size=516,
-                                            num_hidden_layers=6, 
-                                            num_attention_heads=6, 
-                                            intermediate_size=1536,
-                                            hidden_dropout_prob=0.1)
-        
-        self.ViT_model = transformers.ViTModel(ViT_config)
-        
-        # Initialize additional linear layers
-        self.embeddings_to_output = TileEmbeddingsToOutput(516)
-                
-    def forward(self, tile_embeddings, **kwargs):
-        tile_embeddings = tile_embeddings.float()
-        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
-                
-        # Run through initial linear layers
-        tile_embeddings = F.relu(self.fc1(tile_embeddings)) # [batch_size, num_tiles, series_length, 512]
-        
-        # Run through ViT
-        tile_embeddings = tile_embeddings.view(batch_size * series_length, 1, self.embeddings_height, self.embeddings_width)
-        # Save only last_hidden_state and remove initial class token
-        tile_outputs = self.ViT_model(tile_embeddings).last_hidden_state[:,1:] # [batch_size * series_length, num_tiles, embedding_size]
-        # Avoid contiguous error
-        tile_outputs = tile_outputs.contiguous()
-        
-        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, series_length)
-        
-        return tile_outputs, embeddings
     
 class TileToTile_LSTM(nn.Module):
     """Description: LSTM that takes tile embeddings and outputs tile predictions"""
@@ -1048,14 +716,11 @@ class TileToTile_ResNet3D(nn.Module):
         self.num_tiles_height = num_tiles_height
         self.num_tiles_width = num_tiles_width
                         
-        # Initialize initial linear layers
         self.fc = nn.Linear(in_features=tile_embedding_size, out_features=self.square_embedding_size**2)
         self.fc, = util_fns.init_weights_Xavier(self.fc)
         
-        # Initialize ResNet3D
         self.conv = resnet.resnet10()
         
-        # Initialize additional linear layers
         self.embeddings_to_output = TileEmbeddingsToOutput(self.tile_embedding_size)
                 
     def forward(self, tile_embeddings, **kwargs):
@@ -1070,6 +735,7 @@ class TileToTile_ResNet3D(nn.Module):
         tile_embeddings = tile_embeddings.view(batch_size, 1, series_length, self.num_tiles_height*self.square_embedding_size, self.num_tiles_width*self.square_embedding_size)
         tile_outputs = self.conv(tile_embeddings) # [batch_size, tile_embedding_size, 1, num_tiles_height, num_tiles_width]
                 
+        # Run through linear layers
         tile_outputs = tile_outputs.view(batch_size, self.tile_embedding_size, num_tiles)
         tile_outputs = tile_outputs.swapaxes(1,2).contiguous() # [batch_size, num_tiles, tile_embedding_size]
         tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
@@ -1192,11 +858,8 @@ class TileToTileImage_ViViT(nn.Module):
 ########################### 
 
 class TileToImage_LinearOutputs(nn.Module):
-    """
-    Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1
-    Args:
-        - num_tiles (int): number of tiles in image
-    """
+    """Description: Single linear layer to go from tile outputs to image predictions. Requires that series_length=1"""
+    
     def __init__(self, num_tiles=45, **kwargs):
         print('- TileToImage_LinearOutputs')
         super().__init__()
@@ -1213,11 +876,8 @@ class TileToImage_LinearOutputs(nn.Module):
         return image_outputs, None # [batch_size, 1]
     
 class TileToImage_LinearEmbeddings(nn.Module):
-    """
-    Description: Single linear layer to go from tile embeddings to image predictions. Requires that series_length=1
-    Args:
-        - num_tiles (int): number of tiles in image
-    """
+    """Description: Single linear layer to go from tile embeddings to image predictions. Requires that series_length=1"""
+    
     def __init__(self, num_tiles=45, tile_embedding_size=960, **kwargs):
         print('- TileToImage_LinearEmbeddings')
         super().__init__()
@@ -1242,6 +902,8 @@ class TileToImage_LinearEmbeddings(nn.Module):
 ########################### 
     
 class RawToTile_ObjectDetection(nn.Module):
+    """Description: Class for any object detection model: [retinanet] [fasterrcnn] [fasterrcnnmobile] [ssd] [maskrcnn]"""
+    
     def __init__(self, backbone_size='maskrcnn', pretrain_backbone=True, **kwargs):
         print('- RawToTile_ObjectDetection')
         super().__init__()
@@ -1318,6 +980,8 @@ class RawToTile_ObjectDetection(nn.Module):
             return outputs, {}
 
 class CrazyBackbone(nn.Module):
+    """Description: Implements a custom backbone to use with object detection models"""
+    
     def __init__(self, num_tiles_height=5, num_tiles_width=8, **kwargs):
         super().__init__()
         
@@ -1341,6 +1005,8 @@ class CrazyBackbone(nn.Module):
         return x, outputs1, outputs2
         
 class CrazyFasterRCNN(nn.Module):
+    """Description: Uses CrazyBackbone custom backbone with FasterRCNN object detection model"""
+    
     def __init__(self, **kwargs):
         print('- CrazyFasterRCNN')
         super().__init__()

@@ -38,6 +38,7 @@ metadata['labeled_fires'] = [folder.stem for folder in filter(Path.is_dir, Path(
 metadata['unlabeled_fires'] = []
 metadata['train_only_fires'] = []
 metadata['eligible_fires'] = []
+metadata['monochrome_fires'] = []
 metadata['night_fires'] = np.loadtxt('./data/night_fires.txt', dtype=str)
 metadata['mislabeled_fires'] = np.loadtxt('./data/mislabeled_fires.txt', dtype=str)
 
@@ -46,6 +47,9 @@ metadata['bbox_labels'] = {}
 
 # Loop through all fires
 for i, fire in enumerate(metadata['fire_to_images']):
+    if 'mobo-m' in fire:
+        metadata['monochrome_fires'].append(fire)
+        continue
     if fire not in metadata['labeled_fires']:
         metadata['unlabeled_fires'].append(fire)
     elif 'mobo-c' not in fire:
