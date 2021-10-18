@@ -60,7 +60,7 @@ parser.add_argument('--experiment-description', type=str, default=None,
 # Path args
 parser.add_argument('--raw-data-path', type=str, default='/root/raw_images',
                     help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='/root/pytorch_lightning_data/drive_clone_numpy',
+parser.add_argument('--labels-path', type=str, default='/root/drive_clone_numpy',
                     help='Path to processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
@@ -493,7 +493,6 @@ if __name__ == '__main__':
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],
         labels_path=args['labels_path'], 
-        raw_labels_path=args['raw_labels_path'],
         metadata_path=args['metadata_path'],
         optical_flow_path=args['optical_flow_path'],
         
