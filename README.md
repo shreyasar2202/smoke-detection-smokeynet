@@ -57,6 +57,7 @@ Note: If the disk runs out of storage, enter ```kubectl edit pvc modeltraining``
 - ```/userdata/kerasData/data/new_data/drive_clone_numpy```: location of preprocessed labels created by ```./scripts/prepare_data.sh```
 - ```/userdata/kerasData/data/new_data/bbox_labels.csv```: csv file containing bounding box labels for all the images
 - ```/userdata/kerasData/data/new_data/drive_clone_bbox```: bbox labels for all images as .npy files
+- ```/userdata/kerasData/data/new_data/drive_clone_filled_bbox```: image mask with bboxes filled as 1s
 
 **Relevant Directories - Train/Test Splits:**
 - ```./data/final_split/```: data split where train = all the labeled fires and val/test is a random split of unlabeled fires (with night fires removed).

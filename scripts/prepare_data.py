@@ -58,51 +58,51 @@ for i, fire in enumerate(metadata['fire_to_images']):
         metadata['eligible_fires'].append(fire)
 
     print('Preparing Folder ', i, fire)
+    
+    # Skip the next steps if the fire has not been labeled
+    if fire in metadata['labeled_fires']:
+        # Loop through each image in the fire
+        for image in metadata['fire_to_images'][fire]:
 
-    # Loop through each image in the fire
-    for image in metadata['fire_to_images'][fire]:
-        # Skip the next steps if the fire has not been labeled
-        if fire not in metadata['labeled_fires']: continue
-        
-        label_path = labels_path+'/'+\
-                util_fns.get_fire_name(image)+'/xml/'+\
-                util_fns.get_only_image_name(image)+'.xml'
-        
-        has_xml_label = os.path.isfile(label_path)
+            label_path = labels_path+'/'+\
+                    util_fns.get_fire_name(image)+'/xml/'+\
+                    util_fns.get_only_image_name(image)+'.xml'
 
-        # If a positive image does not have an XML file associated with it, add it to omit_images_list
-        if util_fns.get_ground_truth_label(image) != has_xml_label:
-            metadata['omit_no_xml'].append(image)
+            has_xml_label = os.path.isfile(label_path)
 
-        # If a label file exists...
-        if has_xml_label:
-            # Convert XML file into poly arrays
-            poly_contour = util_fns.xml_to_contour(label_path)
-            poly_bbox = util_fns.xml_to_bbox(label_path)
+            # If a positive image does not have an XML file associated with it, add it to omit_images_list
+            if util_fns.get_ground_truth_label(image) != has_xml_label:
+                metadata['omit_no_xml'].append(image)
 
-            if poly_contour is not None:
-                # If there is a contour, use that to fill labels
-                x = cv2.imread(raw_data_path + '/' + image + '.jpg')
-                labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                cv2.fillPoly(labels, poly_contour, 1)
-                os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
-                np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
-            else:
-                metadata['omit_no_contour'].append(image)
+            # If a label file exists...
+            if has_xml_label:
+                # Convert XML file into poly arrays
+                poly_contour = util_fns.xml_to_contour(label_path)
+                poly_bbox = util_fns.xml_to_bbox(label_path)
 
-                if poly_bbox is not None:
-                    # If there isn't a contour but there is a bbox, use that to fill labels
+                if poly_contour is not None:
+                    # If there is a contour, use that to fill labels
                     x = cv2.imread(raw_data_path + '/' + image + '.jpg')
                     labels = np.zeros(x.shape[:2], dtype=np.uint8) 
-                    cv2.rectangle(labels, *poly_bbox, 1, -1)
+                    cv2.fillPoly(labels, poly_contour, 1)
                     os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
                     np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
                 else:
-                    metadata['omit_no_contour_or_bbox'].append(image)
+                    metadata['omit_no_contour'].append(image)
 
-            # If there is a bbox, save the array to 'bbox_labels'
-            if poly_bbox is not None:
-                metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
+                    if poly_bbox is not None:
+                        # If there isn't a contour but there is a bbox, use that to fill labels
+                        x = cv2.imread(raw_data_path + '/' + image + '.jpg')
+                        labels = np.zeros(x.shape[:2], dtype=np.uint8) 
+                        cv2.rectangle(labels, *poly_bbox, 1, -1)
+                        os.makedirs(labels_output_path + '/' + fire, exist_ok=True)
+                        np.save(labels_output_path + '/' + image + '.npy', labels.astype(np.uint8))
+                    else:
+                        metadata['omit_no_contour_or_bbox'].append(image)
+
+                # If there is a bbox, save the array to 'bbox_labels'
+                if poly_bbox is not None:
+                    metadata['bbox_labels'][image] = list(np.array(poly_bbox).flatten())
 
     with open(f'./data/metadata_new.pkl', 'wb') as pkl_file:
         pickle.dump(metadata, pkl_file)
