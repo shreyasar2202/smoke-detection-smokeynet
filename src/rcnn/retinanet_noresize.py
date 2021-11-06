@@ -7,7 +7,10 @@ from torch import nn, Tensor
 from typing import Dict, List, Tuple, Optional
 
 from torchvision.models.detection._utils import overwrite_eps
-from torchvision.models.utils import load_state_dict_from_url
+try:
+    from torch.hub import load_state_dict_from_url  # noqa: 401
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url  # noqa: 401
 
 from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import AnchorGenerator

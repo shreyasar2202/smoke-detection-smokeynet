@@ -5,7 +5,10 @@ from torch import nn
 from torchvision.ops import MultiScaleRoIAlign
 
 from torchvision.models.detection._utils import overwrite_eps
-from torchvision.models.utils import load_state_dict_from_url
+try:
+    from torch.hub import load_state_dict_from_url  # noqa: 401
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url  # noqa: 401
 
 from .faster_rcnn_noresize import FasterRCNN
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone, _validate_trainable_layers

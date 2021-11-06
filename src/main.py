@@ -379,6 +379,7 @@ def main(# Debug args
         lightning_module = LightningModule.load_from_checkpoint(
                                checkpoint_path,
                                model=main_model,
+                               batch_size=batch_size,
 
                                optimizer_type=optimizer_type,
                                optimizer_weight_decay=optimizer_weight_decay,
@@ -390,6 +391,7 @@ def main(# Debug args
     else:
         lightning_module = LightningModule(
                                model=main_model,
+                               batch_size=batch_size,
 
                                optimizer_type=optimizer_type,
                                optimizer_weight_decay=optimizer_weight_decay,

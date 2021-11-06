@@ -32,6 +32,7 @@ class LightningModule(pl.LightningModule):
 
     def __init__(self,
                  model,
+                 batch_size=2,
                  
                  optimizer_type='SGD',
                  optimizer_weight_decay=0.0001,
@@ -59,6 +60,7 @@ class LightningModule(pl.LightningModule):
         # Initialize model
         self.model = model
         self.series_length = series_length
+        self.batch_size = batch_size
         
         # Initialize optimizer params
         self.optimizer_type = optimizer_type
@@ -137,10 +139,10 @@ class LightningModule(pl.LightningModule):
         
         # Log intermediate losses (on_step only if split='train')
         for i, loss in enumerate(losses):
-            self.log(split+'loss_'+str(i), loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+            self.log(split+'loss_'+str(i), loss, on_step=(split==self.metrics['split'][0]),on_epoch=True,batch_size=self.batch_size)
         
         # Log overall loss
-        self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True)
+        self.log(split+'loss', total_loss, on_step=(split==self.metrics['split'][0]),on_epoch=True,batch_size=self.batch_size)
 
         # Calculate & log evaluation metrics
         for category, args in zip(self.metrics['category'], 
@@ -156,7 +158,8 @@ class LightningModule(pl.LightningModule):
                              self.metrics['torchmetric'][split+category+name], 
                              on_step=False, 
                              on_epoch=True, 
-                             metric_attribute=self.metrics['torchmetric'][split+category+name])
+                             metric_attribute=self.metrics['torchmetric'][split+category+name],
+                             batch_size=self.batch_size)
         
         return image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels
 
@@ -247,14 +250,14 @@ class LightningModule(pl.LightningModule):
 
         ### Compute & log metrics ###
         self.log(self.metrics['split'][2]+'negative_accuracy',
-                 util_fns.calculate_negative_accuracy(negative_preds_dict))
+                 util_fns.calculate_negative_accuracy(negative_preds_dict),batch_size=self.batch_size)
         self.log(self.metrics['split'][2]+'negative_accuracy_by_fire',
-                 util_fns.calculate_negative_accuracy_by_fire(negative_preds_dict))
+                 util_fns.calculate_negative_accuracy_by_fire(negative_preds_dict),batch_size=self.batch_size)
 
         self.log(self.metrics['split'][2]+'positive_accuracy',
-                 util_fns.calculate_positive_accuracy(positive_preds_dict))
+                 util_fns.calculate_positive_accuracy(positive_preds_dict),batch_size=self.batch_size)
         self.log(self.metrics['split'][2]+'positive_accuracy_by_fire',
-                 util_fns.calculate_positive_accuracy_by_fire(positive_preds_dict))
+                 util_fns.calculate_positive_accuracy_by_fire(positive_preds_dict),batch_size=self.batch_size)
 
         # Use 'global_step' to graph positive_accuracy_by_time and positive_cumulative_accuracy
         positive_accuracy_by_time, positive_cumulative_accuracy = util_fns.calculate_positive_accuracy_by_time(positive_preds_dict)
@@ -266,8 +269,8 @@ class LightningModule(pl.LightningModule):
                                              positive_cumulative_accuracy[i], global_step=i)
 
         average_time_to_detection, median_time_to_detection, std_time_to_detection = util_fns.calculate_time_to_detection_stats(positive_preds_dict, positive_times_dict)
-        self.log(self.metrics['split'][2]+'average_time_to_detection', average_time_to_detection)
-        self.log(self.metrics['split'][2]+'median_time_to_detection', median_time_to_detection)
-        self.log(self.metrics['split'][2]+'std_time_to_detection', std_time_to_detection)
+        self.log(self.metrics['split'][2]+'average_time_to_detection', average_time_to_detection,batch_size=self.batch_size)
+        self.log(self.metrics['split'][2]+'median_time_to_detection', median_time_to_detection,batch_size=self.batch_size)
+        self.log(self.metrics['split'][2]+'std_time_to_detection', std_time_to_detection,batch_size=self.batch_size)
         
         print("Computing Test Evaluation Metrics Complete.")

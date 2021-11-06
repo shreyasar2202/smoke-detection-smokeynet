@@ -196,6 +196,7 @@ class DynamicDataModule(pl.LightningDataModule):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
                                           labels_path=self.labels_path, 
                                           optical_flow_path=self.optical_flow_path,
+                                          split_name='train',
                                           
                                           metadata=self.metadata, 
                                           data_split=self.train_split,
@@ -231,6 +232,7 @@ class DynamicDataModule(pl.LightningDataModule):
         val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
                                           optical_flow_path=self.optical_flow_path,
+                                          split_name='val',
                                         
                                           metadata=self.metadata,
                                           data_split=self.val_split,
@@ -265,6 +267,7 @@ class DynamicDataModule(pl.LightningDataModule):
         test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
                                           optical_flow_path=self.optical_flow_path,
+                                          split_name='test',
                                          
                                           metadata=self.metadata,
                                           data_split=self.test_split,
@@ -306,6 +309,7 @@ class DynamicDataloader(Dataset):
                  raw_data_path=None,
                  labels_path=None, 
                  optical_flow_path=None,
+                 split_name='train',
                  
                  metadata=None,
                  data_split=None, 
@@ -332,6 +336,7 @@ class DynamicDataloader(Dataset):
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
         self.optical_flow_path = optical_flow_path
+        self.split_name = split_name
         
         self.metadata = metadata
         self.data_split = data_split
@@ -504,5 +509,8 @@ class DynamicDataloader(Dataset):
                 # flow_imgs.shape = [series_length, num_channels, height, width]
                 flow_imgs = np.transpose(np.stack(flow_imgs), (0, 3, 1, 2))
                 x = np.concatenate([x, flow_imgs], axis=1)
-                        
+        
+        # Address ambiguous batch_size warning
+        image_name = image_name if self.split_name == 'test' else 0
+        
         return image_name, x, tiled_labels, bbox_labels, ground_truth_label, omit_mask

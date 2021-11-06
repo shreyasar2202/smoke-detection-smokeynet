@@ -4,7 +4,10 @@ import torch.nn.functional as F
 from torchvision.ops import MultiScaleRoIAlign
 
 from torchvision.models.detection._utils import overwrite_eps
-from torchvision.models.utils import load_state_dict_from_url
+try:
+    from torch.hub import load_state_dict_from_url  # noqa: 401
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url  # noqa: 401
 
 from torchvision.models.detection.anchor_utils import AnchorGenerator
 from .generalized_rcnn_noresize import GeneralizedRCNN

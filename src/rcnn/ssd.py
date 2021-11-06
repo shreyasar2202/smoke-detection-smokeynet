@@ -11,7 +11,10 @@ from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.models import vgg
-from torchvision.models.utils import load_state_dict_from_url
+try:
+    from torch.hub import load_state_dict_from_url  # noqa: 401
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url  # noqa: 401
 from torchvision.ops import boxes as box_ops
 
 __all__ = ['SSD', 'ssd300_vgg16']
