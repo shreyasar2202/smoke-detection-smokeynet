@@ -36,6 +36,9 @@ import resnet
 import util_fns
 from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
 
+# Gated Transformer Import
+from gtrxl_torch.gtrxl_torch import GTrXL
+
 
 #####################
 ## Helper Classes

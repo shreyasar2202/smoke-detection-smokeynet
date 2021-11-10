@@ -6,8 +6,8 @@
 #############################################
 
 python3.9 src/main.py \
-    --experiment-name "Final_MobileNetFPN_LSTM_SpatialViT" \
-    --model-type-list "RawToTile_MobileNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
+    --experiment-name "Final_ResNet_Transformer_SpatialViT" \
+    --model-type-list "RawToTile_ResNet" "TileToTile_Transformer" "TileToTileImage_SpatialViT" \
     --omit-list "omit_no_xml" \
     --error-as-eval-loss \
     --use-image-preds \
@@ -19,7 +19,7 @@ python3.9 src/main.py \
     --val-split-path './data/final_split/val_images_final.txt' \
     --test-split-path './data/final_split/test_images_final.txt' \
     --no-early-stopping \
-    --is-debug \
+    --tile-embedding-size 1000 \
     
 
 #####################
