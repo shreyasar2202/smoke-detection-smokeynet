@@ -204,7 +204,7 @@ class LightningModule(pl.LightningModule):
             if image_losses is None: image_losses = [None] * len(image_names)
             
             # Loop through entry in batch
-            for image_name, image_loss, tile_prob, tile_pred, image_pred, image_prob, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels):
+            for image_name, image_loss, tile_prob, tile_pred, image_pred, image_prob, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, image_probs, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
                 image_loss = image_loss.item() if image_loss else None
