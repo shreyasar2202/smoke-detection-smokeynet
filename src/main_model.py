@@ -230,7 +230,8 @@ class MainModel(nn.Module):
         
         # If created image_outputs, predict directly
         if self.use_image_preds and image_outputs is not None:
-            image_preds = (torch.sigmoid(image_outputs[:,-1]) > 0.5).int()
+            image_probs = torch.sigmoid(image_outputs[:,-1])
+            image_preds = (image_probs > 0.5).int()
         # Else, use tile_preds to determine image_preds
         elif tile_outputs is not None:
             image_preds = (tile_preds.sum(dim=1) > 0).int()
@@ -239,4 +240,4 @@ class MainModel(nn.Module):
         if self.error_as_eval_loss and split != 'train/':
             total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()
 
-        return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
+        return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs

@@ -704,6 +704,90 @@ class TileToTile_LSTM(nn.Module):
         
         return tile_outputs, embeddings
     
+class TileToTile_Transformer(nn.Module):
+    """Description: Base transformer module that takes tile embeddings and outputs tile predictions"""
+    
+    def __init__(self, tile_embedding_size=960, **kwargs):
+        print('- TileToTile_Transformer')
+        super().__init__()
+        
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=tile_embedding_size, nhead=8, dim_feedforward=tile_embedding_size, batch_first=True, norm_first=True)
+        self.transformer = torch.nn.TransformerEncoder(self.encoder_layer, num_layers=2, norm=None)
+        
+        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+                
+    def forward(self, tile_embeddings, **kwargs):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+                
+        # Run through LSTM
+        tile_embeddings = tile_embeddings.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
+        tile_outputs = self.transformer(tile_embeddings) # [batch_size * num_tiles, series_length, dim_feedforward]
+        # Only save the last time step's outputs
+        tile_outputs = tile_outputs[:,-1,:] # [batch_size * num_tiles, 2, embedding_size]
+        tile_outputs = tile_outputs.squeeze(1) # [batch_size * num_tiles, embedding_size]
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
+        
+        return tile_outputs, embeddings
+    
+class TileToTile_GTrXL(nn.Module):
+    """Description: Gated Transformer module that takes tile embeddings and outputs tile predictions with attention between T and T-1 of each tile (attention dim = series len)"""
+    
+    def __init__(self, tile_embedding_size=960, **kwargs):
+        print('- TileToTile_GTrXL')
+        super().__init__()
+        self.gtrxl = GTrXL(d_model=tile_embedding_size, nheads=4, transformer_layers=2, hidden_dims=tile_embedding_size, n_layers=1, batch_first=True)
+        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+                
+    def forward(self, tile_embeddings, **kwargs):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+                
+        # Run through GTrXL
+        tile_embeddings = tile_embeddings.view(batch_size * num_tiles, series_length, tile_embedding_size).float()
+        tile_outputs = self.gtrxl(tile_embeddings) # [batch_size * num_tiles, series_length, hidden_dims]            
+        # Only save the last time step's outputs
+        tile_outputs = tile_outputs[:,-1,:] # [batch_size * num_tiles, 2, embedding_size]
+        tile_outputs = tile_outputs.squeeze(1) # [batch_size * num_tiles, embedding_size]
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
+        
+        return tile_outputs, embeddings
+
+    
+class TileToTile_GTrXL_DispersedAttention(nn.Module):
+    """Description: Gated Transformer module that takes tile embeddings and outputs tile predictions with open attention between all tiles T and T-1 (attention dim = series len * num_tiles)"""
+    
+    def __init__(self, tile_embedding_size=960, **kwargs):
+        print('- TileToTile_GTrXL_DispersedAttention')
+        super().__init__()
+        self.gtrxl = GTrXL(d_model=tile_embedding_size, nheads=4, transformer_layers=2, hidden_dims=tile_embedding_size, n_layers=1, batch_first=True)
+        self.time2vec = Time2Vec(hidden_dim=2)
+        self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
+                
+    def forward(self, tile_embeddings, **kwargs):
+        tile_embeddings = tile_embeddings.float()
+        batch_size, num_tiles, series_length, tile_embedding_size = tile_embeddings.size()
+                
+        # Run through GTrXL
+        tile_embeddings = tile_embeddings.view(batch_size, series_length * num_tiles, tile_embedding_size).float()
+        # time2vec_embeddings = self.time2vec(tile_embeddings)
+        tile_outputs = self.gtrxl(tile_embeddings) # [batch_size, series_length * num_tiles, hidden_dims]            
+        # Only save the last time step's outputs
+        tile_outputs = tile_outputs[:,-1,:] # [batch_size * num_tiles, 2, embedding_size]
+        tile_outputs = tile_outputs.squeeze(1) # [batch_size * num_tiles, embedding_size]
+        # Avoid contiguous error
+        tile_outputs = tile_outputs.contiguous()
+        
+        tile_outputs, embeddings = self.embeddings_to_output(tile_outputs, batch_size, num_tiles, 1)
+        
+        return tile_outputs, embeddings
+    
 class TileToTile_ResNet3D(nn.Module):
     """Description: 3D ResNet operating on tiles to produce tile predictions"""
     

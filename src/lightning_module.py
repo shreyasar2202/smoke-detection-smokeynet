@@ -135,7 +135,7 @@ class LightningModule(pl.LightningModule):
         image_names, x, tile_labels, bbox_labels, ground_truth_labels, omit_masks = batch
 
         # Compute outputs, loss, and predictions
-        losses, image_loss, total_loss, tile_probs, tile_preds, image_preds = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, self.current_epoch, self.device)
+        losses, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs = self.model.forward_pass(x, tile_labels, bbox_labels, ground_truth_labels, omit_masks, split, self.current_epoch, self.device)
         
         # Log intermediate losses (on_step only if split='train')
         for i, loss in enumerate(losses):
@@ -161,18 +161,18 @@ class LightningModule(pl.LightningModule):
                              metric_attribute=self.metrics['torchmetric'][split+category+name],
                              batch_size=self.batch_size)
         
-        return image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels
+        return image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs, tile_labels
 
     def training_step(self, batch, batch_idx):
-        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][0])
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs, tile_labels = self.step(batch, self.metrics['split'][0])
         return total_loss
 
     def validation_step(self, batch, batch_idx):
-        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][1])
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs, tile_labels = self.step(batch, self.metrics['split'][1])
 
     def test_step(self, batch, batch_idx):
-        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, tile_labels = self.step(batch, self.metrics['split'][2])
-        return image_names, image_loss, tile_probs, tile_preds, image_preds, tile_labels
+        image_names, image_loss, total_loss, tile_probs, tile_preds, image_preds, image_probs, tile_labels = self.step(batch, self.metrics['split'][2])
+        return image_names, image_loss, tile_probs, tile_preds, image_preds, image_probs, tile_labels
 
     
     #########################
@@ -197,21 +197,21 @@ class LightningModule(pl.LightningModule):
             image_preds_csv_writer = csv.writer(image_preds_csv)
 
         # Loop through batch
-        for image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels in test_step_outputs:
+        for image_names, image_losses, tile_probs, tile_preds, image_preds, image_probs, tile_labels in test_step_outputs:
             # Account for missing predictions (depending on which model is used)
             if tile_probs is None: tile_probs = [None] * len(image_names)
             if tile_preds is None: tile_preds = [None] * len(image_names)
             if image_losses is None: image_losses = [None] * len(image_names)
             
             # Loop through entry in batch
-            for image_name, image_loss, tile_prob, tile_pred, image_pred, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels):
+            for image_name, image_loss, tile_prob, tile_pred, image_pred, image_prob, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
                 image_loss = image_loss.item() if image_loss else None
 
                 if self.logger is not None:
                     # Save image predictions and image_loss
-                    image_preds_csv_writer.writerow([image_name, image_pred, image_loss])
+                    image_preds_csv_writer.writerow([image_name, image_pred, image_prob, image_loss])
                     
                     # Save tile probabilities - useful when visualizing model performance
                     if tile_prob is not None:
