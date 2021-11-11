@@ -207,6 +207,7 @@ class LightningModule(pl.LightningModule):
             for image_name, image_loss, tile_prob, tile_pred, image_pred, image_prob, tile_label in zip(image_names, image_losses, tile_probs, tile_preds, image_preds, image_probs, tile_labels):
                 fire_name = util_fns.get_fire_name(image_name)
                 image_pred = image_pred.item()
+                image_prob = image_prob.item()
                 image_loss = image_loss.item() if image_loss else None
 
                 if self.logger is not None:
