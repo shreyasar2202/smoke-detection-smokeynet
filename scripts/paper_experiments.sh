@@ -180,6 +180,22 @@
 #     --is-background-removal \
 
 # python3.9 src/main.py \
+#     --experiment-name "Final_ResNet34_Transformer_SpatialViT" \
+#     --model-type-list "RawToTile_ResNet" "TileToTile_Transformer" "TileToTileImage_SpatialViT" \
+#     --omit-list "omit_no_xml" \
+#     --error-as-eval-loss \
+#     --use-image-preds \
+#     --batch-size 2 \
+#     --series-length 2 \
+#     --accumulate-grad-batches 16 \
+#     --num-workers 4 \
+#     --train-split-path './data/final_split/train_images_final.txt' \
+#     --val-split-path './data/final_split/val_images_final.txt' \
+#     --test-split-path './data/final_split/test_images_final.txt' \
+#     --no-early-stopping \
+#     --tile-embedding-size 1000 \
+
+# python3.9 src/main.py \
 #     --experiment-name "Final_ResNet34FPN_LSTM_SpatialViT" \
 #     --model-type-list "RawToTile_ResNetFPN" "TileToTile_LSTM" "TileToTileImage_SpatialViT" \
 #     --omit-list "omit_no_xml" \

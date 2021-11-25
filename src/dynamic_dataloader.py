@@ -386,8 +386,11 @@ class DynamicDataloader(Dataset):
         for file_name in self.metadata['image_series'][image_name]:
             # Load image
             # img.shape = [height, width, num_channels]
-            img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
-            
+            if Path(self.raw_data_path+'/'+file_name+'.jpg').exists():
+                img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
+            else:
+                img = cv2.imread('/userdata/kerasData/data/new_data/raw_images_20211031/'+file_name+'.jpg')
+                
             # Apply data augmentations
             # img.shape = [crop_height, resize_dimensions[1], num_channels]
             img = data_augmentations(img, is_labels=False)

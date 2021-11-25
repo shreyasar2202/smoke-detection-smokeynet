@@ -456,7 +456,7 @@ def main(# Debug args
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
 #             log_gpu_memory=True,
-        gpus=1)
+        gpus=0)
 
     ### Training & Evaluation ###
     if is_test_only:
