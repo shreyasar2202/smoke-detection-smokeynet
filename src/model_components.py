@@ -32,12 +32,12 @@ import numpy as np
 import math
 
 # File imports
-import resnet
+# import resnet
 import util_fns
-from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
+# from rcnn import faster_rcnn_noresize, mask_rcnn_noresize, ssd_noresize, retinanet_noresize, ssd
 
 # Gated Transformer Import
-from gtrxl_torch.gtrxl_torch import GTrXL
+# from gtrxl_torch.gtrxl_torch import GTrXL
 
 
 #####################
@@ -742,7 +742,7 @@ class TileToTile_GTrXL(nn.Module):
     def __init__(self, tile_embedding_size=960, **kwargs):
         print('- TileToTile_GTrXL')
         super().__init__()
-        self.gtrxl = GTrXL(d_model=tile_embedding_size, nheads=4, transformer_layers=2, hidden_dims=tile_embedding_size, n_layers=1, batch_first=True)
+        self.gtrxl = GTrXL(d_model=tile_embedding_size, nheads=8, transformer_layers=2, hidden_dims=tile_embedding_size, n_layers=1, batch_first=True)
         self.embeddings_to_output = TileEmbeddingsToOutput(tile_embedding_size)
                 
     def forward(self, tile_embeddings, **kwargs):

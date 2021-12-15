@@ -3,19 +3,19 @@
 # Date: 2021
 #
 # Description: Gets LabelMe labelling tool running
+# Source: https://github.com/CSAILVision/LabelMeAnnotationTool
 #############################################
 
-sudo apt-get update -y &&
+sudo apt-get update -y && apt-get upgrade -y &&
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade &&
 sudo apt-get install -y \
+ vim \
  apache2 \
  git \
  libapache2-mod-perl2 \
  libcgi-session-perl \
  libapache2-mod-php \
  make \
- php5 \
- libapache2-mod-php5 \
  libcgi-session-perl \
  php &&
 sudo a2enmod include &&
@@ -38,8 +38,10 @@ sudo tee /etc/apache2/sites-available/000-default.conf <<EOL
 </Directory>
 EOL
 
-# sudo vim /etc/apache2/apache2.conf
-# ADD TO BOTTOM
+# TODO after script is run:
+#
+# RUN: sudo vim /etc/apache2/apache2.conf
+# ==== ADD TO BOTTOM OF FILE ====
 #ScriptAlias "/cgi-bin/" "/usr/local/apache2/cgi-bin/"
 #<Directory "/var/www/html/LabelMeAnnotationTool/">
 #    Options +ExecCGI
@@ -47,10 +49,15 @@ EOL
 #
 #AddHandler cgi-script .cgi .pl
 #SetEnv PERL5LIB /var/www/html/LabelMeAnnotationTool/annotationTools/perl
+# ===== END ======
 #
-#sudo vim /etc/apache2/ports.conf
-# *Change LISTEN to 8887*
+# RUN: sudo vim /etc/apache2/ports.conf
+# CHANGE: LISTEN to 8887
+#
+# RUN: sudo service apache2 restart
+#
+# Port forward 8887 to your desktop
+# Open in browser: http://127.0.0.1:8887/LabelMeAnnotationTool/tool.html?mode=f&folder=example_folder
+# See Annotations and Images in: /var/www/html/LabelMeAnnotationTool/
 
-sudo service apache2 restart
-
-# http://127.0.0.1:8887/LabelMeAnnotationTool/tool.html?mode=f&folder=example_folder&image=1590100955_+01680.jpg
+# Hope we don't need this!: sudo apt-get install -y libapache2-mod-php5 php5

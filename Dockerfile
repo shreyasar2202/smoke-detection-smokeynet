@@ -45,6 +45,7 @@ RUN pip3.9 install sklearn
 RUN pip3.9 install opencv-python
 RUN pip3.9 install transformers
 RUN pip3.9 install efficientnet-pytorch
+RUN pip3.9 install torch_gtrxl
 
 # Fix ipynb bug with progress bar
 RUN pip3.9 install ipywidgets
