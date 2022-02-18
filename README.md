@@ -2,42 +2,15 @@
 
 Created: 2021 Anshuman Dewangan
 
-This repository uses [Pytorch Lightning](https://www.pytorchlightning.ai/) for wildfire smoke detection. Supports image classification and object detection models.
+This repository supports both image classification and object detection models for wildfire smoke detection for the publication: [FIgLib & SmokeyNet: Dataset and Deep Learning Model for Real-Time Wildland Fire Smoke Detection](https://www.mdpi.com/2072-4292/14/4/1007).
+
+Please include the following citation in your work:
+
+> Dewangan, A.; Pande, Y.; Braun, H.-W.; Vernon, F.; Perez, I.; Altintas, I.; Cottrell, G.W.; Nguyen, M.H. FIgLib & SmokeyNet: Dataset and Deep Learning Model for Real-Time Wildland Fire Smoke Detection. Remote Sens. 2022, 14, 1007. https://doi.org/10.3390/rs14041007 
 
 Visualization of model performance:
 
 ![](wildfire-smoke-detection.mp4)
-
-
-# Getting Started
-## Quick Start
-0. Follow the directions on [Nautilus](https://ucsd-prp.gitlab.io/userdocs/start/quickstart/) to set up kubernetes
-1. Download ```pytorch-gpu.yaml``` from the [GitLab repository](https://gitlab.nrp-nautilus.io/anshumand/pytorch-lightning-smoke-detection/-/raw/master/pytorch-gpu.yaml) to your local working directory and replace instances of ```username``` with a username (e.g. ```anshumand```)
-2. From the working directory containing ```pytorch-gpu.yaml```, create a Kubernetes container: ```kubectl create -f pytorch-gpu.yaml```
-3. Confirm pod is running: ```kubectl get pods```
-4. Forward port to local machine: ```kubectl port-forward deployment/pytorch-gpu-username 8888:8888```
-5. Open Jupyter Lab on browser (password = ```digits```): ```http://127.0.0.1:8888/```
-6. Once Jupyter Lab is opened on your browser, it is recommended to use tmux by entering the following command in Terminal: ```tmux```
-7. In tmux, navigate to the correct working directory: ```cd src/pytorch-lightning-smoke-detection/```
-7. Run the following command to copy files to the root directory: ```./scripts/setup_files.sh```
-8. In a different terminal window, it is recommend to start Tensorboard to access logs: ```tensorboard --logdir ./lightning_logs```
-9. Once files are setup, run the following command to start an experiment: ```./scripts/run_train.sh```
-10. Once the experiment is running, feel free to cancel using ```ctrl+C```
-11. Please DELETE the kubernetes pod from your local machine when not in use to allow other UCSD students to access resources: ```kubectl delete -f pytorch-gpu.yaml```
-
-## Kubernetes
-**Relevant Files:**
-- ```Dockerfile```: Code that is run when the container is set up. Uses ```nvidia/cuda``` module as base. Installs system packages and necessary Python packages. Starts Jupyter Lab server at port 8888
-- ```torch-gpu.yaml```: Parameters with which the container is initialized
-- ```.gitlab-ci.yml```: YAML file that allows CI/CD with GitLab to automatically build new container with Dockerfile changes
-
-**Training Tricks:**
-The following steps can increase training speed by 2-5x:
-1. Copy the dataset to your home directory using ```./scripts/setup_files.sh```
-2. Add ```dshm``` volume to YAML file. Also recommended to specify GPU type to ```2080Ti```, use 4 CPUs, aand set memory=12GB. See ```torch-gpu.yaml``` for an example.
-3. Set num_workers=4 (equal to the # of CPUs and 4x # of GPUs) in dataloader
-
-Note: If the disk runs out of storage, enter ```kubectl edit pvc modeltraining``` in your local terminal and increase the ```storage``` paramater (in two places) to the desired amount.
 
 
 # Data
@@ -140,3 +113,6 @@ Logs can be accessed using Tensorboard: ```tensorboard --logdir ./lightning_logs
 **Utility Notebooks:**
 - ```helper.ipynb```: code to average test metrics, calculate inference speed, and debug code.
 - ```visual_analysis.ipynb```: code to visualize errors, generate videos, and create human experiment.
+
+# License
+This repository is released under the Apache 2.0 license. Please see the LICENSE file for more information.
