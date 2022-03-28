@@ -60,7 +60,7 @@ Visualization of model performance:
 ## Data Setup from Scratch
 Should you lose prior data or receive new data, use the following steps to prepare the data prior to model training:
 1. Run ```./scripts/download_raw_data.sh``` to download raw images from the [HPWREN website](http://hpwren.ucsd.edu/HPWREN-FIgLib/HPWREN-FIgLib-Data/) to ```/userdata/kerasData/data/new_data/raw_images_new/``` directory
-2. Follow the instructions at the bottom of this [Google Doc](https://docs.google.com/document/d/14cnRoZ9VkYk8y0Wf3__uGAvDXWaGv1dwGrWtTYe75q0/edit?usp=sharing) to download the bounding box and contour annotation labels
+2. Follow the instructions at the bottom of this [Google Doc](https://docs.google.com/document/d/14cnRoZ9VkYk8y0Wf3__uGAvDXWaGv1dwGrWtTYe75q0/edit?usp=sharing) to download the bounding box and contour annotation labels (Note: to be released to the public in late 2022)
 3. Run ```python3.9 ./scripts/prepare_data.py``` to create ```./data/metadata_new.pkl``` and .npy label files in ```/userdata/kerasData/data/new_data/drive_clone_numpy_new/```
 4. (Optional) Run ```python3.9 ./scripts/generate_flow.py``` to create optical flow outputs in ```/userdata/kerasData/data/new_data/raw_images_flow_new/``` and background removal outputs in ```/userdata/kerasData/data/new_data/raw_images_mog_new/```
 
