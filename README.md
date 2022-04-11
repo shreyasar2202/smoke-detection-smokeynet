@@ -114,5 +114,9 @@ Logs can be accessed using Tensorboard: ```tensorboard --logdir ./lightning_logs
 - ```helper.ipynb```: code to average test metrics, calculate inference speed, and debug code.
 - ```visual_analysis.ipynb```: code to visualize errors, generate videos, and create human experiment.
 
+# Troubleshooting
+- On Debian, change "torch_gtrxl" to "gtrxl_torch"
+- If the ```download_raw_data.sh``` script is blocked by robots.txt, add: ```-e robots=off```
+
 # License
 This repository is released under the Apache 2.0 license. Please see the LICENSE file for more information.
