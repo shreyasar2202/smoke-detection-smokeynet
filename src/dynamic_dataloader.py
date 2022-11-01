@@ -32,13 +32,11 @@ class DynamicDataModule(pl.LightningDataModule):
                  omit_list=None,
                  mask_omit_images=False,
                  is_object_detection=False,
-                 is_maskrcnn=False,
-                 is_background_removal=False,
+                 
                  
                  raw_data_path=None, 
                  labels_path=None, 
                  metadata_path='./data/metadata.pkl',
-                 optical_flow_path=None,
                  
                  train_split_path=None,
                  val_split_path=None,
@@ -50,7 +48,7 @@ class DynamicDataModule(pl.LightningDataModule):
                  batch_size=1, 
                  num_workers=0, 
                  series_length=1, 
-                 add_base_flow=False,
+                 
                  time_range=(-2400, 2400), 
                  
                  original_dimensions = (1536, 2016),
@@ -80,13 +78,11 @@ class DynamicDataModule(pl.LightningDataModule):
         self.omit_list = omit_list
         self.mask_omit_images = mask_omit_images
         self.is_object_detection = is_object_detection
-        self.is_maskrcnn = is_maskrcnn
-        self.is_background_removal = is_background_removal
+        
            
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
         self.metadata = pickle.load(open(metadata_path, 'rb'))
-        self.optical_flow_path = optical_flow_path
         
         self.train_split_path = train_split_path
         self.val_split_path = val_split_path
@@ -98,7 +94,7 @@ class DynamicDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.series_length = series_length
-        self.add_base_flow = add_base_flow
+        
         self.time_range = time_range
         
         self.original_dimensions = original_dimensions
@@ -149,7 +145,7 @@ class DynamicDataModule(pl.LightningDataModule):
             
             # Recreate fire_to_images and image_series
             self.metadata['fire_to_images'] = util_fns.generate_fire_to_images_from_splits([self.train_split, self.val_split, self.test_split])
-            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow) 
+            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length) 
         
         else:
             # If split is provided, extract fires from split
@@ -164,13 +160,13 @@ class DynamicDataModule(pl.LightningDataModule):
                 train_fires += self.metadata['train_only_fires']
                         
             # Save arrays representing series of images
-            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length, self.add_base_flow)
+            self.metadata['image_series'] = util_fns.generate_series(self.metadata['fire_to_images'], self.series_length)
             
             # Shorten fire_to_images to relevant time frame
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length, self.add_base_flow, self.optical_flow_path)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(train_fires, self.metadata['fire_to_images'], self.time_range, self.series_length)
             # Shorten val/test only by series_length
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length,  self.add_base_flow, self.optical_flow_path)
-            self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length, self.add_base_flow, self.optical_flow_path)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(val_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length)
+            self.metadata['fire_to_images'] = util_fns.shorten_time_range(test_fires, self.metadata['fire_to_images'], (-2400,2400), self.series_length)
             
             # Create train/val/test split of Images
             # Only remove images from omit_images_list if not masking
@@ -195,15 +191,14 @@ class DynamicDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         train_dataset = DynamicDataloader(raw_data_path=self.raw_data_path,
                                           labels_path=self.labels_path, 
-                                          optical_flow_path=self.optical_flow_path,
+                                          
                                           split_name='train',
                                           
                                           metadata=self.metadata, 
                                           data_split=self.train_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
-                                          is_maskrcnn=self.is_maskrcnn,
-                                          is_background_removal=self.is_background_removal,
+                                          
                                           
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -225,21 +220,20 @@ class DynamicDataModule(pl.LightningDataModule):
                                   num_workers=self.num_workers,
                                   pin_memory=True, 
                                   shuffle=True,
-                                  collate_fn=util_fns.default_collate if self.is_object_detection else None)
+                                  collate_fn=None)
         return train_loader
 
     def val_dataloader(self):
         val_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
-                                          optical_flow_path=self.optical_flow_path,
+                                         
                                           split_name='val',
                                         
                                           metadata=self.metadata,
                                           data_split=self.val_split,
                                           omit_images_list=self.omit_images_list if self.mask_omit_images else None,
                                           is_object_detection=self.is_object_detection,
-                                          is_maskrcnn=self.is_maskrcnn,
-                                          is_background_removal=self.is_background_removal,
+                                        
                                         
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -260,21 +254,20 @@ class DynamicDataModule(pl.LightningDataModule):
                                 batch_size=self.batch_size, 
                                 num_workers=self.num_workers,
                                 pin_memory=True,
-                                collate_fn=util_fns.default_collate if self.is_object_detection else None)
+                                collate_fn=None)
         return val_loader
 
     def test_dataloader(self):
         test_dataset = DynamicDataloader(raw_data_path=self.raw_data_path, 
                                           labels_path=self.labels_path, 
-                                          optical_flow_path=self.optical_flow_path,
+                                         
                                           split_name='test',
                                          
                                           metadata=self.metadata,
                                           data_split=self.test_split,
                                           omit_images_list=None,
                                           is_object_detection=self.is_object_detection,
-                                          is_maskrcnn=self.is_maskrcnn,
-                                          is_background_removal=self.is_background_removal,
+                                         
                                          
                                           original_dimensions=self.original_dimensions,
                                           resize_dimensions=self.resize_dimensions,
@@ -295,7 +288,7 @@ class DynamicDataModule(pl.LightningDataModule):
                                  batch_size=self.batch_size, 
                                  num_workers=self.num_workers,
                                  pin_memory=True,
-                                 collate_fn=util_fns.default_collate if self.is_object_detection else None)
+                                 collate_fn=None)
         return test_loader
     
     
@@ -308,15 +301,14 @@ class DynamicDataloader(Dataset):
     def __init__(self, 
                  raw_data_path=None,
                  labels_path=None, 
-                 optical_flow_path=None,
+                
                  split_name='train',
                  
                  metadata=None,
                  data_split=None, 
                  omit_images_list=None,
                  is_object_detection=False,
-                 is_maskrcnn=False,
-                 is_background_removal=False,
+                 
                  
                  original_dimensions = (1536, 2016),
                  resize_dimensions = (1536, 2016),
@@ -335,15 +327,14 @@ class DynamicDataloader(Dataset):
         
         self.raw_data_path = raw_data_path
         self.labels_path = labels_path
-        self.optical_flow_path = optical_flow_path
+       
         self.split_name = split_name
         
         self.metadata = metadata
         self.data_split = data_split
         self.omit_images_list = omit_images_list
         self.is_object_detection = is_object_detection
-        self.is_maskrcnn = is_maskrcnn
-        self.is_background_removal = is_background_removal
+        
         
         self.original_dimensions = original_dimensions
         self.resize_dimensions = resize_dimensions
@@ -397,18 +388,15 @@ class DynamicDataloader(Dataset):
                 
             # Tile image
             # img.shape = [num_tiles, tile_height, tile_width, num_channels]
-            if self.pre_tile and not self.is_object_detection:
+            if self.pre_tile:
                 img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
             
-            # Rescale and normalize
-            if self.is_object_detection:
-                img = img / 255 # torchvision object detection expects input [0,1]
-            else:
-                img = util_fns.normalize_image(img)
+
+            img = util_fns.normalize_image(img)
 
             x.append(img)
         
-        if self.pre_tile and not self.is_object_detection:
+        if self.pre_tile:
             # x.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
             x = np.transpose(np.stack(x), (1, 0, 4, 2, 3))
         else:
@@ -422,96 +410,36 @@ class DynamicDataloader(Dataset):
         omit_mask = False
         
         ### Load Tile Labels ###
-        if self.is_maskrcnn or not self.is_object_detection:
-            label_path = self.labels_path+'/'+image_name+'.npy'
-            if Path(label_path).exists():
-                # Repeat similar steps to images
-                labels = np.load(label_path)
-
-                labels = data_augmentations(labels, is_labels=True)
-            else:
-                # Load all 0s
-                # labels.shape = [height, width]
-                labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
-
-            if not self.is_object_detection:
-                # Tile labels
-                tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
-
-                # Generate binary labels basaed on smoke_threshold
-                # labels.shape = [num_tiles]
-                tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
-
-                # Random upsampling
-                if self.num_tile_samples > 0:
-                    # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
-                    x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
-            
-                # Determine if tile predictions should be masked
-                omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
         
-        ### Load Object Detection Labels ###
-        if self.is_object_detection:
-            # Loop through each image in series
-            for image in x:
-                bbox_label = {}
-                
-                if image_name in self.metadata['bbox_labels']: 
-                    # Append real positive image data
-                    bboxes = data_augmentations.process_bboxes(self.metadata['bbox_labels'][image_name])
-                    bbox_label['boxes'] = torch.as_tensor(bboxes, dtype=torch.float32)
-                    bbox_label['labels'] = torch.as_tensor([1]*len(self.metadata['bbox_labels'][image_name]), dtype=torch.int64)
-                    if self.is_maskrcnn:
-                        bbox_label['masks'] = torch.as_tensor(np.expand_dims(labels, 0), dtype=torch.uint8)
-                else:
-                    # Use negative data
-                    # Source: https://github.com/pytorch/vision/releases/tag/v0.6.0
-                    bbox_label = {"boxes": torch.zeros((0, 4), dtype=torch.float32),
-                                  "labels": torch.zeros(0, dtype=torch.int64),
-                                  "area": torch.zeros(0, dtype=torch.float32)}
-                    if self.is_maskrcnn:
-                        bbox_label['masks'] = torch.zeros((0, self.crop_height, self.resize_dimensions[1]), dtype=torch.uint8)
-                    
-                bbox_labels.append(bbox_label)
+        label_path = self.labels_path+'/'+image_name+'.npy'
+        if Path(label_path).exists():
+            # Repeat similar steps to images
+            labels = np.load(label_path)
+
+            labels = data_augmentations(labels, is_labels=True)
+        else:
+            # Load all 0s
+            # labels.shape = [height, width]
+            labels = np.zeros((self.crop_height, self.resize_dimensions[1])).astype(float) 
+
         
-        ### Load Optical Flow ###
-        if self.optical_flow_path is not None:
-            flow_imgs = []
-            
-            for file_name in self.metadata['image_series'][image_name]:
-                # Load flow
-                # img.shape = [height, width, num_channels]
-                img = np.load(self.optical_flow_path+'/'+file_name+'.npy')
+            # Tile labels
+        tiled_labels = util_fns.tile_labels(labels, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
 
-                # Apply data augmentations
-                # img.shape = [crop_height, resize_dimensions[1], num_channels]
-                img = data_augmentations(img, is_labels=True)
-                
-                # Tile image
-                # img.shape = [num_tiles, tile_height, tile_width, num_channels]
-                if self.pre_tile and not self.is_object_detection:
-                    if self.is_background_removal:
-                        img = util_fns.tile_labels(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
-                        img = np.expand_dims(img, 3)
-                    else:
-                        img = util_fns.tile_image(img, self.num_tiles_height, self.num_tiles_width, self.resize_dimensions, self.tile_dimensions, self.tile_overlap)
+        # Generate binary labels basaed on smoke_threshold
+        # labels.shape = [num_tiles]
+        tiled_labels = (tiled_labels.sum(axis=(1,2)) > self.smoke_threshold).astype(float)
 
-                # Rescale and normalize
-                if self.is_object_detection:
-                    img = img / 255 # torchvision object detection expects input [0,1]
-                else:
-                    img = util_fns.normalize_image(img)
-
-                flow_imgs.append(img)
-
-            if self.pre_tile and not self.is_object_detection:
-                # flow_imgs.shape = [num_tiles, series_length, num_channels, tile_height, tile_width]
-                flow_imgs = np.transpose(np.stack(flow_imgs), (1, 0, 4, 2, 3))
-                x = np.concatenate([x, flow_imgs], axis=2)
-            else:
-                # flow_imgs.shape = [series_length, num_channels, height, width]
-                flow_imgs = np.transpose(np.stack(flow_imgs), (0, 3, 1, 2))
-                x = np.concatenate([x, flow_imgs], axis=1)
+        # Random upsampling
+        if self.num_tile_samples > 0:
+            # WARNING: Assumes that there are no labels with all 0s. Use --time-range-min 0
+            x, tiled_labels = util_fns.randomly_sample_tiles(x, tiled_labels, self.num_tile_samples)
+    
+        # Determine if tile predictions should be masked
+        omit_mask = False if (self.omit_images_list is not None and (image_name in self.omit_images_list or util_fns.get_fire_name(image_name) in self.metadata['unlabeled_fires'])) else True
+    
+        
+        
         
         # Address ambiguous batch_size warning
         image_name = image_name if self.split_name == 'test' else 0

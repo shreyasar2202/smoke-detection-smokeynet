@@ -43,7 +43,7 @@ class MainModel(nn.Module):
                  focal_gamma=2,
                  image_loss_only=False,
                  image_pos_weight=1,
-                 confidence_threshold=0,
+                 
                  
                  **kwargs):
         
@@ -68,7 +68,7 @@ class MainModel(nn.Module):
         self.use_image_preds = use_image_preds
         self.image_loss_only = image_loss_only
         self.image_pos_weight = image_pos_weight
-        self.confidence_threshold = confidence_threshold
+        
 
         ### Initialize Loss ###
         self.tile_loss = TileLoss(tile_loss_type=tile_loss_type,
@@ -150,37 +150,7 @@ class MainModel(nn.Module):
                     
                 break
             
-            # FLOW ONLY: If outputs is a tuple for both image and flow...
-            elif type(outputs) is tuple:
-                # Loop through outputs for image and flow
-                for output in outputs:
-                    tile_outputs = output
-                    loss = self.tile_loss(tile_outputs[omit_masks,:,-1], tile_labels[omit_masks], num_epoch=num_epoch) 
 
-                    # Only add loss if intermediate_supervision
-                    if self.intermediate_supervision and not self.image_loss_only:
-                        total_loss += loss
-                        losses.append(loss)
-                    else:
-                        total_loss = loss
-            
-            # OBJECT DETECTION ONLY: If x is a dictionary of object detection losses...
-            elif type(x) is dict:
-                # If training...
-                if len(x) > 0: 
-                    # Use losses from model
-                    for loss in x:
-                        total_loss += x[loss]
-                
-                # Else for val/test loss...
-                else:
-                    # Determine if there were any scores above confidence = 0
-                    image_preds = torch.as_tensor([(output['scores'] > self.confidence_threshold).sum() > 0 for output in outputs]).to(device)
-                    
-                    # Use number of errors as loss
-                    total_loss = torch.abs(image_preds.float() - ground_truth_labels.float()).sum()
-                    
-                return losses, image_loss, total_loss, tile_probs, tile_preds, image_preds
             
             # IMAGE ONLY: Else if model predicts images only...
             elif x is None:

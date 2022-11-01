@@ -169,7 +169,7 @@ def unpack_fire_images(fire_to_images, fires_list, omit_images_list=None):
                 
     return unpacked_images
 
-def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), series_length=1, add_base_flow=False, optical_flow_path=None):
+def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), series_length=1):
     """
     Description: From lists of images per fire, returns list of images within specified time range
     Args:
@@ -177,14 +177,11 @@ def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), seri
         - fire_to_images (dict): maps fire to a list of images for that fire
         - time_range (int, int): the time range of images to consider for training by time stamp
         - series_length (int): length of series to cut off starting of fires
-        - add_base_flow (bool): if True, adds image from t-5 for fire
-        - optical_flow_path (str): if not None, remove the first image
     Returns:
         - fire_to_images (dict): list of images for each fire
     """
     # Calculate effective time start
-    effective_series_length = np.maximum(int(add_base_flow)*5, series_length)
-    effective_series_length = effective_series_length+1 if optical_flow_path is not None else effective_series_length
+    effective_series_length = series_length
     
     for fire in fires_list:
         for _ in range(effective_series_length-1):
@@ -205,13 +202,13 @@ def shorten_time_range(fires_list, fire_to_images, time_range=(-2400,2400), seri
             
     return fire_to_images
 
-def generate_series(fire_to_images, series_length, add_base_flow=False):
+def generate_series(fire_to_images, series_length):
     """
     Description: Creates a dict with image names as keys and lists of past <series_length> images as values
     Args:
         - fire_to_images (dict): maps fire to a list of images for that fire
         - series_length (int): how many sequential images should be used for training
-        - add_base_flow (bool): if True, adds image from t-5 for fire
+        
     Returns:
         - image_series (dict): maps image names to lists of past <series_length> images in chronological order
     """
@@ -222,12 +219,9 @@ def generate_series(fire_to_images, series_length, add_base_flow=False):
             image_series[img] = []
             idx = i
             
-            # Add the t-5 image if add_base_flow
-            if series_length != 1 and add_base_flow:
-                image_series[img].append(fire_to_images[fire][np.maximum(0, idx-5)])
 
             while (len(image_series[img]) < series_length):
-                image_series[img].insert(int(add_base_flow), fire_to_images[fire][idx])
+                image_series[img].insert(0, fire_to_images[fire][idx])
                 if idx != 0: idx -= 1
     
     return image_series
@@ -481,52 +475,6 @@ def randomly_sample_tiles(x, labels, num_samples=30):
     return x, labels
 
 np_str_obj_array_pattern = re.compile(r'[SaUO]')
-def default_collate(batch):
-    """Puts each data field into a tensor with outer dimension batch size
-    Source: https://github.com/pytorch/pytorch/blob/master/torch/utils/data/_utils/collate.py"""
-
-    elem = batch[0]
-    elem_type = type(elem)
-    if isinstance(elem, torch.Tensor):
-        out = None
-        if torch.utils.data.get_worker_info() is not None:
-            # If we're in a background process, concatenate directly into a
-            # shared memory tensor to avoid an extra copy
-            numel = sum(x.numel() for x in batch)
-            storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
-        return torch.stack(batch, 0, out=out)
-    elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
-            and elem_type.__name__ != 'string_':
-        if elem_type.__name__ == 'ndarray' or elem_type.__name__ == 'memmap':
-            # array of string classes and object
-            if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
-                raise TypeError(default_collate_err_msg_format.format(elem.dtype))
-
-            return default_collate([torch.as_tensor(b) for b in batch])
-        elif elem.shape == ():  # scalars
-            return torch.as_tensor(batch)
-    elif isinstance(elem, float):
-        return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int):
-        return torch.tensor(batch)
-    elif isinstance(elem, string_classes):
-        return batch
-    elif isinstance(elem, collections.abc.Mapping):
-        return batch
-    elif isinstance(elem, tuple) and hasattr(elem, '_fields'):  # namedtuple
-        return elem_type(*(default_collate(samples) for samples in zip(*batch)))
-    elif isinstance(elem, collections.abc.Sequence):
-        # check to make sure that the elements in batch have consistent size
-        it = iter(batch)
-        elem_size = len(next(it))
-        if not all(len(elem) == elem_size for elem in it):
-            raise RuntimeError('each element in list of batch should be of equal size')
-        transposed = zip(*batch)
-        return [default_collate(samples) for samples in transposed]
-
-    raise TypeError(default_collate_err_msg_format.format(elem_type))
-
 #####################
 ## LightningModule
 #####################

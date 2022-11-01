@@ -44,12 +44,9 @@ parser.add_argument('--error-as-eval-loss', action='store_true',
                     help='Uses error rate (ie. 1 - acc) as validation and test loss. Useful when using unlabeled data as evaluation sets.')
 parser.add_argument('--mask-omit-images', action='store_true',
                     help='Masks tile predictions for images in omit_list_images. Useful when using images without bbox / contour annotations for training.')
-parser.add_argument('--is-object-detection', action='store_true',
-                    help='Specifies data loader for object detection models.')
-parser.add_argument('--is-maskrcnn', action='store_true',
-                    help='Specifies data loader for specifically for mask rcnn models. Use with is_object_detection.')
-parser.add_argument('--is-background-removal', action='store_true',
-                    help='Specifies if optical flow type is background removal. Used with optical_flow_path.')
+
+
+
 
 # Experiment args
 parser.add_argument('--experiment-name', type=str, default=None,
@@ -64,8 +61,7 @@ parser.add_argument('--labels-path', type=str, default='/root/drive_clone_numpy'
                     help='Path to processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
-parser.add_argument('--optical-flow-path', type=str, default=None,
-                    help='Path to optical flow npy files. Only use if you want to load optical flow data.')
+
 
 parser.add_argument('--train-split-path', type=str, default=None,
                     help='(Optional) Path to txt file with train image paths. Only works if train, val, and test paths are all provided. Otherwise, randomly generates splits.')
@@ -88,8 +84,6 @@ parser.add_argument('--num-workers', type=int, default=4,
 
 parser.add_argument('--series-length', type=int, default=2,
                     help='Number of sequential video frames to process during training.')
-parser.add_argument('--add-base-flow', action='store_true',
-                    help='Adds a contextual frame of t-5 in series. Useful only when series_length > 1.')
 parser.add_argument('--time-range-min', type=int, default=-2400,
                     help='Start time of fire images to consider during training. ')
 parser.add_argument('--time-range-max', type=int, default=2400,
@@ -161,8 +155,7 @@ parser.add_argument('--image-loss-only', action='store_true',
                     help='Only train using image loss, not tile losses.')
 parser.add_argument('--image-pos-weight', type=float, default=5,
                     help='Weight for positive class for BCE loss for images.')
-parser.add_argument('--confidence-threshold', type=float, default=0,
-                    help='Treshold for object detection confidence to consider positive label.')
+
 
 # Optimizer args = 4
 parser.add_argument('--optimizer-type', type=str, default='SGD',
@@ -208,15 +201,13 @@ def main(# Debug args
         omit_list=None,
         error_as_eval_loss=False,
         mask_omit_images=False,
-        is_object_detection=False,
-        is_maskrcnn=False,
-        is_background_removal=False,
+        
+     
         
         # Path args
         raw_data_path=None, 
         labels_path=None, 
         metadata_path=None,
-        optical_flow_path=None,
     
         train_split_path=None, 
         val_split_path=None, 
@@ -234,7 +225,6 @@ def main(# Debug args
         batch_size=1, 
         num_workers=0, 
         series_length=1, 
-        add_base_flow=False, 
         time_range=(-2400,2400), 
     
         original_dimensions=(1536, 2016),
@@ -271,7 +261,7 @@ def main(# Debug args
         focal_gamma=2,
         image_loss_only=False,
         image_pos_weight=1,
-        confidence_threshold=0,
+       
 
         # Optimizer args
         optimizer_type='SGD',
@@ -301,15 +291,13 @@ def main(# Debug args
     data_module = DynamicDataModule(
         omit_list=omit_list,
         mask_omit_images=mask_omit_images,
-        is_object_detection=is_object_detection,
-        is_maskrcnn=is_maskrcnn,
-        is_background_removal=is_background_removal,
+      
+        
         
         # Path args
         raw_data_path=raw_data_path,
         labels_path=labels_path,
         metadata_path=metadata_path,
-        optical_flow_path=optical_flow_path,
         
         train_split_path=train_split_path,
         val_split_path=val_split_path,
@@ -323,7 +311,7 @@ def main(# Debug args
         num_workers=num_workers,
         
         series_length=series_length,
-        add_base_flow=add_base_flow,
+        
         time_range=time_range,
 
         original_dimensions=original_dimensions,
@@ -360,7 +348,7 @@ def main(# Debug args
                      focal_gamma=focal_gamma,
                      image_loss_only=image_loss_only,
                      image_pos_weight=image_pos_weight,
-                     confidence_threshold=confidence_threshold,
+                     
 
                      freeze_backbone=freeze_backbone, 
                      pretrain_backbone=pretrain_backbone,
@@ -370,8 +358,7 @@ def main(# Debug args
                      num_tiles=num_tiles_height * num_tiles_width,
                      num_tiles_height=num_tiles_height,
                      num_tiles_width=num_tiles_width,
-                     series_length=series_length,
-                     is_background_removal=is_background_removal)
+                     series_length=series_length)
 
     ### Initialize LightningModule ###
     if checkpoint_path and checkpoint:
@@ -428,14 +415,14 @@ def main(# Debug args
 
     # Set up data_module and save train/val/test splits
     data_module.setup(log_dir=logger.log_dir if not is_debug else None)
-
+    #import pdb;pdb.set_trace()
     trainer = pl.Trainer(
         # Trainer args
         min_epochs=min_epochs,
         max_epochs=max_epochs,
         callbacks=callbacks,
         precision=16 if sixteen_bit else 32,
-        stochastic_weight_avg=stochastic_weight_avg,
+        #stochastic_weight_avg=stochastic_weight_avg,
         gradient_clip_val=gradient_clip_val,
         accumulate_grad_batches=accumulate_grad_batches,
 
@@ -488,16 +475,11 @@ if __name__ == '__main__':
         omit_list=parsed_args['omit_list'],
         error_as_eval_loss=parsed_args['error_as_eval_loss'],
         mask_omit_images=parsed_args['mask_omit_images'],
-        is_object_detection=parsed_args['is_object_detection'],
-        is_maskrcnn=parsed_args['is_maskrcnn'],
-        is_background_removal=parsed_args['is_background_removal'],
-        
+
         # Path args - always used command line args for these
         raw_data_path=args['raw_data_path'],
         labels_path=args['labels_path'], 
         metadata_path=args['metadata_path'],
-        optical_flow_path=args['optical_flow_path'],
-        
         train_split_path=args['train_split_path'], 
         val_split_path=args['val_split_path'], 
         test_split_path=args['test_split_path'],
@@ -513,11 +495,8 @@ if __name__ == '__main__':
         test_split_size=parsed_args['test_split_size'],
         batch_size=parsed_args['batch_size'], 
         num_workers=parsed_args['num_workers'], 
-        
         series_length=parsed_args['series_length'], 
-        add_base_flow=parsed_args['add_base_flow'], 
-        time_range=(parsed_args['time_range_min'],parsed_args['time_range_max']), 
-
+        time_range=(parsed_args['time_range_min'],parsed_args['time_range_max']),
         original_dimensions=(parsed_args['original_height'], parsed_args['original_width']),
         resize_dimensions=(parsed_args['resize_height'], parsed_args['resize_width']),
         crop_height=parsed_args['crop_height'],
@@ -551,7 +530,6 @@ if __name__ == '__main__':
         focal_gamma=parsed_args['focal_gamma'],
         image_loss_only=parsed_args['image_loss_only'],
         image_pos_weight=parsed_args['image_pos_weight'],
-        confidence_threshold=parsed_args['confidence_threshold'],
         
         # Optimizer args
         optimizer_type=parsed_args['optimizer_type'],
@@ -564,7 +542,6 @@ if __name__ == '__main__':
         max_epochs=parsed_args['max_epochs'],
         early_stopping=parsed_args['no_early_stopping'],
         early_stopping_patience=parsed_args['early_stopping_patience'],
-        
         sixteen_bit=parsed_args['no_sixteen_bit'],
         stochastic_weight_avg=parsed_args['no_stochastic_weight_avg'],
         gradient_clip_val=parsed_args['gradient_clip_val'],
