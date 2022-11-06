@@ -386,6 +386,7 @@ class DynamicDataloader(Dataset):
         for file_name in self.metadata['image_series'][image_name]:
             # Load image
             # img.shape = [height, width, num_channels]
+
             if Path(self.raw_data_path+'/'+file_name+'.jpg').exists():
                 img = cv2.imread(self.raw_data_path+'/'+file_name+'.jpg')
             else:

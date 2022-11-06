@@ -87,7 +87,7 @@ class LightningModule(pl.LightningModule):
                 self.metrics['torchmetric'][split+category+self.metrics['name'][0]] = torchmetrics.Accuracy(mdmc_average=mdmc_average)
                 self.metrics['torchmetric'][split+category+self.metrics['name'][1]] = torchmetrics.Precision(multiclass=False, mdmc_average=mdmc_average)
                 self.metrics['torchmetric'][split+category+self.metrics['name'][2]] = torchmetrics.Recall(multiclass=False, mdmc_average=mdmc_average)
-                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1(multiclass=False, mdmc_average=mdmc_average)
+                self.metrics['torchmetric'][split+category+self.metrics['name'][3]] = torchmetrics.F1Score(multiclass=False, mdmc_average=mdmc_average)
             
         print("Initializing LightningModule Complete.")
 
