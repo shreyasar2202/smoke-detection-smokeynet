@@ -1,0 +1,8 @@
+1. Need to import numpy, opencv, and Pillow into Lambda Layers
+    However, it is capped  at 250mb for 5 layers
+2. Need to run lambda function as a docker container which supports <= 10 GB
+
+3. OpenCV caused issues on Docker when importing. The Amazon Base OS Image does not have mesaLibgl
+which OpenCV depends on. This caused a lot of issues in tracing the error since the error messages
+that we got werent' really helpful
+
