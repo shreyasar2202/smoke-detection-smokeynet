@@ -26,7 +26,6 @@ import torchvision.models.detection
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from torchvision.models.detection.anchor_utils import AnchorGenerator
-from gtrxl_torch.gtrxl_torch import GTrXL
 
 # Other imports 
 import numpy as np

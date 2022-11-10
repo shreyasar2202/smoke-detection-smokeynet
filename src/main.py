@@ -435,7 +435,7 @@ def main(# Debug args
         max_epochs=max_epochs,
         callbacks=callbacks,
         precision=16 if sixteen_bit else 32,
-        stochastic_weight_avg=stochastic_weight_avg,
+        #stochastic_weight_avg=stochastic_weight_avg,
         gradient_clip_val=gradient_clip_val,
         accumulate_grad_batches=accumulate_grad_batches,
 
@@ -456,7 +456,8 @@ def main(# Debug args
 #             weights_summary='full',
 #             profiler="simple", # "advanced" "pytorch"
 #             log_gpu_memory=True,
-        gpus=1)
+        #)
+        accelerator = 'cpu')
 
     ### Training & Evaluation ###
     if is_test_only:
