@@ -57,21 +57,18 @@ def lambda_handler(event, context):
     for i in range(num_tiles):
 
         # https://stackoverflow.com/questions/60138697/typeerror-cannot-handle-this-data-type-1-1-3-f4
-        processed_img = Image.fromarray((processed_img_np_array_tiles[i] * 255).astype(np.uint8))
+        processed_img_ndarray = (processed_img_np_array_tiles[i] * 255).astype(np.uint8)
 
         # Save the image to an in-memory file
         in_mem_file = io.BytesIO()
-        if processed_img.mode != 'RGB':
-            processed_img = processed_img.convert('RGB')
-        processed_img.save(in_mem_file, format='JPEG')
+        np.save(in_mem_file, processed_img_ndarray)
         in_mem_file.seek(0)
 
         # Upload image to s3
-
         processed_key = invoking_object_key # blah-blah.jpg
         processed_key = processed_key.replace('jpg', '') # blah-blah
         processed_key += '_processed' # blah-blah_processed
-        processed_key += '/tile_' + str(i) + '.jpg' # blah-blah_processed/tile'i'.jpg where 'i' is the current index
+        processed_key += '/tile_' + str(i) + '.npy' # blah-blah_processed/tile'i'.jpg where 'i' is the current index
 
         s3.upload_fileobj(
             Fileobj=in_mem_file,
