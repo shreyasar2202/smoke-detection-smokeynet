@@ -8,6 +8,8 @@ RUN yum install mesa-libGL -y
 
 # Copy function code
 COPY data_preprocess.py ./
+COPY dynamic_data_transformer.py ./
+COPY utils.py ./
 
 # Install the function's dependencies using file requirements.txt
 # from your project folder.

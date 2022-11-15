@@ -7,23 +7,18 @@ from PIL import Image
 import numpy as np
 import cv2
 
+from dynamic_data_transformer import DynamicDataTransformer
 
 INFERENCE_NON_PROCESSED_BUCKET_NAME = 'smokynet-inference-images-non-processed'
 INFERENCE_PROCESSED_BUCKET_NAME = 'smokynet-inference-images-processed'
 
 
-# TODO: Implement actual, instead of dummy
-def data_proprocessing_dummy(img_np_array):
+def data_proprocessing(img_np_array):
     '''
-    Preproceses the image represented in a np array and return it
-
-            Parameters:
-                img_np_array (numpy.ndarray): the image represented in a np array
-            Returns:
-                processed_img_np_array (numpy.ndarray): processed veresion
+    Preproceses the image represented in a np array and return it (tiled)
     '''
-    return img_np_array
-
+    ddt = DynamicDataTransformer()
+    return ddt.transform(img_np_array)
 
 def lambda_handler(event, context):
 
@@ -56,23 +51,32 @@ def lambda_handler(event, context):
     # convert the image stream into a np array
     img_np_array = cv2.imdecode(np.asarray(bytearray(img_bytes)), cv2.IMREAD_COLOR)
 
-    # Send procesed image to another s3 bucket
-    processed_img_np_array = data_proprocessing_dummy(img_np_array=img_np_array)
-    processed_img = Image.fromarray(processed_img_np_array)
+    # Send procesed image tiles to another s3 bucket
+    processed_img_np_array_tiles = data_proprocessing(img_np_array=img_np_array)
+    num_tiles = (processed_img_np_array_tiles.shape)[0]
+    for i in range(num_tiles):
 
-    # Save the image to an in-memory file
-    in_mem_file = io.BytesIO()
-    processed_img.save(in_mem_file, format='JPEG')
-    in_mem_file.seek(0)
+        # https://stackoverflow.com/questions/60138697/typeerror-cannot-handle-this-data-type-1-1-3-f4
+        processed_img = Image.fromarray((processed_img_np_array_tiles[i] * 255).astype(np.uint8))
 
-    # Upload image to s3
+        # Save the image to an in-memory file
+        in_mem_file = io.BytesIO()
+        if processed_img.mode != 'RGB':
+            processed_img = processed_img.convert('RGB')
+        processed_img.save(in_mem_file, format='JPEG')
+        in_mem_file.seek(0)
 
-    processed_key = invoking_object_key
-    processed_key = processed_key.replace('.jpg', '_processed.jpg')
-    s3.upload_fileobj(
-        Fileobj=in_mem_file,
-        Bucket=INFERENCE_PROCESSED_BUCKET_NAME,
-        Key=processed_key,
-    )
+        # Upload image to s3
+
+        processed_key = invoking_object_key # blah-blah.jpg
+        processed_key = processed_key.replace('jpg', '') # blah-blah
+        processed_key += '_processed' # blah-blah_processed
+        processed_key += '/tile_' + str(i) + '.jpg' # blah-blah_processed/tile'i'.jpg where 'i' is the current index
+
+        s3.upload_fileobj(
+            Fileobj=in_mem_file,
+            Bucket=INFERENCE_PROCESSED_BUCKET_NAME,
+            Key=processed_key,
+        )
 
 
