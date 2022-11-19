@@ -8,6 +8,9 @@ import torch.nn.functional as F
 from main_model import MainModel
 import util_fns
 from lightning_module import LightningModule
+import boto3
+import io
+import pickle
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -29,6 +32,8 @@ class SmokeyNet(nn.Module):
 
 
 def model_fn(model_dir): 
+    #print("model_dir",mode_dir)
+    
     with open(os.path.join(model_dir, "last.ckpt"), "rb") as f:
         checkpoint = torch.load(f)
         hparams = checkpoint['hyper_parameters']
@@ -79,10 +84,17 @@ def model_fn(model_dir):
     return model
 
 def input_fn(request_body, request_content_type):
+    s3 = boto3.client("s3")
     assert request_content_type == "application/json"
-    data = json.loads(request_body)["inputs"]
-    data = torch.tensor(data, dtype=torch.float32, device=device)
-    return data
+#     data = json.loads(request_body)["inputs"]
+#     data = torch.tensor(data, dtype=torch.float32, device=device)
+      bucket_name = json.loads(request_body)["bucket_name"]
+      file_name = json.loads(request_body)["file_name"]
+      my_array_data2 = io.BytesIO()
+      s3.download_fileobj('your-bucket', 'your-file.pkl', my_array_data2)
+      my_array_data2.seek(0)
+      my_array2 = pickle.load(my_array_data2)  
+    return my_array2
 
 def predict_fn(input_object, model):
     with torch.no_grad():

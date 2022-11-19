@@ -1,0 +1,13 @@
+pytorch-lightning
+transformers
+jupyterlab 
+numpy
+matplotlib
+torch
+torchvision
+pytorch-lightning
+torchmetrics
+sklearn
+opencv-python
+transformers
+efficientnet-pytorch
