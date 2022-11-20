@@ -58,9 +58,9 @@ parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args
-parser.add_argument('--raw-data-path', type=str, default='/root/raw_images',
+parser.add_argument('--raw-data-path', type=str, default='efs/HPWREN-FIgLib-Data',
                     help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='/root/drive_clone_numpy',
+parser.add_argument('--labels-path', type=str, default='efs/drive_clone_numpy',
                     help='Path to processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')

@@ -11,3 +11,5 @@ sklearn
 opencv-python
 transformers
 efficientnet-pytorch
+pickle
+boto3

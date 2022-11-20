@@ -9,9 +9,14 @@ from main_model import MainModel
 import util_fns
 from lightning_module import LightningModule
 import boto3
-import io
+import numpy as np
+from io import BytesIO
+from urllib.parse import urlparse
 import pickle
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -84,17 +89,25 @@ def model_fn(model_dir):
     return model
 
 def input_fn(request_body, request_content_type):
-    s3 = boto3.client("s3")
+    s3_client = boto3.client("s3")
     assert request_content_type == "application/json"
 #     data = json.loads(request_body)["inputs"]
 #     data = torch.tensor(data, dtype=torch.float32, device=device)
-      bucket_name = json.loads(request_body)["bucket_name"]
-      file_name = json.loads(request_body)["file_name"]
-      my_array_data2 = io.BytesIO()
-      s3.download_fileobj('your-bucket', 'your-file.pkl', my_array_data2)
-      my_array_data2.seek(0)
-      my_array2 = pickle.load(my_array_data2)  
-    return my_array2
+#     s3_uri = "s3://smokynet-inference-images-processed/test/dummy_data"
+#     bucket_name = json.loads(request_body)["bucket_name"]
+#     bytes_ = BytesIO()
+#     parsed_s3 = urlparse(s3_uri)
+#     s3.download_fileobj(
+#         Fileobj=bytes_, Bucket=bucket_name, Key=parsed_s3.path[1:]
+#     )
+#     bytes_.seek(0)
+#     data = np.load(bytes_, allow_pickle=True)
+    my_array_data2 = BytesIO()
+    s3_client.download_fileobj('smokynet-inference-images-processed', 'processed_data.pkl', my_array_data2)
+    my_array_data2.seek(0)
+    my_array2 = pickle.load(my_array_data2)
+    data = torch.tensor(my_array2, dtype=torch.float32, device=device)
+    return data
 
 def predict_fn(input_object, model):
     with torch.no_grad():
