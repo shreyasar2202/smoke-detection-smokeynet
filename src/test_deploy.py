@@ -46,5 +46,4 @@ import numpy as np
 dummy_data = {"inputs": np.random.rand(2, 45, 2, 3, 224, 224).tolist()}
 
 
-
 res = predictor.predict(dummy_data)

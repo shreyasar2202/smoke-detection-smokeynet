@@ -11,6 +11,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger
+import os
 
 # Other package imports
 from argparse import ArgumentParser, Namespace
@@ -58,9 +59,9 @@ parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args
-parser.add_argument('--raw-data-path', type=str, default='efs/HPWREN-FIgLib-Data',
+parser.add_argument('--raw-data-path', type=str, default='/opt/ml/input/data/training/Data/Training_Data',
                     help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='efs/drive_clone_numpy',
+parser.add_argument('--labels-path', type=str, default='/opt/ml/input/data/training/Data/Labels',
                     help='Path to processed XML labels.')
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
@@ -177,7 +178,7 @@ parser.add_argument('--use-lr-schedule', action='store_true',
 # Training args = 8
 parser.add_argument('--min-epochs', type=int, default=3,
                     help='Min number of epochs to train for.')
-parser.add_argument('--max-epochs', type=int, default=25,
+parser.add_argument('--max-epochs', type=int, default=5,
                     help='Max number of epochs to train for.')
 parser.add_argument('--no-early-stopping', action='store_false',
                     help='Disables early stopping based on validation loss. See PyTorch Lightning docs for more details.')
@@ -195,7 +196,8 @@ parser.add_argument('--accumulate-grad-batches', type=int, default=1,
 # Checkpoint args
 parser.add_argument('--checkpoint-path', type=str, default=None,
                     help='(Optional) Path to checkpoint to load.')
-
+# arguments for training on sagemaker
+parser.add_argument("--train", type=str, default=os.environ["SM_CHANNEL_TRAINING"])
     
 #####################
 ## Main
@@ -457,7 +459,7 @@ def main(# Debug args
 #             profiler="simple", # "advanced" "pytorch"
 #             log_gpu_memory=True,
         #)
-        accelerator = 'cpu')
+        gpus=1)
 
     ### Training & Evaluation ###
     if is_test_only:
@@ -469,7 +471,10 @@ def main(# Debug args
     
 if __name__ == '__main__':
     args = vars(parser.parse_args())
-    
+    print("\n\nTrain data path: ",args['train'])
+    print("\n\n")
+    cmd = "ls -l " + args['train']
+    print("List of the training dir",os.system(cmd))
     # Load checkpoint if it exists
     if args['checkpoint_path'] is not None:
         checkpoint = torch.load(args['checkpoint_path'])
@@ -481,13 +486,13 @@ if __name__ == '__main__':
         parsed_args = args
     else:
         parsed_args = checkpoint['hyper_parameters']
-        
+    parsed_args['model_type_list'] = ["RawToTile_ResNet" ,"TileToTile_LSTM" ,"TileToTileImage_SpatialViT"]   
     main(# Debug args
         is_debug=args['is_debug'],
         is_test_only=args['is_test_only'],
         is_extra_training=args['is_extra_training'],
         omit_list=parsed_args['omit_list'],
-        error_as_eval_loss=parsed_args['error_as_eval_loss'],
+        error_as_eval_loss=True,#parsed_args['error_as_eval_loss'],
         mask_omit_images=parsed_args['mask_omit_images'],
         is_object_detection=parsed_args['is_object_detection'],
         is_maskrcnn=parsed_args['is_maskrcnn'],
@@ -538,7 +543,7 @@ if __name__ == '__main__':
         model_type_list=parsed_args['model_type_list'],
         pretrain_epochs=parsed_args['pretrain_epochs'],
         intermediate_supervision=parsed_args['no_intermediate_supervision'],
-        use_image_preds=parsed_args['use_image_preds'],
+        use_image_preds= True, #parsed_args['use_image_preds'],
         tile_embedding_size=parsed_args['tile_embedding_size'],
         
         pretrain_backbone=parsed_args['no_pretrain_backbone'],
@@ -563,7 +568,7 @@ if __name__ == '__main__':
         # Trainer args
         min_epochs=parsed_args['min_epochs'],
         max_epochs=parsed_args['max_epochs'],
-        early_stopping=parsed_args['no_early_stopping'],
+        early_stopping=False,#parsed_args['no_early_stopping'],
         early_stopping_patience=parsed_args['early_stopping_patience'],
         
         sixteen_bit=parsed_args['no_sixteen_bit'],
