@@ -52,7 +52,23 @@ def lambda_handler(event, context):
     img_np_array = cv2.imdecode(np.asarray(bytearray(img_bytes)), cv2.IMREAD_COLOR)
 
     # Send procesed image tiles to another s3 bucket
-    processed_img_np_array_tiles = data_proprocessing(img_np_array=img_np_array)
+    processed_img_np_array_tiles = data_proprocessing(img_np_array=img_np_array) # num_tiles x height x width x 3 (RGB)
+    processed_img_np_array_tiles = processed_img_np_array_tiles[np.newaxis, :, :, :, :] # shreyas said to add a new dimention in the beginning -> 1 x num_tiles x height x width x 3
+    processed_img_np_array_tiles = (processed_img_np_array_tiles * 255).astype(np.uint8)
+    in_mem_file = io.BytesIO()
+    np.save(in_mem_file, processed_img_np_array_tiles)
+    in_mem_file.seek(0)
+    processed_key = invoking_object_key # blah-blah.jpg
+    processed_key = processed_key.replace('jpg', '') # blah-blah
+    processed_key += '_processed.pkl' # blah-blah_processed.pkl
+
+    s3.upload_fileobj(
+        Fileobj=in_mem_file,
+        Bucket=INFERENCE_PROCESSED_BUCKET_NAME,
+        Key=processed_key,
+    )
+
+    '''
     num_tiles = (processed_img_np_array_tiles.shape)[0]
     for i in range(num_tiles):
 
@@ -75,5 +91,4 @@ def lambda_handler(event, context):
             Bucket=INFERENCE_PROCESSED_BUCKET_NAME,
             Key=processed_key,
         )
-
-
+    '''
