@@ -2,6 +2,7 @@ import boto3
 
 import urllib.parse
 import io
+import pickle
 
 from PIL import Image
 import numpy as np
@@ -56,10 +57,11 @@ def lambda_handler(event, context):
     processed_img_np_array_tiles = processed_img_np_array_tiles[np.newaxis, :, :, :, :] # shreyas said to add a new dimention in the beginning -> 1 x num_tiles x height x width x 3
     processed_img_np_array_tiles = (processed_img_np_array_tiles * 255).astype(np.uint8)
     in_mem_file = io.BytesIO()
-    np.save(in_mem_file, processed_img_np_array_tiles)
+    pickle.dump(processed_img_np_array_tiles, in_mem_file)
+    # np.save(in_mem_file, processed_img_np_array_tiles)
     in_mem_file.seek(0)
     processed_key = invoking_object_key # blah-blah.jpg
-    processed_key = processed_key.replace('jpg', '') # blah-blah
+    processed_key = processed_key.replace('.jpg', '') # blah-blah
     processed_key += '_processed.pkl' # blah-blah_processed.pkl
 
     s3.upload_fileobj(
