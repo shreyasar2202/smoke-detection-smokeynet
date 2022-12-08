@@ -63,7 +63,8 @@ def test(model_data):
     # simulate some input data to test transform_fn
 
     #data = {"inputs": np.random.rand(2, 45, 2, 3, 224, 224).tolist()}
-    data = {'bucket_name' : 'smokynet-inference-images-processed'}
+    data = {'bucket_name' : 'smokynet-inference-images-processed', 'file_name':'bm-e-mobo-c_1670505095__processed.pkl'}
+   
 
     serializer = sagemaker.serializers.JSONSerializer()
 

@@ -92,11 +92,32 @@ def input_fn(request_body, request_content_type):
     assert request_content_type == "application/json"
     bucket_name = json.loads(request_body)["bucket_name"]
     file_name = json.loads(request_body)["file_name"]
+    
     input_data = BytesIO()
     s3_client.download_fileobj(bucket_name, file_name, input_data)
     input_data.seek(0)
     input_array = pickle.load(input_data)
     data = torch.tensor(input_array, dtype=torch.float32, device=device)
+    
+    split_file_name = file_name.split('_')
+    
+    camera_name = split_file_name[0]
+    new_timestamp= str(int(split_file_name[1])-60)
+    old_file_name = camera_name + '_' + new_timestamp + '__processed.pkl'
+    
+    try:
+        print(old_file_name)
+        input_data = BytesIO()
+        s3_client.download_fileobj(bucket_name, old_file_name, input_data)
+        input_data.seek(0)
+        input_array = pickle.load(input_data)
+        old_data = torch.tensor(input_array, dtype=torch.float32, device=device)
+    except:
+        old_data = torch.clone(data).to(device)
+    
+    data = torch.concat([old_data, data], dim=2)
+    
+
     return data
 
 def predict_fn(input_object, model):

@@ -59,10 +59,10 @@ parser.add_argument('--experiment-description', type=str, default=None,
                     help='(Optional) Short description of experiment that will be saved as a hyperparam')
 
 # Path args
-parser.add_argument('--raw-data-path', type=str, default='/opt/ml/input/data/training/Data/Training_Data',
-                    help='Path to raw images.')
-parser.add_argument('--labels-path', type=str, default='/opt/ml/input/data/training/Data/Labels',
-                    help='Path to processed XML labels.')
+parser.add_argument('--raw-data-path', type=str, default= '/opt/ml/input/data/training/HPWREN-FIgLib-Data',
+                    help='Path to raw images.') # /opt/ml/input/data/training/Data/Training_Data
+parser.add_argument('--labels-path', type=str, default='/opt/ml/input/data/training/drive_clone_numpy',
+                    help='Path to processed XML labels.') # /opt/ml/input/data/training/Data/Labels
 parser.add_argument('--metadata-path', type=str, default='./data/metadata.pkl',
                     help='Path to metadata.pkl.')
 parser.add_argument('--optical-flow-path', type=str, default=None,
