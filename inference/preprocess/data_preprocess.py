@@ -55,6 +55,9 @@ def lambda_handler(event, context):
     # Send procesed image tiles to another s3 bucket
     processed_img_np_array_tiles = data_proprocessing(img_np_array=img_np_array) # num_tiles x height x width x 3 (RGB)
     processed_img_np_array_tiles = processed_img_np_array_tiles[np.newaxis, :, :, :, :] # shreyas said to add a new dimention in the beginning -> 1 x num_tiles x height x width x 3
+    processed_img_np_array_tiles = processed_img_np_array_tiles[:, :, np.newaxis, :, :] # shreyas said to add a new dimention in the beginning -> 1 x num_tiles x height x width x 3
+    processed_img_np_array_tiles = processed_img_np_array_tiles.swapaxes(4, 5)
+    processed_img_np_array_tiles = processed_img_np_array_tiles.swapaxes(3, 4)
     processed_img_np_array_tiles = (processed_img_np_array_tiles * 255).astype(np.uint8)
     in_mem_file = io.BytesIO()
     pickle.dump(processed_img_np_array_tiles, in_mem_file)
