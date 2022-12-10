@@ -117,7 +117,7 @@ def lambda_handler(event, context):
         client = boto3.client('lambda')
         response = client.invoke(
         FunctionName = 'arn:aws:lambda:us-west-2:113998783017:function:locating-smoke',
-        InvocationType = 'RequestResponse',
+        InvocationType = 'Event',
         Payload = json.dumps({
             "camera_name" : event['image_id'],
             "latitude": camera_latitude,

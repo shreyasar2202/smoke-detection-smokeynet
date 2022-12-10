@@ -41,7 +41,7 @@ def lambda_handler(event, context):
     
     responseFromLambda = client.invoke(
     FunctionName = 'arn:aws:lambda:us-west-2:113998783017:function:ensemble-prediction',
-    InvocationType = 'RequestResponse',
+    InvocationType = 'Event',
     Payload = json.dumps({
                  "image_id" : camera_name,
                  "smokeynet_prediction" : smokeynet_prediction,

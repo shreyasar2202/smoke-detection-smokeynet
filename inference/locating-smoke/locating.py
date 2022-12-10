@@ -74,7 +74,7 @@ def lambda_handler(event, context):
     result = "Not invoking endpoint"
     if flag == 1:
         response = client.invoke(FunctionName='arn:aws:lambda:us-west-2:113998783017:function:end-user-lambda',
-                                           InvocationType = 'RequestResponse',
+                                           InvocationType = 'Event',
                                            Payload = data)
         print(response)
         # result = json.loads(response)
